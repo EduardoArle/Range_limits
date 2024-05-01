@@ -47,7 +47,7 @@ sps_list <- gsub('_thinned.csv', '', list.files())
 
 ######## Get measurements for all species ######
 
-for(i in 16:length(sps_list))
+for(i in 1:length(sps_list))
 {
   #select species
   sps <- sps_list[i]
