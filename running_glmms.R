@@ -57,7 +57,7 @@ Max_T_SHAP_model=glmmTMB(
 sjPlot::plot_model(Max_T_SHAP_model,type="diag")
 glmmTMB::diagnose(Max_T_SHAP_model)
 ####model summary
-summary(Max_T_SHAP_model)
+summary(Max_T_SHAP_model) # test
 
 sjPlot::plot_model(Max_T_SHAP_model,type="pred",
                    terms=c('relPolarwardness','rangeSize[20000,1000000]','elevation[0,1000,6000]'))

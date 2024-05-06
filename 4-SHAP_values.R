@@ -43,7 +43,7 @@ for(i in 1:length(sps_list))
   #select species
   sps <- sps_list[i]
   
-  #loas species occurrences
+  #load species occurrences
   setwd(wd_thinned_occ)
   sps_occ <- read.csv(paste0(sps, '_thinned.csv'))
   
@@ -86,7 +86,7 @@ for(i in 1:length(sps_list))
   #make a holes in the species range by the small buffer around points
   pa_area <- st_difference(sps_range_buf, no_pa_area)
   
-  #define number of pseudo abs to be created (for now same as presences)
+  #define number of pseudo abs to be created (same as presences)
   n_pa <- nrow(pr_sps)
   
   #generate pseudo absences
