@@ -1,0 +1,259 @@
+---
+title: "range_limits_brms"
+author: "Shahar Chaikin"
+date: "2024-05-06"
+output: html_document
+---
+
+Using brms to answer:
+1. How does max. temperature relates with relative polewardness? One would excpect that higher max. temp. will increase the probability of occurrence in the poleward side - hence positive association.
+
+2. How does min. temperature relates with relative polewardness? One would excpect that lower min. temp. will reduce the probability of occurrence in the poleward side - hence negative association.
+
+
+*add sqrt occurrences as weights
+*add biomes and species/ order as random effects
+
+Packages
+```{r}
+library(tidyverse)
+library(brms)
+```
+
+Data
+```{r}
+data=read.csv("Results_all_sps(in).csv") %>% 
+  mutate(abs_lat=abs(decimalLatitude),
+         sqrt_n_occ=sqrt(n_occ)) %>% #add abs lat
+  select(species,
+         key,
+         abs_lat,
+         rangeSize,
+         distEdge,
+         relPolarwardness,
+         elevation,
+         biome,
+         bodyMass,
+         sqrt_n_occ,
+         n_occ,
+         order,
+         Min_T_SHAP,
+         Mean_T_SHAP,
+         Max_T_SHAP,
+         Min_PPT_SHAP,
+         Mean_PPT_SHAP,
+         Max_PPT_SHAP,
+         NOTE) %>% 
+    filter(!NOTE%in%"Crossed by Equator",
+           n_occ>=20)
+data$biome=as.factor(data$biome)
+data$species %>% n_distinct()
+```
+
+#Polewardness
+##max_temp - prior 1
+```{r}
+max_temp_model=brm(
+  data = data,
+  formula = Max_T_SHAP~relPolarwardness+(1+relPolarwardness|biome)+(1+relPolarwardness|species),
+  chains=3,
+  iter = 4000,
+  warmup = 2000,
+  cores = 3,
+  prior = set_prior('normal(0,5)',
+                    class="b",
+                    coef="relPolarwardness"),
+  family=gaussian())#22 min
+#save model
+saveRDS(max_temp_model, file = "max_temp_model.RDS") 
+
+brms::bayes_R2(max_temp_model)
+summary(max_temp_model)
+max_temp_model_gg=ggeffects::ggpredict(max_temp_model,terms="relPolarwardness[all]")
+
+#Diagnosis
+brms::pp_check(max_temp_model,ndraws=99)# posterior predictive checks
+plot(max_temp_model)
+```
+plot
+```{r}
+ggplot()+
+  geom_point(data=data
+             ,aes(x=relPolarwardness,y=Min_T_SHAP),
+             alpha=0.3,
+             size=1,
+             color='grey')+
+  geom_ribbon(data=max_temp_model_gg,aes(x=x,ymin=conf.low,ymax=conf.high),
+              alpha=0.3,
+              fill="orange")+
+    geom_line(data=max_temp_model_gg,aes(x=x,y=predicted))+
+  labs(x="Relative polewardness",
+       y="Max. temp (SHAP)")+
+  theme_bw()
+```
+
+##max_temp - prior 2
+```{r}
+max_temp_model_2=brm(
+  data = data,
+  formula = Max_T_SHAP~relPolarwardness+(1+relPolarwardness|biome)+(1+relPolarwardness|species),
+  chains=3,
+  iter = 4000,
+  warmup = 2000,
+  cores = 3,
+  prior = set_prior('normal(1,5)',
+                    class="b",
+                    coef="relPolarwardness"),
+  family=gaussian())#22 min
+#save model
+saveRDS(max_temp_model_2, file = "max_temp_model_2.RDS") 
+
+brms::bayes_R2(max_temp_model_2)
+summary(max_temp_model_2)
+max_temp_model_gg=ggeffects::ggpredict(max_temp_model_2,terms="relPolarwardness[all]")
+
+#Diagnosis
+brms::pp_check(max_temp_model_2,ndraws=99)# posterior predictive checks
+plot(max_temp_model_2)
+```
+
+##min_temp
+```{r}
+min_temp_model=brm(
+  data = data,
+  formula = Min_T_SHAP~relPolarwardness+(1+relPolarwardness|biome)+(1+relPolarwardness|species),
+  chains=3,
+  iter = 4000,
+  warmup = 2000,
+  cores = 3,
+  prior = set_prior('normal(0,5)',
+                    class="b",
+                    coef="relPolarwardness"),
+  family=gaussian())#22 min
+#save model
+saveRDS(min_temp_model, file = "min_temp_model.RDS") 
+
+brms::bayes_R2(min_temp_model)
+summary(min_temp_model)
+min_temp_model_gg=ggeffects::ggpredict(min_temp_model,terms="relPolarwardness[all]")
+#Diagnosis
+#Diagnosis
+brms::pp_check(min_temp_model,ndraws=99)# posterior predictive checks
+plot(min_temp_model)
+```
+
+Plot
+```{r}
+ggplot()+
+  geom_point(data=data %>% 
+               filter(!NOTE%in%"Crossed by Equator",
+             n_occ>=20)
+             ,aes(x=relPolarwardness,y=Min_T_SHAP),
+             alpha=0.3,
+             size=1,
+             color='grey')+
+  geom_ribbon(data=min_temp_model_gg,aes(x=x,ymin=conf.low,ymax=conf.high),
+              alpha=0.3,
+              fill="blue")+
+    geom_line(data=min_temp_model_gg,aes(x=x,y=predicted))+
+  labs(x="Relative polewardness",
+       y="Min. temp (SHAP)")+
+  theme_bw()
+```
+
+#Polewardness & elevation
+##max_temp - 18 hours
+We assume that minimum temperature will limit the poleward expansion of species and that maximum temperature will facilitate it. Hence, prior are built accordingly and are partially informative.
+```{r}
+#get priors
+max_temp_ele_prior=get_prior(Max_T_SHAP~relPolarwardness*elevation+(1+relPolarwardness|biome)+(1+relPolarwardness|species), data = data %>% 
+    filter(!NOTE%in%"Crossed by Equator",
+           n_occ>=20))
+#reduce complexity by having more simple random effects
+#model
+max_temp_ele_model=brm(
+  data = data,
+  formula = Max_T_SHAP~relPolarwardness*elevation+(1|order),
+  chains=3,
+  iter = 20000,
+  warmup = 2000,
+  cores = 3,
+  family=gaussian(),
+  prior = c(set_prior('normal(0.5,10)',
+                    class="b",
+                    coef="relPolarwardness"),#Consider making relPolarwardness positive with large space for variation as we expect positive association
+            set_prior('snormal(-0.5,10)',
+                    class="b",
+                    coef="elevation"),##Consider making elevation negative with large space for variation as we expect negative association
+            set_prior('normal(0,10)',
+                    class="b",
+                    coef="relPolarwardness:elevation")))
+#save model
+saveRDS(max_temp_ele_model, file = "max_temp_ele_model_3.RDS") 
+#max_temp_ele_model=read_rds("max_temp_ele_model_set_prior.RDS")
+brms::bayes_R2(max_temp_ele_model)
+summary(max_temp_ele_model)
+max_temp_ele_model_gg=ggeffects::ggpredict(max_temp_ele_model,terms="relPolarwardness[all]")
+sjPlot::plot_model(max_temp_ele_model,type="int",terms=c("relPolarwardness","elevation[0,6000]"))
+
+#Diagnosis
+brms::pp_check(max_temp_ele_model,ndraws=99)# posterior predictive checks
+plot(max_temp_ele_model)
+```
+plot
+```{r}
+
+```
+
+##min_temp
+```{r}
+min_temp_model=brm(
+  data = data %>% 
+    filter(!NOTE%in%"Crossed by Equator",
+           n_occ>=20),
+  formula = Min_T_SHAP~relPolarwardness*elevation+(1+relPolarwardness|biome)+(1+relPolarwardness|species),
+  chains=3,
+  iter = 4000,
+  warmup = 2000,
+  cores = 3,
+  prior = set_prior('normal(0,5)',
+                    class="b",
+                    coef="relPolarwardness"),
+  sample_prior = "yes",
+  family=gaussian())#22 min
+#save model
+saveRDS(min_temp_model, file = "min_temp_model.RDS") 
+
+brms::bayes_R2(min_temp_model)
+summary(min_temp_model)
+min_temp_model_gg=ggeffects::ggpredict(min_temp_model,terms="relPolarwardness[all]")
+#Diagnosis
+#Diagnosis
+brms::pp_check(min_temp_model,ndraws=99)# posterior predictive checks
+plot(min_temp_model)
+```
+
+Plot
+```{r}
+ggplot()+
+  geom_point(data=data %>% 
+               filter(!NOTE%in%"Crossed by Equator",
+             n_occ>=20)
+             ,aes(x=relPolarwardness,y=Min_T_SHAP),
+             alpha=0.3,
+             size=1,
+             color='grey')+
+  geom_ribbon(data=min_temp_model_gg,aes(x=x,ymin=conf.low,ymax=conf.high),
+              alpha=0.3,
+              fill="blue")+
+    geom_line(data=min_temp_model_gg,aes(x=x,y=predicted))+
+  labs(x="Relative polewardness",
+       y="Min. temp (SHAP)")+
+  theme_bw()
+```
+
+
+Test the contribution of Shap values at different:
+1. relative polewardness
+2. elevation
+3. dist. from edge
