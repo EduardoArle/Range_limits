@@ -166,35 +166,36 @@ ggplot()+
 We assume that minimum temperature will limit the poleward expansion of species and that maximum temperature will facilitate it. Hence, prior are built accordingly and are partially informative.
 ```{r}
 #get priors
-max_temp_ele_prior=get_prior(Max_T_SHAP~relPolarwardness*elevation+(1+relPolarwardness|biome)+(1+relPolarwardness|species), data = data %>% 
-    filter(!NOTE%in%"Crossed by Equator",
-           n_occ>=20))
+max_temp_ele_prior=get_prior(Max_T_SHAP~relPolarwardness*elevation+(1|order), data = data)
 #reduce complexity by having more simple random effects
 #model
 max_temp_ele_model=brm(
   data = data,
-  formula = Max_T_SHAP~relPolarwardness*elevation+(1|order),
+  formula = Max_T_SHAP~relPolarwardness*elevation,
   chains=3,
-  iter = 20000,
-  warmup = 2000,
+  iter = 25000,
+  warmup = 2500,
   cores = 3,
-  family=gaussian(),
-  prior = c(set_prior('normal(0.5,10)',
-                    class="b",
-                    coef="relPolarwardness"),#Consider making relPolarwardness positive with large space for variation as we expect positive association
-            set_prior('snormal(-0.5,10)',
-                    class="b",
-                    coef="elevation"),##Consider making elevation negative with large space for variation as we expect negative association
-            set_prior('normal(0,10)',
-                    class="b",
-                    coef="relPolarwardness:elevation")))
+  family=gaussian())
+get_prior(max_temp_ele_model)
+# ,
+#   prior = c(set_prior('normal(0.5,10)',
+#                     class="b",
+#                     coef="relPolarwardness"),#Consider making relPolarwardness positive with large space for variation as we expect positive association
+#             set_prior('snormal(-0.5,10)',
+#                     class="b",
+#                     coef="elevation"),##Consider making elevation negative with large space for variation as we expect negative association
+#             set_prior('normal(0,10)',
+#                     class="b",
+#                     coef="relPolarwardness:elevation")))
+
 #save model
-saveRDS(max_temp_ele_model, file = "max_temp_ele_model_3.RDS") 
+saveRDS(max_temp_ele_model, file = "max_temp_ele_model_5.RDS") 
 #max_temp_ele_model=read_rds("max_temp_ele_model_set_prior.RDS")
 brms::bayes_R2(max_temp_ele_model)
 summary(max_temp_ele_model)
 max_temp_ele_model_gg=ggeffects::ggpredict(max_temp_ele_model,terms="relPolarwardness[all]")
-sjPlot::plot_model(max_temp_ele_model,type="int",terms=c("relPolarwardness","elevation[0,6000]"))
+
 
 #Diagnosis
 brms::pp_check(max_temp_ele_model,ndraws=99)# posterior predictive checks
@@ -202,31 +203,55 @@ plot(max_temp_ele_model)
 ```
 plot
 ```{r}
+max_temp_ele_model_p=sjPlot::plot_model(max_temp_ele_model,type="pred",terms=c("relPolarwardness","elevation[0,3000,6000]"))+
+  geom_vline(xintercept = 0.5,linetype="dashed")+
+  labs(x="Relative polewardness",
+       y="Max. temp. SHAP",
+       color="Elevation (m)")+
+   geom_rug(data=data,
+           aes(x=relPolarwardness,y=Max_T_SHAP),
+           alpha = 0.2,
+           linewidth=.5,
+           inherit.aes = FALSE)+
+  theme_bw()
 
+
+dens1 <- ggplot(data, aes(x = relPolarwardness)) + 
+  geom_density(alpha = 0.4,fill="grey") + 
+  theme_void() + 
+  theme(legend.position = "none")
+
+dens2 <- ggplot(data, aes(x = Max_T_SHAP)) + 
+  geom_density(alpha = 0.4,fill="grey") + 
+  theme_void() + 
+  theme(legend.position = "none") + 
+  coord_flip()
+library(ggpubr)
+library(patchwork)
+
+max_temp_ele_model_p_dans=dens1 + plot_spacer() + max_temp_ele_model_p + dens2 + 
+  plot_layout(ncol = 2, nrow = 2, widths = c(4, 1), heights = c(1, 4))
+
+ggsave(plot = max_temp_ele_model_p_dans,filename = "max_temp_ele_model_p_dans.png",device = "jpeg",units = "cm",width = 20,height = 12)
 ```
 
 ##min_temp
 ```{r}
 min_temp_model=brm(
-  data = data %>% 
-    filter(!NOTE%in%"Crossed by Equator",
-           n_occ>=20),
-  formula = Min_T_SHAP~relPolarwardness*elevation+(1+relPolarwardness|biome)+(1+relPolarwardness|species),
+  data = data,
+  formula = Min_T_SHAP~relPolarwardness*elevation,
   chains=3,
-  iter = 4000,
-  warmup = 2000,
+  iter = 25000,
+  warmup = 2500,
   cores = 3,
-  prior = set_prior('normal(0,5)',
-                    class="b",
-                    coef="relPolarwardness"),
-  sample_prior = "yes",
-  family=gaussian())#22 min
+  family=gaussian())
 #save model
-saveRDS(min_temp_model, file = "min_temp_model.RDS") 
+saveRDS(min_temp_model, file = "min_temp_model_ele.RDS") 
 
 brms::bayes_R2(min_temp_model)
 summary(min_temp_model)
 min_temp_model_gg=ggeffects::ggpredict(min_temp_model,terms="relPolarwardness[all]")
+sjPlot::plot_model(min_temp_model,type="int",terms=c("relPolarwardness","elevation[0,6000]"))
 #Diagnosis
 #Diagnosis
 brms::pp_check(min_temp_model,ndraws=99)# posterior predictive checks
@@ -234,23 +259,38 @@ plot(min_temp_model)
 ```
 
 Plot
+plot
 ```{r}
-ggplot()+
-  geom_point(data=data %>% 
-               filter(!NOTE%in%"Crossed by Equator",
-             n_occ>=20)
-             ,aes(x=relPolarwardness,y=Min_T_SHAP),
-             alpha=0.3,
-             size=1,
-             color='grey')+
-  geom_ribbon(data=min_temp_model_gg,aes(x=x,ymin=conf.low,ymax=conf.high),
-              alpha=0.3,
-              fill="blue")+
-    geom_line(data=min_temp_model_gg,aes(x=x,y=predicted))+
+min_temp_ele_model_p=sjPlot::plot_model(min_temp_model,type="pred",terms=c("relPolarwardness","elevation[0,3000,6000]"))+
+  geom_vline(xintercept = 0.5,linetype="dashed")+
   labs(x="Relative polewardness",
-       y="Min. temp (SHAP)")+
+       y="Min. temp. SHAP",
+       color="Elevation (m)")+
+   geom_rug(data=data,
+           aes(x=relPolarwardness,y=Min_T_SHAP),
+           alpha = 0.2,
+           linewidth=.5,
+           inherit.aes = FALSE)+
   theme_bw()
+
+
+dens1_min_temp_ele_model_p <- ggplot(data, aes(x = relPolarwardness)) + 
+  geom_density(alpha = 0.4,fill="grey") + 
+  theme_void() + 
+  theme(legend.position = "none")
+
+dens2_min_temp_ele_model_p <- ggplot(data, aes(x = Min_T_SHAP)) + 
+  geom_density(alpha = 0.4,fill="grey") + 
+  theme_void() + 
+  theme(legend.position = "none") + 
+  coord_flip()
+
+min_temp_ele_model_p_dans=dens1_min_temp_ele_model_p + plot_spacer() + min_temp_ele_model_p + dens2_min_temp_ele_model_p + 
+  plot_layout(ncol = 2, nrow = 2, widths = c(4, 1), heights = c(1, 4))
+
+ggsave(plot = min_temp_ele_model_p_dans,filename = "min_temp_ele_model_p_dans.png",device = "jpeg",units = "cm",width = 20,height = 12)
 ```
+
 
 
 Test the contribution of Shap values at different:
