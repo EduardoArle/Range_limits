@@ -69,8 +69,8 @@ sps_tables[[382]]$species <- names(sps_tables)[382]
 #same for _Toromys rhipidurus_ listed with the synonym _Makalata rhipidura_
 sps_tables[[490]]$species <- names(sps_tables)[490]
 
-sps_tables[[i]]$species
-names(sps_tables)[i]
+# sps_tables[[i]]$species
+# names(sps_tables)[i]
 
 #create a column with n occurrences for each species
 for(i in 1:length(sps_tables))
@@ -115,29 +115,51 @@ for(i in 1:length(sps_tables))
   meanPPT2 <- meanPPT[meanPPT$Type == 'Presence',]
   maxPPT2 <- maxPPT[maxPPT$Type == 'Presence',]
 
-  #rename cols to indicate the 'control variable'
+  #rename cols to indicate the 'control variables' 
+  
+  ## NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE ##
+  
+  # control_ is mean temperature for all precipitation analyses 
+  # and mean precipitation for all temperature analyses
+  
+  # control_elev_ is elevation for all analyses
+  
+  ## NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE ##
+  
   names(minT2)[names(minT2) == 'Mean_PPT_SHAP'] <- 'control_Min_T_SHAP'
+  names(minT2)[names(minT2) == 'elev_SHAP'] <- 'control_elev_Min_T_SHAP'
   names(meanT2)[names(meanT2) == 'Mean_PPT_SHAP'] <- 'control_Mean_T_SHAP'
+  names(meanT2)[names(meanT2) == 'elev_SHAP'] <- 'control_elev_Mean_T_SHAP'
   names(maxT2)[names(maxT2) == 'Mean_PPT_SHAP'] <- 'control_Max_T_SHAP'
+  names(maxT2)[names(maxT2) == 'elev_SHAP'] <- 'control_elev_Max_T_SHAP'
   
   names(minPPT2)[names(minPPT2) == 'Mean_T_SHAP'] <- 'control_Min_PPT_SHAP'
+  names(minPPT2)[names(minPPT2) == 'elev_SHAP'] <- 'control_elev_Min_PPT_SHAP'
   names(meanPPT2)[names(meanPPT2) == 'Mean_T_SHAP'] <- 'control_Mean_PPT_SHAP'
+  names(meanPPT2)[names(meanPPT2) == 'elev_SHAP'] <- 'control_elev_Mean_PPT_SHAP'
   names(maxPPT2)[names(maxPPT2) == 'Mean_T_SHAP'] <- 'control_Max_PPT_SHAP'
+  names(maxPPT2)[names(maxPPT2) == 'elev_SHAP'] <- 'control_elev_Max_PPT_SHAP'
   
   #select only columns of interest in each table
   minT3 <- minT2[c('decimalLongitude','decimalLatitude',
-                   'Min_T_SHAP', 'control_Min_T_SHAP')]
+                   'Min_T_SHAP',
+                   'control_Min_T_SHAP', 'control_elev_Min_T_SHAP')]
   meanT3 <- meanT2[c('decimalLongitude','decimalLatitude',
-                     'Mean_T_SHAP', 'control_Mean_T_SHAP')]
+                     'Mean_T_SHAP',
+                     'control_Mean_T_SHAP', 'control_elev_Mean_T_SHAP')]
   maxT3 <- maxT2[c('decimalLongitude','decimalLatitude',
-                   'Max_T_SHAP', 'control_Max_T_SHAP')]
+                   'Max_T_SHAP',
+                   'control_Max_T_SHAP', 'control_elev_Max_T_SHAP')]
   
   minPPT3 <- minPPT2[c('decimalLongitude','decimalLatitude',
-                       'Min_PPT_SHAP', 'control_Min_PPT_SHAP')]
+                       'Min_PPT_SHAP',
+                       'control_Min_PPT_SHAP', 'control_elev_Min_PPT_SHAP')]
   meanPPT3 <- meanPPT2[c('decimalLongitude','decimalLatitude',
-                         'Mean_PPT_SHAP', 'control_Mean_PPT_SHAP')]
+                         'Mean_PPT_SHAP',
+                         'control_Mean_PPT_SHAP', 'control_elev_Mean_PPT_SHAP')]
   maxPPT3 <- maxPPT2[c('decimalLongitude','decimalLatitude',
-                       'Max_PPT_SHAP', 'control_Max_PPT_SHAP')]
+                       'Max_PPT_SHAP',
+                       'control_Max_PPT_SHAP', 'control_elev_Max_PPT_SHAP')]
   
   #include order info into the species tables
   sps_tables[[i]]$order <- sps_orders$order[
@@ -164,6 +186,7 @@ for(i in 1:length(sps_tables))
 #check which species do not have info on order
 orders <- sapply(sps_tables, function(x){unique(x$order)})
 missing <- which(is.na(orders))
+missing 
 
 #make a table with all species values
 all_sps_table <- rbindlist(sps_tables, fill = T)

@@ -8,6 +8,7 @@ wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/
 wd_lists <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
 wd_maps <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Maps'
 wd_res <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results'
+wd_elevation <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/Elevation_Tozer'
 
 #load species list (chose with list from the folder)
 setwd(wd_lists)
@@ -29,7 +30,7 @@ n_thinned_recs <- numeric()
 ### did not work c(19, 21)
 
 #download and thin point records from GBIF
-for(i in 32:length(sps_list))
+for(i in 1:length(sps_list))
 {
   #download occ from GBIF using bRacatus
   sps_occ <- getOcc(sps_list[i])
@@ -92,7 +93,6 @@ for(i in 32:length(sps_list))
   
   dev.off()
 }
-
 
 # make a table with the intermediate steps in data filtering
 

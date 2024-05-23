@@ -26,13 +26,13 @@ library(sf); library(units); library(raster)
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Thinned_occurrrences'
 wd_pts_measure <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Point_and_range_measurements'
-wd_elevation <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/Elevation_Tozer'
+wd_elevation <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/BioClim_layers'
 wd_mass <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Mammal_trait_data/Smith_etal_2003_Ecology'
 wd_biomes <- '/Users/carloseduardoaribeiro/Documents/General data/Biomes/official'
 
 #load elevation raster
 setwd(wd_elevation)
-elev <- raster('SRTM15Plus_world.tif')
+elev <- raster('wc2.1_2.5m_elev.tif')
 
 #load biomes shapefile
 biomes <- st_read(dsn = wd_biomes, layer = 'wwf_terr_ecos')
