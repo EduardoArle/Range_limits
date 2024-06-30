@@ -7,7 +7,7 @@
 wd_res_shap <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Comparison'
 wd_orders <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
 wd_pts_measure <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Point_and_range_measurements'
-wd_res <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Results_20240603/Each_species'
+wd_res <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Results_20240603/Each_species_edgePoints'
 wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Results_20240603'
 
 
@@ -67,7 +67,7 @@ for(j in 1:length(sps_minT_pr))
 }
 
 #meanT
-sps_meanT_SHAP_info <- list()
+sps_meanT_SHAP_info_sel <- list()
 for(j in 1:length(sps_meanT_pr))
 {
   sps_meanT_SHAP_info[[j]] <- cbind(sps_meanT_pr[[j]], 
@@ -94,6 +94,63 @@ for(j in 1:length(sps_maxT_pr))
                                                     'relPolarwardness',
                                                     'elevation','biome',
                                                     'bodyMass')])
+}
+
+
+# select only points with relPolewardness between the intervals 0-0.2 & 0.8-1
+
+#minT
+sps_minT_SHAP_info_sel <- list()
+for(j in 1:length(sps_minT_pr))
+{
+  sps_minT_SHAP_info_sel[[j]] <- sps_minT_SHAP_info[[j]][which(
+    sps_minT_SHAP_info[[j]]$relPolarwardness <= 0.2 |
+    sps_minT_SHAP_info[[j]]$relPolarwardness >= 0.8),]
+}
+
+#meanT
+sps_meanT_SHAP_info_sel <- list()
+for(j in 1:length(sps_meanT_pr))
+{
+  sps_meanT_SHAP_info_sel[[j]] <- sps_meanT_SHAP_info[[j]][which(
+    sps_meanT_SHAP_info[[j]]$relPolarwardness <= 0.2 |
+      sps_meanT_SHAP_info[[j]]$relPolarwardness >= 0.8),]
+}
+
+#maxT
+sps_maxT_SHAP_info_sel <- list()
+for(j in 1:length(sps_maxT_pr))
+{
+  sps_maxT_SHAP_info_sel[[j]] <- sps_maxT_SHAP_info[[j]][which(
+    sps_maxT_SHAP_info[[j]]$relPolarwardness <= 0.2 |
+      sps_maxT_SHAP_info[[j]]$relPolarwardness >= 0.8),]
+}
+
+
+# select only points closer to 50km from the edge
+
+#minT
+sps_minT_SHAP_info_edge <- list()
+for(j in 1:length(sps_minT_pr))
+{
+  sps_minT_SHAP_info_edge[[j]] <- sps_minT_SHAP_info[[j]][which(
+    sps_minT_SHAP_info[[j]]$distEdge <= 50),]
+}
+
+#meanT
+sps_meanT_SHAP_info_edge <- list()
+for(j in 1:length(sps_meanT_pr))
+{
+  sps_meanT_SHAP_info_edge[[j]] <- sps_meanT_SHAP_info[[j]][which(
+    sps_meanT_SHAP_info[[j]]$distEdge <= 50),]
+}
+
+#maxT
+sps_maxT_SHAP_info_edge <- list()
+for(j in 1:length(sps_maxT_pr))
+{
+  sps_maxT_SHAP_info_edge[[j]] <- sps_maxT_SHAP_info[[j]][which(
+    sps_maxT_SHAP_info[[j]]$distEdge <= 50),]
 }
 
 #create vectors to store the results for each species
@@ -140,7 +197,7 @@ minLat <- numeric()
 for(j in 1:length(sps_list))
 {
   #skip sps with only one point
-  if(nrow(sps_minT_SHAP_info[[j]]) > 1){
+  if(nrow(sps_minT_SHAP_info_sel[[j]]) > 1){
     #list spp
     species[length(species) + 1] <- sps_list[j]
     
@@ -149,32 +206,32 @@ for(j in 1:length(sps_list))
       sps_orders$order[sps_orders$species == sps_list[j]]
     
     #list bodymass
-    bodymass[length(bodymass) + 1] <- unique(sps_minT_SHAP_info[[j]]$bodyMass)
+    bodymass[length(bodymass) + 1] <- unique(sps_minT_SHAP_info_sel[[j]]$bodyMass)
     
     #list number of biomes
     n_biomes[length(n_biomes) + 1] <-
-      length(unique(sps_minT_SHAP_info[[j]]$biome))
+      length(unique(sps_minT_SHAP_info_sel[[j]]$biome))
     
     #list min_elev
-    min_elev[length(min_elev) + 1] <- min(sps_minT_SHAP_info[[j]]$elevation)
+    min_elev[length(min_elev) + 1] <- min(sps_minT_SHAP_info_sel[[j]]$elevation)
     
     #list mean_elev
-    mean_elev[length(mean_elev) + 1] <- mean(sps_minT_SHAP_info[[j]]$elevation)
+    mean_elev[length(mean_elev) + 1] <- mean(sps_minT_SHAP_info_sel[[j]]$elevation)
     
     #list max_elev
-    max_elev[length(max_elev) + 1] <- max(sps_minT_SHAP_info[[j]]$elevation)
+    max_elev[length(max_elev) + 1] <- max(sps_minT_SHAP_info_sel[[j]]$elevation)
     
     #check in which hemisphere the species is
-    if(length(unique(sps_minT_SHAP_info[[j]]$decimalLatitude < 0)) == 1){
-      if(unique(sps_minT_SHAP_info[[j]]$decimalLatitude < 0)){
+    if(length(unique(sps_minT_SHAP_info_sel[[j]]$decimalLatitude < 0)) == 1){
+      if(unique(sps_minT_SHAP_info_sel[[j]]$decimalLatitude < 0)){
         hemisphere[length(hemisphere) + 1] <- 'Southern'
       }
-      if(unique(sps_minT_SHAP_info[[j]]$decimalLatitude > 0)){
+      if(unique(sps_minT_SHAP_info_sel[[j]]$decimalLatitude > 0)){
         hemisphere[length(hemisphere) + 1] <- 'Northern'
     }
     }
     
-    if(length(unique(sps_minT_SHAP_info[[j]]$decimalLatitude < 0)) == 2){
+    if(length(unique(sps_minT_SHAP_info_sel[[j]]$decimalLatitude < 0)) == 2){
       hemisphere[length(hemisphere) + 1] <- 'Both'
     }
     
@@ -185,13 +242,13 @@ for(j in 1:length(sps_list))
     ## Get SHAP values of the target variable for each point
     
     #minT
-    cont_minT <- sps_minT_SHAP_info[[j]]$Min_T_SHAP
+    cont_minT <- sps_minT_SHAP_info_sel[[j]]$Min_T_SHAP
     
     #meanT
-    cont_meanT <- sps_meanT_SHAP_info[[j]]$Mean_T_SHAP
+    cont_meanT <- sps_meanT_SHAP_info_sel[[j]]$Mean_T_SHAP
     
     #maxT
-    cont_maxT <- sps_maxT_SHAP_info[[j]]$Max_T_SHAP
+    cont_maxT <- sps_maxT_SHAP_info_sel[[j]]$Max_T_SHAP
     
     ## Save plot temperature variables contribution per relative polewardness
     
@@ -207,17 +264,17 @@ for(j in 1:length(sps_list))
       
       #get y and x lims
       ylim <- range(c(cont_minT, cont_meanT, cont_maxT))
-      xlim <- range(sps_minT_SHAP_info[[j]]$relPolarwardness) #no matter which
+      xlim <- range(sps_minT_SHAP_info_sel[[j]]$relPolarwardness) #no matter which
       
       #minT
-      plot(sps_minT_SHAP_info[[j]]$relPolarwardness, cont_minT, 
+      plot(sps_minT_SHAP_info_sel[[j]]$relPolarwardness, cont_minT, 
            pch = 19, cex = 0.4, col = '#0000FF15',
            ylab = 'Temperature contribution',
            xlab = 'Relative polewardness',
            ylim = c(ylim[1], ylim[2]))
       
       #fit linear model
-      lin_mod_minT <- lm(cont_minT ~ sps_minT_SHAP_info[[j]]$relPolarwardness)
+      lin_mod_minT <- lm(cont_minT ~ sps_minT_SHAP_info_sel[[j]]$relPolarwardness)
       abline(lin_mod_minT, col = '#0000FF', lwd = 2)
       
       #get and plot R^2
@@ -240,11 +297,11 @@ for(j in 1:length(sps_list))
       minTp_value_RP[length(minTp_value_RP) + 1] <- summa$`Pr(>|t|)`[2]
       
       #meanT
-      points(sps_meanT_SHAP_info[[j]]$relPolarwardness, cont_meanT, 
+      points(sps_meanT_SHAP_info_sel[[j]]$relPolarwardness, cont_meanT, 
              pch = 19, cex = 0.4, col = '#80008015')
       
       #fit linear model
-      lin_mod_meanT <- lm(cont_meanT ~ sps_meanT_SHAP_info[[j]]$relPolarwardness)
+      lin_mod_meanT <- lm(cont_meanT ~ sps_meanT_SHAP_info_sel[[j]]$relPolarwardness)
       abline(lin_mod_meanT, col = '#800080', lwd = 2)
       
       #get and plot R^2
@@ -266,11 +323,11 @@ for(j in 1:length(sps_list))
       meanTp_value_RP[length(meanTp_value_RP) + 1] <- summa$`Pr(>|t|)`[2]
       
       #maxT
-      points(sps_maxT_SHAP_info[[j]]$relPolarwardness, cont_maxT, 
+      points(sps_maxT_SHAP_info_sel[[j]]$relPolarwardness, cont_maxT, 
              pch = 19, cex = 0.4, col = '#FF000015')
       
       #fit linear model
-      lin_mod_maxT <- lm(cont_maxT ~ sps_maxT_SHAP_info[[j]]$relPolarwardness)
+      lin_mod_maxT <- lm(cont_maxT ~ sps_maxT_SHAP_info_sel[[j]]$relPolarwardness)
       abline(lin_mod_maxT, col = '#FF0000', lwd = 2)
       
       #get and plot R^2
@@ -298,22 +355,22 @@ for(j in 1:length(sps_list))
            'Range', font = 2, cex = 0.8, pos = 4)
       text(xlim[2] - ((xlim[2] - xlim[1]) / 4.5),
            ylim[2] - 2 * ((ylim[2] - ylim[1]) / 25), 
-           paste0('Size  ', unique(round(sps_maxT_SHAP_info[[j]]$rangeSize))), 
+           paste0('Size  ', unique(round(sps_maxT_SHAP_info_sel[[j]]$rangeSize))), 
            cex = 0.7, pos = 4)
       text(xlim[2] - ((xlim[2] - xlim[1]) / 4.5),
            ylim[2] - 2.8 * ((ylim[2] - ylim[1]) / 25),
            paste0('Roundness  ',
-                  unique(round(sps_maxT_SHAP_info[[j]]$roundness, 2))),
+                  unique(round(sps_maxT_SHAP_info_sel[[j]]$roundness, 2))),
            cex = 0.7, pos = 4)
       text(xlim[2] - ((xlim[2] - xlim[1]) / 4.5),
            ylim[2] - 3.6 * ((ylim[2] - ylim[1]) / 25),
            paste0('Max lat  ',
-                  round(max(sps_maxT_SHAP_info[[j]]$decimalLatitude), 2)),
+                  round(max(sps_maxT_SHAP_info_sel[[j]]$decimalLatitude), 2)),
            cex = 0.7, pos = 4)
       text(xlim[2] - ((xlim[2] - xlim[1]) / 4.5),
            ylim[2] - 4.4 * ((ylim[2] - ylim[1]) / 25),
            paste0('Min lat  ',
-                  round(min(sps_minT_SHAP_info[[j]]$decimalLatitude), 2)),
+                  round(min(sps_minT_SHAP_info_sel[[j]]$decimalLatitude), 2)),
            cex = 0.7, pos = 4)
       
       #plot species name
@@ -340,6 +397,17 @@ for(j in 1:length(sps_list))
       maxTp_value_RP[length(maxTp_value_RP) + 1] <- NA
     }
     
+    ## Get SHAP values of the target variable for each point closer to 50km to edge
+    
+    #minT
+    cont_minT <- sps_minT_SHAP_info_edge[[j]]$Min_T_SHAP
+    
+    #meanT
+    cont_meanT <- sps_meanT_SHAP_info_edge[[j]]$Mean_T_SHAP
+    
+    #maxT
+    cont_maxT <- sps_maxT_SHAP_info_edge[[j]]$Max_T_SHAP
+    
     ## Save plot temperature variables contribution per centralness
     setwd(wd_sps)
     pdf(file = paste0(gsub(' ', '_',
@@ -350,17 +418,17 @@ for(j in 1:length(sps_list))
     
     #get y and x lims
     ylim <- range(c(cont_minT, cont_meanT, cont_maxT))
-    xlim <- range(sps_minT_SHAP_info[[j]]$distEdge) #does not matter which I use
+    xlim <- range(sps_minT_SHAP_info_edge[[j]]$distEdge) #does not matter which I use
     
     #minT
-    plot(sps_minT_SHAP_info[[j]]$distEdge, cont_minT, 
+    plot(sps_minT_SHAP_info_edge[[j]]$distEdge, cont_minT, 
          pch = 19, cex = 0.4, col = '#0000FF15',
          ylab = 'Temperature contribution',
          xlab = 'Distance from edge (km)',
          ylim = c(ylim[1], ylim[2]))
     
     #fit linear model
-    lin_mod_minT <- lm(cont_minT ~ sps_minT_SHAP_info[[j]]$distEdge)
+    lin_mod_minT <- lm(cont_minT ~ sps_minT_SHAP_info_edge[[j]]$distEdge)
     abline(lin_mod_minT, col = '#0000FF', lwd = 2)
     
     #get and plot R^2
@@ -383,11 +451,11 @@ for(j in 1:length(sps_list))
   
     
     #meanT
-    points(sps_meanT_SHAP_info[[j]]$distEdge, cont_meanT, 
+    points(sps_meanT_SHAP_info_edge[[j]]$distEdge, cont_meanT, 
            pch = 19, cex = 0.4, col = '#80008010')
     
     #fit linear model
-    lin_mod_meanT <- lm(cont_meanT ~ sps_meanT_SHAP_info[[j]]$distEdge)
+    lin_mod_meanT <- lm(cont_meanT ~ sps_meanT_SHAP_info_edge[[j]]$distEdge)
     abline(lin_mod_meanT, col = '#800080', lwd = 2)
     
     #get and plot R^2
@@ -410,11 +478,11 @@ for(j in 1:length(sps_list))
 
     
     #maxT
-    points(sps_maxT_SHAP_info[[j]]$distEdge, cont_maxT, 
+    points(sps_maxT_SHAP_info_edge[[j]]$distEdge, cont_maxT, 
            pch = 19, cex = 0.4, col = '#FF000010')
     
     #fit linear model
-    lin_mod_maxT <- lm(cont_maxT ~ sps_maxT_SHAP_info[[j]]$distEdge)
+    lin_mod_maxT <- lm(cont_maxT ~ sps_maxT_SHAP_info_edge[[j]]$distEdge)
     abline(lin_mod_maxT, col = '#FF0000', lwd = 2)
     
     #get and plot R^2
@@ -456,7 +524,7 @@ for(j in 1:length(sps_list))
     text(xlim[2] - ((xlim[2] - xlim[1]) / 4.5),
          ylim[2] - 4.4 * ((ylim[2] - ylim[1]) / 25),
          paste0('Min lat  ',
-                round(min(sps_minT_SHAP_info[[j]]$decimalLatitude), 2)),
+                round(min(sps_minT_SHAP_info_sel[[j]]$decimalLatitude), 2)),
          cex = 0.7, pos = 4)
     
     #plot species name
@@ -650,7 +718,7 @@ minLat <- numeric()
 for(j in 1:length(sps_list))
 {
   #skip sps with only one point
-  if(nrow(sps_minT_SHAP_info[[j]]) > 1){
+  if(nrow(sps_minT_SHAP_info_sel[[j]]) > 1){
     #list spp
     species[length(species) + 1] <- sps_list[j]
     
@@ -676,7 +744,7 @@ for(j in 1:length(sps_list))
     
     #check in which hemisphere the species is
     if(length(unique(sps_minPPT_SHAP_info[[j]]$decimalLatitude < 0)) == 1){
-      if(unique(sps_minT_SHAP_info[[j]]$decimalLatitude < 0)){
+      if(unique(sps_minT_SHAP_info_sel[[j]]$decimalLatitude < 0)){
         hemisphere[length(hemisphere) + 1] <- 'Southern'
       }
       if(unique(sps_minPPT_SHAP_info[[j]]$decimalLatitude > 0)){
@@ -820,7 +888,7 @@ for(j in 1:length(sps_list))
       text(xlim[2] - ((xlim[2] - xlim[1]) / 4.5),
            ylim[2] - 4.4 * ((ylim[2] - ylim[1]) / 25),
            paste0('Min lat  ',
-                  round(min(sps_minT_SHAP_info[[j]]$decimalLatitude), 2)),
+                  round(min(sps_minT_SHAP_info_sel[[j]]$decimalLatitude), 2)),
            cex = 0.7, pos = 4)
       
       #plot species name
@@ -965,7 +1033,7 @@ for(j in 1:length(sps_list))
     text(xlim[2] - ((xlim[2] - xlim[1]) / 4.5),
          ylim[2] - 4.4 * ((ylim[2] - ylim[1]) / 25),
          paste0('Min lat  ',
-                round(min(sps_minT_SHAP_info[[j]]$decimalLatitude), 2)),
+                round(min(sps_minT_SHAP_info_sel[[j]]$decimalLatitude), 2)),
          cex = 0.7, pos = 4)
     
     #plot species name

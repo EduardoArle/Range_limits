@@ -148,13 +148,20 @@ for(i in 1:length(sps_list))
     warm_edge <- ymax
   }
   
-  #calculate distance from cold to warm edge
-  lat_range <- abs(cold_edge) - abs(warm_edge)
+  #calculate distance from cold to warm edge (special calculation for cross equator)
+  if(ymax > 0 & ymin < 0 | ymax < 0 & ymin > 0){
+    lat_range <- max(c(abs(cold_edge), abs(warm_edge)))
+  }else{
+    lat_range <- abs(cold_edge - warm_edge)
+  }
+  
   
   #calculate relative distance from warm edge
+  #this step is to consider the cross equator species
   pr_sps2$relPolarwardness <- 
-           1-((abs(cold_edge) - abs(pr_sps2$decimalLatitude)) / lat_range)
-  
+      1-((abs(cold_edge) - abs(pr_sps2$decimalLatitude)) / lat_range)
+
+
   ### Extract the elevation of each point
   pr_sps2$elevation <- extract(elev, pr_sps2_sf)
   
