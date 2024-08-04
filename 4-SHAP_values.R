@@ -81,10 +81,11 @@ for(i in 1:length(sps_list))
   
   #make a spatial polygon object with only one feature
   no_pa_area <- st_union(small_buffer)
+  
   # this fixes possible 'duplicate vertex' errors
   no_pa_area <- st_make_valid(no_pa_area) 
   
-  #make a holes in the species range by the small buffer around points
+  #make holes in the species range by the small buffer around points
   pa_area <- st_difference(sps_range_buf, no_pa_area)
   
   #define number of pseudo abs to be created (same as presences)

@@ -1,316 +1,264 @@
-x <- gam_minT_relPolewarness
+#load libraries
+library(mgcv); library(itsadug)
+
+data(simdat)
+
+## Not run: 
+# Model with random effect and interactions:
+m1 <- gam(Y ~ s(Time, by=Group, k = 4)
+          + s(Time, Subject, bs='fs', k = 4),
+          data=simdat)
+
+gam_minT_relPolewarness_RE <- gam(Min_T_SHAP ~ s(relPolewardness, k = 4) 
+                                  + s(relPolewardness, species, bs = "re"),
+                                  data = results)
+
+summary(gam_minT_relPolewarness_RE)
+
+plot.gam(m1, pages = 1, residuals = F, shade = T,
+         shade.col = '#0000FF30', all.terms = T,
+         ylim = c(-0.06, 0.06),
+         cex.lab = 2, cex.axis = 1.5)
+
+inspect_random(m1, select=3)
+
+inspect_random(gam_minT_relPolewarness_RE, select = 3)
+
+# Simple model with smooth:
+m2 <-  gam(Y ~ Group + s(Time, by=Group)
+           + s(Subject, bs='re')
+           + s(Subject, Time, bs='re'),
+           data=simdat)
+
+par(mfrow=c(1,2), cex=1.1)
+
+plot(m2, select=1, shade=TRUE, rug=FALSE, ylim=c(-15,10))
+abline(h=0)
+plot(m2, select=2, shade=TRUE, rug=FALSE, ylim=c(-15,10))
+abline(h=0)
+
+
+par(mfrow=c(1,1), cex=1.1)
 
 
 
-b <- gam(travel~s(Rail,bs="re"), data=Rail, method="REML")
-b <- getViz(b)
-plot(sm(b, 1)) + l_fitLine(colour = 2, linetype = 2) + l_points() + 
-  l_ciLine(colour = 4, linetype = 3)
+inspect_random(gam_minT_relPolewarness, select = 2)
 
-plot(sm(b, 1)) + l_ciPoly() + l_points()
+children <- unique(simdat[simdat$Group=="Children", "Subject"])
+adults   <- unique(simdat[simdat$Group=="Adults", "Subject"])
 
-# Default
-plot(b)
+inspect_random(m1, select=3, main='Averages', 
+               fun=mean, 
+               cond=list(Subject=children))
+inspect_random(m1, select=3, 
+               fun=mean, cond=list(Subject=adults),
+               add=TRUE, col='red', lty=5)
 
-###
-# Quantile GAM version
-###
-b <- mqgamV(travel~s(Rail,bs="re"), data=as.data.frame(Rail), qu = c(0.2, 0.4, 0.6, 0.8))
+# add legend:
+legend('bottomleft',
+       legend=c('Children', 'Adults'),
+       col=c('black', 'red'), lty=c(1,5),
+       bty='n')
 
-plot(sm(b, 1)) + l_ciPoly() + l_points()
-
-# Default
-plot(b)
-
-
+plot.gam(gam_minT_relPolewarness_RE, select=1, shade=TRUE, rug=FALSE)
 
 
-function (x, residuals = FALSE, rug = NULL, se = TRUE, pages = 0, 
-          select = NULL, scale = -1, n = 100, n2 = 40, n3 = 3, pers = FALSE, 
-          theta = 30, phi = 30, jit = FALSE, xlab = NULL, ylab = NULL, 
-          main = NULL, ylim = NULL, xlim = NULL, too.far = 0.1, all.terms = FALSE, 
-          shade = FALSE, shade.col = "gray80", shift = 0, trans = I, 
-          seWithMean = FALSE, unconditional = FALSE, by.resids = FALSE, 
-          scheme = 0, ...) 
-{
-  sub.edf <- function(lab, edf) {
-    pos <- regexpr(":", lab)[1]
-    if (pos < 0) {
-      pos <- nchar(lab) - 1
-      lab <- paste(substr(lab, start = 1, stop = pos), 
-                   ",", round(edf, digits = 2), ")", sep = "")
-    }
-    else {
-      lab1 <- substr(lab, start = 1, stop = pos - 2)
-      lab2 <- substr(lab, start = pos - 1, stop = nchar(lab))
-      lab <- paste(lab1, ",", round(edf, digits = 2), lab2, 
-                   sep = "")
-    }
-    lab
-  }
-  if (pers) 
-    warning("argument pers is deprecated, please use scheme instead")
-  if (is.null(rug)) 
-    rug <- if (nrow(x$model) > 10000) 
-      FALSE
-  else TRUE
-  if (unconditional) {
-    if (is.null(x$Vc)) 
-      warning("Smoothness uncertainty corrected covariance not available")
-    else x$Vp <- x$Vc
-  }
-  w.resid <- NULL
-  if (length(residuals) > 1) {
-    if (length(residuals) == length(x$residuals)) 
-      w.resid <- residuals
-    else warning("residuals argument to plot.gam is wrong length: ignored")
-    partial.resids <- TRUE
-  }
-  else partial.resids <- residuals
-  m <- length(x$smooth)
-  if (length(scheme) == 1) 
-    scheme <- rep(scheme, m)
-  if (length(scheme) != m) {
-    warn <- paste("scheme should be a single number, or a vector with", 
-                  m, "elements")
-    warning(warn)
-    scheme <- rep(scheme[1], m)
-  }
-  if (is.list(x$pterms)){
-    order <- unlist(lapply(x$pterms, attr, "order"))
-  }else{
-    order <- attr(x$pterms, "order")} 
-   
-  
-  if (all.terms) 
-    n.para <- sum(order == 1)
-  else n.para <- 0
-  if (se) {
-    if (is.numeric(se)) 
-      se2.mult <- se1.mult <- se
-    else {
-      se1.mult <- 2
-      se2.mult <- 1
-    }
-    if (se1.mult < 0) 
-      se1.mult <- 0
-    if (se2.mult < 0) 
-      se2.mult <- 0
-  }
-  else se1.mult <- se2.mult <- 1
-  if (se && x$Vp[1, 1] < 0) {
-    se <- FALSE
-    warning("No variance estimates available")
-  }
-  if (partial.resids) {
-    if (is.null(w.resid)) {
-      if (is.null(x$residuals) || is.null(x$weights)) 
-        partial.resids <- FALSE
-      else {
-        wr <- sqrt(x$weights)
-        w.resid <- x$residuals * wr
-      }
-    }
-    if (partial.resids) 
-      fv.terms <- predict(x, type = "terms")
-  }
-  pd <- list()
-  i <- 1
-  if (m > 0) 
-    for (i in 1:m) {
-      first <- x$smooth[[i]]$first.para
-      last <- x$smooth[[i]]$last.para
-      edf <- sum(x$edf[first:last])
-      term.lab <- sub.edf(x$smooth[[i]]$label, edf)
-      attr(x$smooth[[i]], "coefficients") <- x$coefficients[first:last]
-      P <- plot(x$smooth[[i]], P = NULL, data = x$model, 
-                partial.resids = partial.resids, rug = rug, se = se, 
-                scale = scale, n = n, n2 = n2, n3 = n3, pers = pers, 
-                theta = theta, phi = phi, jit = jit, xlab = xlab, 
-                ylab = ylab, main = main, label = term.lab, ylim = ylim, 
-                xlim = xlim, too.far = too.far, shade = shade, 
-                shade.col = shade.col, se1.mult = se1.mult, se2.mult = se2.mult, 
-                shift = shift, trans = trans, by.resids = by.resids, 
-                scheme = scheme[i], ...)
-      if (is.null(P)) 
-        pd[[i]] <- list(plot.me = FALSE)
-      else if (is.null(P$fit)) {
-        p <- x$coefficients[first:last]
-        offset <- attr(P$X, "offset")
-        if (is.null(offset)) 
-          P$fit <- P$X %*% p
-        else P$fit <- P$X %*% p + offset
-        if (!is.null(P$exclude)) 
-          P$fit[P$exclude] <- NA
-        if (se && P$se) {
-          if (seWithMean && attr(x$smooth[[i]], "nCons") > 
-              0) {
-            if (length(x$cmX) < ncol(x$Vp)) 
-              x$cmX <- c(x$cmX, rep(0, ncol(x$Vp) - length(x$cmX)))
-            if (seWithMean == 2) 
-              x$cmX[-(1:x$nsdf)] <- 0
-            X1 <- matrix(x$cmX, nrow(P$X), ncol(x$Vp), 
-                         byrow = TRUE)
-            meanL1 <- x$smooth[[i]]$meanL1
-            if (!is.null(meanL1)) 
-              X1 <- X1/meanL1
-            X1[, first:last] <- P$X
-            lpi <- attr(x$formula, "lpi")
-            if (is.null(lpi)) 
-              se.fit <- sqrt(pmax(0, rowSums(as(X1 %*% 
-                                                  x$Vp, "matrix") * X1)))
-            else {
-              ii <- rep(0, 0)
-              for (q in 1:length(lpi)) if (any(first:last %in% 
-                                               lpi[[q]])) 
-                ii <- c(ii, lpi[[q]])
-              se.fit <- sqrt(pmax(0, rowSums(as(X1[, 
-                                                   ii] %*% x$Vp[ii, ii], "matrix") * X1[, 
-                                                                                        ii])))
-            }
-          }
-          else se.fit <- sqrt(pmax(0, rowSums(as(P$X %*% 
-                                                   x$Vp[first:last, first:last, drop = FALSE], 
-                                                 "matrix") * P$X)))
-          if (!is.null(P$exclude)) 
-            se.fit[P$exclude] <- NA
-        }
-        if (partial.resids) {
-          P$p.resid <- fv.terms[, length(order) + i] + 
-            w.resid
-        }
-        if (se && P$se) 
-          P$se <- se.fit * P$se.mult
-        P$X <- NULL
-        P$plot.me <- TRUE
-        pd[[i]] <- P
-        rm(P)
-      }
-      else {
-        if (partial.resids) {
-          P$p.resid <- fv.terms[, length(order) + i] + 
-            w.resid
-        }
-        P$plot.me <- TRUE
-        pd[[i]] <- P
-        rm(P)
-      }
-    }
-  n.plots <- n.para
-  if (m > 0) 
-    for (i in 1:m) n.plots <- n.plots + as.numeric(pd[[i]]$plot.me)
-  if (n.plots == 0) 
-    stop("No terms to plot - nothing for plot.gam() to do.")
-  if (pages > n.plots) 
-    pages <- n.plots
-  if (pages < 0) 
-    pages <- 0
-  if (pages != 0) {
-    ppp <- n.plots%/%pages
-    if (n.plots%%pages != 0) {
-      ppp <- ppp + 1
-      while (ppp * (pages - 1) >= n.plots) pages <- pages - 
-          1
-    }
-    c <- r <- trunc(sqrt(ppp))
-    if (c < 1) 
-      r <- c <- 1
-    if (c * r < ppp) 
-      c <- c + 1
-    if (c * r < ppp) 
-      r <- r + 1
-    oldpar <- par(mfrow = c(r, c))
-  }
-  else {
-    ppp <- 1
-    oldpar <- par()
-  }
-  if (scale == -1 && is.null(ylim)) {
-    k <- 0
-    if (m > 0) 
-      for (i in 1:m) if (pd[[i]]$plot.me && pd[[i]]$scale) {
-        if (se && length(pd[[i]]$se) > 1) {
-          ul <- pd[[i]]$fit + pd[[i]]$se
-          ll <- pd[[i]]$fit - pd[[i]]$se
-          if (k == 0) {
-            ylim <- c(min(ll, na.rm = TRUE), max(ul, 
-                                                 na.rm = TRUE))
-            k <- 1
-          }
-          else {
-            if (min(ll, na.rm = TRUE) < ylim[1]) 
-              ylim[1] <- min(ll, na.rm = TRUE)
-            if (max(ul, na.rm = TRUE) > ylim[2]) 
-              ylim[2] <- max(ul, na.rm = TRUE)
-          }
-        }
-        else {
-          if (k == 0) {
-            ylim <- range(pd[[i]]$fit, na.rm = TRUE)
-            k <- 1
-          }
-          else {
-            if (min(pd[[i]]$fit, na.rm = TRUE) < ylim[1]) 
-              ylim[1] <- min(pd[[i]]$fit, na.rm = TRUE)
-            if (max(pd[[i]]$fit, na.rm = TRUE) > ylim[2]) 
-              ylim[2] <- max(pd[[i]]$fit, na.rm = TRUE)
-          }
-        }
-        if (partial.resids) {
-          ul <- max(pd[[i]]$p.resid, na.rm = TRUE)
-          if (ul > ylim[2]) 
-            ylim[2] <- ul
-          ll <- min(pd[[i]]$p.resid, na.rm = TRUE)
-          if (ll < ylim[1]) 
-            ylim[1] <- ll
-        }
-      }
-    ylim <- trans(ylim + shift)
-  }
-  if ((pages == 0 && prod(par("mfcol")) < n.plots && dev.interactive()) || 
-      pages > 1 && dev.interactive()) 
-    ask <- TRUE
-  else ask <- FALSE
-  if (!is.null(select)) {
-    ask <- FALSE
-  }
-  if (m > 0) 
-    for (i in 1:m) if (pd[[i]]$plot.me && (is.null(select) || 
-                                           i == select)) {
-      plot(x$smooth[[i]], P = pd[[i]], partial.resids = partial.resids, 
-           rug = rug, se = se, scale = scale, n = n, n2 = n2, 
-           n3 = n3, pers = pers, theta = theta, phi = phi, 
-           jit = jit, xlab = xlab, ylab = ylab, main = main, 
-           ylim = ylim, xlim = xlim, too.far = too.far, 
-           shade = shade, shade.col = shade.col, shift = shift, 
-           trans = trans, by.resids = by.resids, scheme = scheme[i], 
-           ...)
-      if (ask) {
-        oask <- devAskNewPage(TRUE)
-        on.exit(devAskNewPage(oask))
-        ask <- FALSE
-      }
-    }
-  if (n.para > 0) {
-    class(x) <- c("gam", "glm", "lm")
-    if (is.null(select)) {
-      attr(x, "para.only") <- TRUE
-      termplot(x, se = se, rug = rug, col.se = 1, col.term = 1, 
-               main = attr(x$pterms, "term.labels"), ...)
-    }
-    else {
-      if (select > m) {
-        select <- select - m
-        term.labels <- attr(x$pterms, "term.labels")
-        term.labels <- term.labels[order == 1]
-        if (select <= length(term.labels)) {
-          termplot(x, terms = term.labels[select], se = se, 
-                   rug = rug, col.se = 1, col.term = 1, ...)
-        }
-      }
-    }
-  }
-  if (pages > 0) 
-    par(oldpar)
-  invisible(pd)
-}
+class(gam_minT_relPolewarness_RE)
+
+#### model G
+
+
+CO2_modG <- gam(log(uptake) ~
+                  s(log(conc), k=5, bs="tp") 
+                + s(Plant_uo, k=12, bs="re"),
+                data=CO2,
+                method="REML",
+                family="gaussian")
+
+summary(CO2_modG)
+
+draw(CO2_modG, page = 1)
+
+
+minT_relPolewarness_G <- gam(Min_T_SHAP ~
+                               s(relPolewardness, k=4, bs="tp") 
+                             + s(species, k=503, bs="re"),
+                             data = results,
+                             method="REML",
+                             family="gaussian")
+
+
+summary(minT_relPolewarness_G)
+
+draw(minT_relPolewarness_G, page = 1)
+
+
+#### model G
+
+#test
+CO2_modG <- gam(log(uptake) ~
+                  s(log(conc), k=5, bs="tp") 
+                + s(Plant_uo, k=12, bs="re"),
+                data=CO2,
+                method="REML",
+                family="gaussian")
+
+summary(CO2_modG)
+
+
+draw(CO2_modG, page = 1)
+
+#minT relPol
+minT_relPolewarness_G <- gam(Min_T_SHAP ~
+                               s(relPolewardness, k=4, bs="tp") 
+                             + s(species, k=503, bs="re"),
+                             data = results,
+                             method="REML",
+                             family="gaussian")
+
+
+summary(minT_relPolewarness_G)
+
+draw(minT_relPolewarness_G, page = 1)
+
+
+#meanT relPol
+meanT_relPolewarness_G <- gam(Mean_T_SHAP ~
+                               s(relPolewardness, k=4, bs="tp") 
+                             + s(species, k=503, bs="re"),
+                             data = results,
+                             method="REML",
+                             family="gaussian")
+
+
+summary(meanT_relPolewarness_G)
+
+draw(meanT_relPolewarness_G, page = 1)
+
+#maxT relPol
+maxT_relPolewarness_G <- gam(Max_T_SHAP ~
+                                s(relPolewardness, k=4, bs="tp") 
+                              + s(species, k=503, bs="re"),
+                              data = results,
+                              method="REML",
+                              family="gaussian")
+
+
+summary(maxT_relPolewarness_G)
+
+draw(maxT_relPolewarness_G, page = 1)
+
+
+#minT absPol
+minT_absPolewarness_G <- gam(Min_T_SHAP ~
+                               s(absPolewardness, k=4, bs="tp") 
+                             + s(species, k=503, bs="re"),
+                             data = results,
+                             method="REML",
+                             family="gaussian")
+
+
+summary(minT_absPolewarness_G)
+
+draw(minT_absPolewarness_G, page = 1)
+
+
+#meanT relPol
+meanT_absPolewarness_G <- gam(Mean_T_SHAP ~
+                                s(absPolewardness, k=4, bs="tp") 
+                              + s(species, k=503, bs="re"),
+                              data = results,
+                              method="REML",
+                              family="gaussian")
+
+
+summary(meanT_absPolewarness_G)
+
+draw(meanT_absPolewarness_G, page = 1)
+
+#maxT relPol
+maxT_relPolewarness_G <- gam(Max_T_SHAP ~
+                               s(relPolewardness, k=4, bs="tp") 
+                             + s(species, k=503, bs="re"),
+                             data = results,
+                             method="REML",
+                             family="gaussian")
+
+
+summary(maxT_relPolewarness_G)
+
+draw(maxT_relPolewarness_G, page = 1)
+
+
+#### model GS
+
+#test
+CO2_modGS <- gam(log(uptake) ~
+                   s(log(conc), k=5, m=2)
+                 + s(log(conc), Plant_uo, k=5, bs="fs", m=2),
+                 data=CO2,
+                 method="REML")
+
+summary(CO2_modGS)
+
+draw(CO2_modGS, page = 1)
+
+#minT relPol
+minT_relPolewarness_GS <- gam(Min_T_SHAP ~
+                               s(relPolewardness, k=4, m=2) 
+                             + s(relPolewardness, species, k=4, bs="fs", m=2),
+                             data = results,
+                             method="REML")
+
+
+summary(minT_relPolewarness_GS)
+
+draw(minT_relPolewarness_GS, page = 1)
+
+#meanT relPol
+meanT_relPolewarness_GS <- gam(Mean_T_SHAP ~
+                                s(relPolewardness, k=4, m=2) 
+                              + s(relPolewardness, species, k=4, bs="fs", m=2),
+                              data = results,
+                              method="REML")
+
+
+summary(meanT_relPolewarness_GS)
+
+draw(meanT_relPolewarness_GS, page = 1)
+
+#maxT relPol
+maxT_relPolewarness_GS <- gam(Max_T_SHAP ~
+                                 s(relPolewardness, k=4, m=2) 
+                               + s(relPolewardness, species, k=4, bs="fs", m=2),
+                               data = results,
+                               method="REML")
+
+
+summary(maxT_relPolewarness_GS)
+
+draw(maxT_relPolewarness_GS, page = 1)
+
+
+#model S
+
+#test 
+CO2_modS <- gam(log(uptake) ~
+                  s(log(conc), Plant_uo, k=5, bs="fs", m=2),
+                  data=CO2,
+                  method="REML")
+
+summary(CO2_modS)
+
+draw(CO2_modS, page = 1)
+
+#minT relPol
+minT_relPolewarness_S <- gam(Min_T_SHAP ~
+                              s(relPolewardness, species, k=4, bs="fs", m=2),
+                              data = results,
+                              method="REML")
+
+
+summary(minT_relPolewarness_S)
+
+draw(minT_relPolewarness_S, page = 1)
