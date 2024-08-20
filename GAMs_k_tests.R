@@ -402,6 +402,29 @@ plot.gam(maxT_relPolewarness_GS_k6_k6, select = 2, residuals = F,
          cex.lab = 2, cex.axis = 1.5)  #save 800
 
 
+#model GS k (first term) = 10 k (second term) = 10
+maxT_relPolewarness_GS_k10_k10 <- gam(Max_T_SHAP ~
+                                      s(relPolewardness, k=10, m=2) 
+                                    + s(relPolewardness, species, k=10, bs="fs", m=2),
+                                    data = results,
+                                    method="REML")
+
+
+summary(maxT_relPolewarness_GS_k10_k10)
+logLik(maxT_relPolewarness_GS_k10_k10)
+
+setwd(wd_models)
+saveRDS(maxT_relPolewarness_GS_k10_k10, 'maxT_relPolewarness_GS_k10_k10')
+
+
+plot.gam(maxT_relPolewarness_GS_k6_k6, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030', ylab = 'SHAP value',
+         ylim = c(-0.04, 0.04),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+plot.gam(maxT_relPolewarness_GS_k6_k6, select = 2, residuals = F, 
+         cex.lab = 2, cex.axis = 1.5)  #save 800
+
 
 #################
 
