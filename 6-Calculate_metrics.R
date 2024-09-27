@@ -5,7 +5,7 @@
 ####
 ####  2 - Range shape for each species (how round is the range?) *gradient
 ####
-####  3 - Centralness of each point (how close to the edges) *gradient
+####  3 - Distance from the edge of each point *numeric
 ####
 ####  4 - Absolute polewardness of each point (dist from equator) *numeric %
 ####

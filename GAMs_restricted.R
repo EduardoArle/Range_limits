@@ -110,7 +110,7 @@ minT_relPolewarness_GS_less_1Mkm2 <- gam(Min_T_SHAP ~
 summary(minT_relPolewarness_GS_less_1Mkm2)
 
 setwd(wd_models_res)
-saveRDS(minT_relPolewarness_GS_less_1Mkm2, 'minT_relPolewarness_GS_more_1Mkm2')
+saveRDS(minT_relPolewarness_GS_less_1Mkm2, 'minT_relPolewarness_GS_less_1Mkm2')
 
 
 plot.gam(minT_relPolewarness_GS_less_1Mkm2, select = 1, residuals = F, shade = T,
@@ -164,6 +164,24 @@ plot.gam(minT_relPolewarness_G_more_100000km2, select = 1, residuals = F, shade 
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
+#model GS
+minT_relPolewarness_GS_more_100000km2 <- gam(Min_T_SHAP ~
+                                           s(relPolewardness, k=4, m=2) 
+                                         + s(relPolewardness, species, k=4, bs="fs", m=2),
+                                         data = results_more_1Mkm2,
+                                         method="REML")
+
+
+summary(minT_relPolewarness_GS_more_1Mkm2)
+
+setwd(wd_models_res)
+saveRDS(minT_relPolewarness_GS_more_1Mkm2, 'minT_relPolewarness_GS_more_1Mkm2')
+
+
+plot.gam(minT_relPolewarness_GS_more_1Mkm2, select = 1, residuals = F, shade = T,
+         shade.col = '#0000FF30', ylab = 'SHAP value',
+         ylim = c(-0.06, 0.06),
+         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 ### minT (less 100,000)
