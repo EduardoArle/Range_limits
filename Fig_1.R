@@ -38,7 +38,7 @@ summary(points_sf$varContPol)
 #normalize variable contribution from 0 to 5 (for size)
 points_sf$varContNormal <- 
   round(((points_sf$varContPol +
-             abs(min(points_sf$varContPol))) * 2) + 0.7, 2)
+             abs(min(points_sf$varContPol))) * 2) + 0.3, 2)
 
 summary(points_sf$varContNormal)
   
@@ -99,7 +99,175 @@ big_box <- st_as_sfc(          #make the box
   st_bbox(st_as_sf(big_box_df, coords = c('x', 'y'), crs = st_crs(poly_sf))))
 
 
+##### Calculate distance from the edges to show the 'centralness'
+
+#cut the range out of the box
+range_cut <- st_difference(box, poly_sf)
+
+#calculate the dist from each point to edge in km
+points_sf$distEdge <- as.numeric(
+  set_units(st_distance(points_sf, range_cut), km)[,1])
+
+#calculate index (0-1) of distance to edge
+points_sf$distEdgeNormal_0 <- points_sf$distEdge / max(points_sf$distEdge)
+
+#this option for the points uses the same calculation of the relPol but inversed
+points_sf$distEdgeNormal <- 1 - points_sf$relPol
+
+#create vector for sizes in points
+points_sf$centralCex <- ((7 - log(points_sf$distEdge)) / 1.3) + 
+  rnorm(nrow(points_sf), mean = 0.25, sd = 0.4)
+
+summary(points_sf$centralCex)
+
+#create exemplary values of var contribution showing an increase towards edges
+points_sf$varContrCentral <- (points_sf$centralCex - 1.2) / 5
+
+summary(points_sf$varContrCentral)
+
+
+
+
+###### PLOT MAP SHOWING THE CENTRAL GRADIENT ######
+
+#Legend: "Larger ranges showing populations close to the range centre being less affected by climatic extremes than those closer to range edges."
+
+#Reference in text: "The relationship between climatic variables and species occurrences changes between the range centre and range edges (Fig. 1A)"
+
+
+#set parametres for plotting
+par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
+
+#plot big white box to make room for the things I need to add around
+plot(big_box, border = NA)
+
+#plot small box to inform the coordinates
+plot(box, add = T, col = '#ffffbf20')
+
+#plot the polygon
+plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
+
+#plot the occurrence points (size is proportional to SHAP value)
+plot(st_geometry(points_sf),
+     add = T, pch = 19, cex = points_sf$centralCex ^ 1.4,
+     col = '#2c7bb680')
+
+#label axes
+text(-5, 37.4, 'Latitude', srt = 90, cex = 1.2)
+text(21.7, 16, 'Longitude', srt = 00, cex = 1.2)
+
+#add ticks to axes
+points(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
+       st_bbox(box)[2] - 0.44,
+       pch = '|',
+       cex = 0.7)
+points((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
+       st_bbox(box)[2] - 0.44,
+       pch = '|',
+       cex = 0.7)
+points(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
+       st_bbox(box)[2] - 0.44,
+       pch = '|',
+       cex = 0.7)
+
+points(st_bbox(box)[1] - 0.45,
+       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
+       pch = '—',
+       cex = 0.7)
+points(st_bbox(box)[1] - 0.45,
+       (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
+       pch = '—',
+       cex = 0.7)
+points(st_bbox(box)[1] - 0.45,
+       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
+       pch = '—',
+       cex = 0.7)
+
+#add values to axes
+text(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
+     st_bbox(box)[2] - 2.1,
+     labels = paste0(round(
+       st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
+     cex = 1.1)
+text((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
+     st_bbox(box)[2] - 2.1,
+     labels = paste0(round(
+       (st_bbox(box)[1] + st_bbox(box)[3]) / 2, 1)),
+     cex = 1.1)
+text(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
+     st_bbox(box)[2] - 2.1,
+     labels = paste0(round(
+       st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
+     cex = 1.1)
+
+text(st_bbox(box)[1] - 2.75,
+     st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
+     labels = paste0(round(
+       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
+     cex = 1.1, srt = 90)
+text(st_bbox(box)[1] - 2.75,
+     (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
+     labels = paste0(round(
+       (st_bbox(box)[2] + st_bbox(box)[4]) / 2, 1)),
+     cex = 1.1, srt = 90)
+text(st_bbox(box)[1] - 2.75,
+     st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
+     labels = paste0(round(
+       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
+     cex = 1.1, srt = 90)
+
+#save plot (width = 800)
+
+###### PLOT GRAPH SHOWING THE CENTRE-EDGE GRADIENT ######
+
+#set y and x lims
+ylim <- c(-0.2, 0.8)
+xlim <- c(0, 1)
+
+#set parametres for plotting
+par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
+
+#minT (make points invisible)
+plot(points_sf$distEdgeNormal, points_sf$varContPol, 
+     pch = 19, cex = 1, col = '#FF808000',
+     ylab = 'Variable contribution',
+     xlab = 'Distance from edge',
+     cex.lab = 1.2,
+     cex.axis = 1.2,
+     ylim = c(ylim[1], ylim[2]))
+
+#plot rectangle for background colour
+rect(par("usr")[1], par("usr")[3],
+     par("usr")[2], par("usr")[4],
+     col = '#ffffbf20') 
+
+#fit linear model
+lin_mod_minT <- lm(points_sf$varContPol ~ points_sf$distEdgeNormal)
+abline(lin_mod_minT, col = '#2c7bb6', lwd = 7)
+
+#save plot (width = 800)
+
+
+#create table object to save
+points_table <- cbind(st_coordinates(points_sf), st_drop_geometry(points_sf))
+names(points_table)[c(1,2)] <- c('lon', 'lat')
+
+########################
+
+#save new coordinates for the map
+setwd(wd_tables)
+write.csv(points_table, 'Points_large_map.csv', row.names = F)
+
+
+
+
+
+
 ###### PLOT MAP SHOWING THE LATITUDINAL GRADIENT ######
+
+#Legend: large ranges showing climatic extremes increase in explanatory power towards the poleward edges.
+
+#Reference in text: "Climatic variables have higher explanatory power towards the poleward range limit (Fig. 1B)"
 
 #set parametres for plotting
 par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
@@ -184,7 +352,6 @@ text(st_bbox(box)[1] - 2.75,
 
 #save plot (width = 800)
 
-
 ###### PLOT GRAPH SHOWING THE LATITUDINAL GRADIENT ######
 
 #set y and x lims
@@ -213,148 +380,9 @@ abline(lin_mod_minT, col = '#0000FF', lwd = 7)
 
 
 
-##### Calculate distance from the edges to show the 'centralness'
-
-#cut the range out of the box
-range_cut <- st_difference(box, poly_sf)
-
-#calculate the dist from each point to edge in km
-points_sf$distEdge <- as.numeric(
-  set_units(st_distance(points_sf, range_cut), km)[,1])
-
-#calculate index (0-1) of distance to edge
-points_sf$distEdgeNormal <- points_sf$distEdge / max(points_sf$distEdge)
-
-#create vector for sizes in points
-points_sf$centralCex <- ((7 - log(points_sf$distEdge)) / 1.3) + 
-  rnorm(nrow(points_sf), mean = 0.25, sd = 0.4)
-
-summary(points_sf$centralCex)
-
-#create exemplary values of var contribution showing an increase towards edges
-points_sf$varContrCentral <- (points_sf$centralCex - 1.2) / 5
-
-summary(points_sf_2$varContrCentral)
-
-###### PLOT MAP SHOWING THE LATITUDINAL GRADIENT ######
-
-#set parametres for plotting
-par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
-
-#plot big white box to make room for the things I need to add around
-plot(big_box, border = NA)
-
-#plot small box to inform the coordinates
-plot(box, add = T)
-
-#plot the polygon
-plot(poly_sf, lwd = 3, border = '#707070', col = '#F0F0F0', add = T)
-
-#plot the occurrence points (size is proportional to SHAP value)
-plot(st_geometry(points_sf),
-     add = T, pch = 19, cex = points_sf$centralCex,
-     col = '#0000FF80')
-
-#label axes
-text(-5, 37.4, 'Latitude', srt = 90, cex = 1.2)
-text(21.7, 16, 'Longitude', srt = 00, cex = 1.2)
-
-#add ticks to axes
-points(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-points((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-points(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-
-points(st_bbox(box)[1] - 0.45,
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.7)
-points(st_bbox(box)[1] - 0.45,
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-       pch = '—',
-       cex = 0.7)
-points(st_bbox(box)[1] - 0.45,
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.7)
-
-#add values to axes
-text(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-text((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       (st_bbox(box)[1] + st_bbox(box)[3]) / 2, 1)),
-     cex = 1.1)
-text(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-
-text(st_bbox(box)[1] - 2.75,
-     st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - 2.75,
-     (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-     labels = paste0(round(
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - 2.75,
-     st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
-
-#save plot (width = 800)
-
-###### PLOT GRAPH SHOWING THE CENTRE-EDGE GRADIENT ######
-
-#set y and x lims
-ylim <- c(-0.2, 0.8)
-xlim <- c(0, 1)
-
-#set parametres for plotting
-par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
-
-#minT
-plot(points_sf$distEdgeNormal, points_sf$varContrCentral, 
-     pch = 19, cex = 1, col = '#0000FF50',
-     ylab = 'Variable contribution',
-     xlab = 'Distance from edge',
-     cex.lab = 1.2,
-     cex.axis = 1.2,
-     ylim = c(ylim[1], ylim[2]))
-
-#fit linear model
-lin_mod_minT <- lm(points_sf$varContrCentral ~ points_sf$distEdgeNormal)
-abline(lin_mod_minT, col = '#0000FF', lwd = 7)
-
-#save plot (width = 800)
 
 
-#create table object to save
-points_table <- cbind(st_coordinates(points_sf), st_drop_geometry(points_sf))
-names(points_table)[c(1,2)] <- c('lon', 'lat')
 
-########################
-
-#save new coordinates for the map
-setwd(wd_tables)
-write.csv(points_table, 'Points_large_map.csv', row.names = F)
 
 #######################################################
 ######################## LOAD #########################
