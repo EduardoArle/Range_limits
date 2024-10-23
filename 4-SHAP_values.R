@@ -37,7 +37,7 @@ preds_max_PPT <- c('wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_13')
 
 ######## Run SHAP for all species ######
 
-for(i in 501:length(sps_list))
+for(i in 1:length(sps_list))
 {
   #select species
   sps <- sps_list[i]
@@ -812,95 +812,47 @@ for(i in 501:length(sps_list))
 
 
 
+######## Calculate average SHAP for each point and the corresponding metrics ######
 
+#list the species that could produce any models (they have a directory inside of the main directory)
+setwd(wd_res_species)
+sps_list_models <- list.dirs(full.names = F, recursive = F)
 
+#create an empty objects to populate with the number of folds for training and testing
+folds <- numeric()
 
+#create an empty objects to populate with info about the percentage of useful models
+used_minT <- numeric()
 
+for(i in 1:length(sps_list_models))
+{
+  #select species
+  sps <- sps_list_models[i]
+  
+  
+  
+  ##############################################
+  ############## mean PPT + min T ##############
+  ##############################################
+  
+  
+  
+  #setwd to the folder with all results for the species
+  setwd(paste0(wd_res_species, '/', sps))
+  
+  #select all files corresponding to the min T analysis
+  minT <- lapply(list.files(pattern = 'minT'), read.csv)
+  
+  #input the number of folds (therefore models) that could be run. This number is the same for all variable combination models because it depends only on the number of records
+  folds[i] <- length(minT)
+  
+  #input the percentage of models that could be used in the calculation of the SHAP. This number will vary across variable combination models because it depends on how many models were satisfactory according to AUC and TSS
+  used_minT <- sum(sapply(minT, function(x) unique(x$TSS_test)) >= 0.4 &
+                   sapply(minT, function(x) unique(x$AUC_test)) >= 0.7) /
+                                                                folds[i] * 100
+  
+  
+}
 
-
- #################
-
-
-plot(sps_range2)
-
-
-#make a spatial object
-occ_sps_sp <- occ_sps
-coordinates(occ_sps_sp) <- ~ decimalLongitude + decimalLatitude
-
-plot(world, border = NA, col = 'gray80')
-plot(occ_sps_sp, pch = 19, col = 'red', cex = 0.4, add = T)
-
-
-
-
-plot(t, add = T)
-
-class(t)
-length(t)
-
-#ger world map
-world <- getMap()
-
-class(kden.p_groups_trim)
-head(kden.p_groups_trim)
-
-class(kden.p_groups_trim[[1]])
-length(kden.p_groups_trim[[1]])
-head(kden.p_groups_trim[[1]])
-
-class(kden.p_groups_trim[[2]])
-length(kden.p_groups_trim[[2]])
-head(kden.p_groups_trim[[2]])
-
-class(kden.p_groups_trim[[3]])
-length(kden.p_groups_trim[[3]])
-
-class(kden.p_groups_trim[[3]][[i]])
-length(kden.p_groups_trim[[3]][[i]])
-head(kden.p_groups_trim[[3]][[i]])
-
-class(kden.p_groups_trim[[3]][[i]][[1]])
-length(kden.p_groups_trim[[3]][[i]][[1]])
-
-class(kden.p_groups_trim[[3]][[i]][[2]])
-length(kden.p_groups_trim[[3]][[i]][[2]])
-
-class(kden.p_groups_trim[[3]][[i]][[1]][[1]])
-nrow(kden.p_groups_trim[[3]][[i]][[1]][[1]])
-
-class(kden.p_groups_trim[[3]][[i]][[2]][[1]])
-nrow(kden.p_groups_trim[[3]][[i]][[2]][[1]])
-
-t <- as.data.frame(kden.p_groups_trim[[3]][[i]][[1]][[1]])
-t2 <- as.data.frame(kden.p_groups_trim[[3]][[i]][[2]][[1]])
-t3 <- as.data.frame(kden.p_groups_trim[[3]][[i]][[3]][[1]])
-t3 <- as.data.frame(kden.p_groups_trim[[3]][[i]][[93]][[1]])
-
-
-plot(world)
-
-head(t)
-coordinates(t) <- ~ V1 + V2
-t
-
-plot(t, add = T)
-
-head(t2)
-coordinates(t2) <- ~ V1 + V2
-t2
-
-plot(world)
-plot(t2, add = F)
-
-head(t3)
-coordinates(t3) <- ~ V1 + V2
-t3
-
-plot(world)
-plot(t3, add = F)
-
-setwd('/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP')
-load('sf_world2.RData')
 
 
