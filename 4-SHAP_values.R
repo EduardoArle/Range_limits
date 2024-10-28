@@ -8,6 +8,8 @@ wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range
 wd_variables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/BioClim_layers'
 wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Thinned_occurrrences'
 wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Comparison_20240926'
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
+
 
 #list species 
 setwd(wd_thinned_occ)
@@ -1655,9 +1657,107 @@ for(i in 63:length(sps_list))
 }
 
 
+
+# make table with info for all species
+info_species <- data.frame(Species = sps_list, n_occ = n_occ, folds = folds,
+                           
+    #percentage of useful models (AUC >= 0.7 and TSS >= 0.4)
+    Used_models_minT =  paste0(round(perc_used_minT, 2), ' %'),
+    Used_models_meanT =  paste0(round(perc_used_meanT, 2), ' %'),
+    Used_models_maxT =  paste0(round(perc_used_maxT, 2), ' %'),
+    Used_models_minPPT =  paste0(round(perc_used_minPPT, 2), ' %'),
+    Used_models_meanPPT =  paste0(round(perc_used_meanPPT, 2), ' %'),
+    Used_models_maxPPT =  paste0(round(perc_used_maxPPT, 2), ' %'),
+                
+    #evaluation metrics for the species of the models (test metrics)
+                
+    #minT
+    AUC_all_minT = AUC_all_minT, AUC_sel_minT = AUC_sel_minT,
+    TSS_all_minT = TSS_all_minT, TSS_sel_minT = TSS_sel_minT,
+    sens_all_minT = sens_all_minT, sens_sel_minT = sens_sel_minT,
+    spec_all_minT = spec_all_minT, spec_sel_minT = spec_sel_minT,
+    SD_AUC_all_minT = SD_AUC_all_minT, SD_AUC_sel_minT = SD_AUC_sel_minT,
+    SD_TSS_all_minT = SD_TSS_all_minT, SD_TSS_sel_minT = SD_TSS_sel_minT,
+    SD_sens_all_minT = SD_sens_all_minT, SD_sens_sel_minT = SD_sens_sel_minT,
+    SD_spec_all_minT = SD_spec_all_minT, SD_spec_sel_minT = SD_spec_sel_minT,
+                
+    #meanT
+    AUC_all_meanT = AUC_all_meanT, AUC_sel_meanT = AUC_sel_meanT,
+    TSS_all_meanT = TSS_all_meanT, TSS_sel_meanT = TSS_sel_meanT,
+    sens_all_meanT = sens_all_meanT, sens_sel_meanT = sens_sel_meanT,
+    spec_all_meanT = spec_all_meanT, spec_sel_meanT = spec_sel_meanT,
+    SD_AUC_all_meanT = SD_AUC_all_meanT, SD_AUC_sel_meanT = SD_AUC_sel_meanT,
+    SD_TSS_all_meanT = SD_TSS_all_meanT, SD_TSS_sel_meanT = SD_TSS_sel_meanT,
+    SD_sens_all_meanT = SD_sens_all_meanT, SD_sens_sel_meanT = SD_sens_sel_meanT,
+    SD_spec_all_meanT = SD_spec_all_meanT, SD_spec_sel_meanT = SD_spec_sel_meanT,
+          
+    #maxT
+    AUC_all_maxT = AUC_all_maxT, AUC_sel_maxT = AUC_sel_maxT,
+    TSS_all_maxT = TSS_all_maxT, TSS_sel_maxT = TSS_sel_maxT,
+    sens_all_maxT = sens_all_maxT, sens_sel_maxT = sens_sel_maxT,
+    spec_all_maxT = spec_all_maxT, spec_sel_maxT = spec_sel_maxT,
+    SD_AUC_all_maxT = SD_AUC_all_maxT, SD_AUC_sel_maxT = SD_AUC_sel_maxT,
+    SD_TSS_all_maxT = SD_TSS_all_maxT, SD_TSS_sel_maxT = SD_TSS_sel_maxT,
+    SD_sens_all_maxT = SD_sens_all_maxT, SD_sens_sel_maxT = SD_sens_sel_maxT,
+    SD_spec_all_maxT = SD_spec_all_maxT, SD_spec_sel_maxT = SD_spec_sel_maxT,
+          
+    #minPPT
+    AUC_all_minPPT = AUC_all_minPPT, AUC_sel_minPPT = AUC_sel_minPPT,
+    TSS_all_minPPT = TSS_all_minPPT, TSS_sel_minPPT = TSS_sel_minPPT,
+    sens_all_minPPT = sens_all_minPPT, sens_sel_minPPT = sens_sel_minPPT,
+    spec_all_minPPT = spec_all_minPPT, spec_sel_minPPT = spec_sel_minPPT,
+    SD_AUC_all_minPPT = SD_AUC_all_minPPT, SD_AUC_sel_minPPT = SD_AUC_sel_minPPT,
+    SD_TSS_all_minPPT = SD_TSS_all_minPPT, SD_TSS_sel_minPPT = SD_TSS_sel_minPPT,
+    SD_sens_all_minPPT = SD_sens_all_minPPT, SD_sens_sel_minPPT = SD_sens_sel_minPPT,
+    SD_spec_all_minPPT = SD_spec_all_minPPT, SD_spec_sel_minPPT = SD_spec_sel_minPPT,
+    
+    #meanPPT
+    AUC_all_meanPPT = AUC_all_meanPPT, AUC_sel_meanPPT = AUC_sel_meanPPT,
+    TSS_all_meanPPT = TSS_all_meanPPT, TSS_sel_meanPPT = TSS_sel_meanPPT,
+    sens_all_meanPPT = sens_all_meanPPT, sens_sel_meanPPT = sens_sel_meanPPT,
+    spec_all_meanPPT = spec_all_meanPPT, spec_sel_meanPPT = spec_sel_meanPPT,
+    SD_AUC_all_meanPPT = SD_AUC_all_meanPPT, SD_AUC_sel_meanPPT = SD_AUC_sel_meanPPT,
+    SD_TSS_all_meanPPT = SD_TSS_all_meanPPT, SD_TSS_sel_meanPPT = SD_TSS_sel_meanPPT,
+    SD_sens_all_meanPPT = SD_sens_all_meanPPT, SD_sens_sel_meanPPT = SD_sens_sel_meanPPT,
+    SD_spec_all_meanPPT = SD_spec_all_meanPPT, SD_spec_sel_meanPPT = SD_spec_sel_meanPPT,
+    
+    #maxPPT
+    AUC_all_maxPPT = AUC_all_maxPPT, AUC_sel_maxPPT = AUC_sel_maxPPT,
+    TSS_all_maxPPT = TSS_all_maxPPT, TSS_sel_maxPPT = TSS_sel_maxPPT,
+    sens_all_maxPPT = sens_all_maxPPT, sens_sel_maxPPT = sens_sel_maxPPT,
+    spec_all_maxPPT = spec_all_maxPPT, spec_sel_maxPPT = spec_sel_maxPPT,
+    SD_AUC_all_maxPPT = SD_AUC_all_maxPPT, SD_AUC_sel_maxPPT = SD_AUC_sel_maxPPT,
+    SD_TSS_all_maxPPT = SD_TSS_all_maxPPT, SD_TSS_sel_maxPPT = SD_TSS_sel_maxPPT,
+    SD_sens_all_maxPPT = SD_sens_all_maxPPT, SD_sens_sel_maxPPT = SD_sens_sel_maxPPT,
+    SD_spec_all_maxPPT = SD_spec_all_maxPPT, SD_spec_sel_maxPPT = SD_spec_sel_maxPPT)
+
+    
+
+#.  INCLUDE CORRELATION ANALYSIS IN FINAL TABLE.   
+
+#load dataframe with variable correlation
+setwd(wd_tables)
+results_correl <- read.csv('Correlation_variables.csv')
+
+
+#join correl analysis with the info species table
+mistress_file <- merge(info_species, results_correl, by = c('Species', 'n_occ'))
+
+#save mistressfile
+setwd(wd_tables)
+write.csv(mistress_file, 'Mistressfile.csv', row.names = F)
+
+
+
+
+
+
+
 ##################.  NOTE  #########################
 
-#.  INCLUDE CORRELATION ANALYSIS IN FINAL TABLE.   #
+
+
+
 
 ###################### SCRAP #########################
 
