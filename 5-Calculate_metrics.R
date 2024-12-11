@@ -1,23 +1,27 @@
 ####  This script calculates measurements to classify the points and interpret
 ####  the results:
 ####
-####  1 - Range size for each species *numeric area km^2
-####
-####  2 - Range shape for each species (how round is the range?) *gradient
+####  1 - Absolute polewardness of each point (dist from equator) *numeric abs lat
+####  
+####  2 - Relative polewardness of each point (dist from warm edge) *gradient
 ####
 ####  3 - Distance from the edge of each point *numeric
 ####
-####  4 - Absolute polewardness of each point (dist from equator) *numeric %
+####  4 - Elevation of each point *numeric m
 ####
-####  5 - Relative polewardness of each point (dist from warm edge) *gradient
+####  5 - Biome for each point
 ####
-####  6 - Distance from range edges of each point *numeric km
+####  6 - Range size for each species *numeric area km^2
 ####
-####  7 - Elevation of each point *numeric m
+####  7 - Range location for each species *numeric abs mean lat
 ####
-####  8 - Body mass for each species *numeric g
+####  8 - Range shape for each species (how round is the range?) *gradient
 ####
-####  9 - Biome for each point
+####  9 - Taxonomic order (script 6)
+####
+####  10 - Body mass
+####
+####  11 - Number of presences
 
 #load libraries
 library(sf); library(units); library(raster)
@@ -25,7 +29,7 @@ library(sf); library(units); library(raster)
 #list wds
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Thinned_occurrrences'
-wd_pts_measure <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Point_and_range_measurements'
+wd_pts_measure <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_Point_and_range_measurements'
 wd_elevation <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/BioClim_layers'
 wd_mass <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Mammal_trait_data/Smith_etal_2003_Ecology'
 wd_biomes <- '/Users/carloseduardoaribeiro/Documents/General data/Biomes/official'
@@ -64,6 +68,9 @@ for(i in 1:length(sps_list))
   pr_sps2 <- pr_sps[,c('species','key','decimalLongitude','decimalLatitude',
                        'datasetKey')]
   
+  ### Include number of records
+  pr_sps2$nOcc <- nrow(pr_sps2)
+  
   #check if there are absence data
   abs_sps <- sps_occ[which(sps_occ$occurrenceStatus == 'ABSENT'),]
   if(nrow(abs_sps) != 0){
@@ -89,11 +96,7 @@ for(i in 1:length(sps_list))
 
   pr_sps2$roundness <- as.numeric((4*pi*area_range) / (perimetre^2))
   
-  ### Calculate the centralness of each point
-  
-  #generate stratified points
-  reg_pts <- st_sample(sps_range2, size = 1000, type = "regular")
-  reg_pts <- st_as_sf(reg_pts, crs = crs(sps_range2))
+  ### Calculate the dist from each point to edge in km
   
   #make a box around the range
   ext <- st_bbox(sps_range2)  #get min and max coord values of the range
@@ -105,28 +108,22 @@ for(i in 1:length(sps_list))
                        y = ext[c(4,4,2,2,4)] + y_mar * c(1,1,-1,-1,1))
   
   box <- st_as_sfc(          #make the box    
-           st_bbox(
-            st_as_sf(box_df, coords = c('x', 'y'), crs = crs(sps_range2))))
+    st_bbox(
+      st_as_sf(box_df, coords = c('x', 'y'), crs = crs(sps_range2))))
   
   #cut the range out of the box
   range_cut <- st_difference(box, sps_range2)
-  
-  #calculate the largest possible distance from the edges (in m)
-  max_dist <- max(st_distance(reg_pts, range_cut))
   
   #make sf objects for the points
   pr_sps2_sf <- st_as_sf(pr_sps2, 
                          coords = c('decimalLongitude', 'decimalLatitude'),
                          crs = crs(sps_range2))
   
-  #calculate the centralness (dist point to edge / max dist to edge)
-  pr_sps2$centralness <- as.numeric(st_distance(pr_sps2_sf, range_cut) / max_dist)
-  
-  ### Calculate the dist from each point to edge in km
+  #calculate the dist
   pr_sps2$distEdge <- set_units(st_distance(pr_sps2_sf, range_cut), km)[,1]
   
   ### Calculate the absolute polarwardness of each point
-  pr_sps2$absPolarwardness <- abs(pr_sps2$decimalLatitude) / 90
+  pr_sps2$absPolarwardness <- abs(pr_sps2$decimalLatitude)
   
   ### Calculate the relative polarwardness of each point
   
@@ -137,6 +134,8 @@ for(i in 1:length(sps_list))
   #flag if range is crossed by the equator (deal with this part of the code after)
   if(ymax > 0 & ymin < 0 | ymax < 0 & ymin > 0){
     pr_sps2$NOTE <- 'Crossed by Equator'
+  }else{
+    pr_sps2$NOTE <- NA
   }
   
   #identify warm and cold edges
@@ -160,7 +159,6 @@ for(i in 1:length(sps_list))
   #this step is to consider the cross equator species
   pr_sps2$relPolarwardness <- 
       1-((abs(cold_edge) - abs(pr_sps2$decimalLatitude)) / lat_range)
-
 
   ### Extract the elevation of each point
   pr_sps2$elevation <- extract(elev, pr_sps2_sf)
@@ -189,6 +187,9 @@ for(i in 1:length(sps_list))
   }
   
   t <- mass[which(mass$Species == sps_list[i]),]
+  
+  ### Calculate the range position (mean latitude)
+  pr_sps2$rangeLoc <- abs((ymax + ymin) / 2)
   
   #save table
   setwd(wd_pts_measure)
