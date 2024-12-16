@@ -2,21 +2,25 @@
 library(mgcv); library(itsadug)
 
 #list wds
-wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/All_species_analysis'
-wd_models <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/GAMs/Models_PPT'
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_All_species_analysis'
+wd_models <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/20241210_GAMs/Models'
 
-#read temperature results table
-
+#read results table
 setwd(wd_tables)
-results <- read.csv('Results_all_sps.csv')
+results <- read.csv('20241210_Results_all_sps.csv')
 
 #change names that are wrong
-names(results)[c(10,11)] <- c("absPolewardness","relPolewardness" )
+names(results)[c(10,12)] <- c("absPolewardness","relPolewardness" )
 
 #transform species names in factor
 results$species <- as.factor(results$species)
 
 ###########.  GAM   ################
+
+########################
+######### PPT ##########
+########################
+
 
 # SHAP values X relative polewardness (GAM)
 
@@ -26,41 +30,35 @@ par(mar = c(6,6,6,6))
 ### minPREC
 
 #model G
-minPPT_relPolewarness_G <- gam(Min_PPT_SHAP ~
+minPPT_relPolewarness_G <- gam(avg_Min_PPT_SHAP ~
                                s(relPolewardness, k=4, bs="tp") 
                              + s(species, k=503, bs="re"),
                              data = results,
                              method="REML",
                              family="gaussian")
 
-
 summary(minPPT_relPolewarness_G)
 
 setwd(wd_models)
 saveRDS(minPPT_relPolewarness_G, 'minPPT_relPolewarness_G')
 
-
-
 plot.gam(minPPT_relPolewarness_G, select = 1, residuals = F, shade = T,
          shade.col = '#fc8d5930', ylab = 'SHAP value',
-         ylim = c(-0.02, 0.02),
+         ylim = c(-0.03, 0.03),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 #model GS
-minPPT_relPolewarness_GS <- gam(Min_PPT_SHAP ~
+minPPT_relPolewarness_GS <- gam(avg_Min_PPT_SHAP ~
                                 s(relPolewardness, k=4, m=2) 
                               + s(relPolewardness, species, k=4, bs="fs", m=2),
                               data = results,
                               method="REML")
 
-
 summary(minPPT_relPolewarness_GS)
 
 setwd(wd_models)
 saveRDS(minPPT_relPolewarness_GS, 'minPPT_relPolewarness_GS')
-
-
 
 plot.gam(minPPT_relPolewarness_GS, select = 1, residuals = F, shade = T,
          shade.col = '#fc8d5930', ylab = 'SHAP value',
@@ -68,19 +66,15 @@ plot.gam(minPPT_relPolewarness_GS, select = 1, residuals = F, shade = T,
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
-
-
-
-### meanT
+### meanPPT
 
 #model G
-meanPPT_relPolewarness_G <- gam(Mean_PPT_SHAP ~
+meanPPT_relPolewarness_G <- gam(avg_Mean_PPT_SHAP ~
                                s(relPolewardness, k=4, bs="tp") 
                              + s(species, k=503, bs="re"),
                              data = results,
                              method="REML",
                              family="gaussian")
-
 
 summary(meanPPT_relPolewarness_G)
 
@@ -89,119 +83,69 @@ saveRDS(meanPPT_relPolewarness_G, 'meanPPT_relPolewarness_G')
 
 plot.gam(meanPPT_relPolewarness_G, select = 1, residuals = F, shade = T,
          shade.col = '#8c510a30', ylab = 'SHAP value',
-         ylim = c(-0.04, 0.04),
+         ylim = c(-0.04, 0.06),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 #model GS
-meanPPT_relPolewarness_GS <- gam(Mean_PPT_SHAP ~
+meanPPT_relPolewarness_GS <- gam(avg_Mean_PPT_SHAP ~
                                 s(relPolewardness, k=4, m=2) 
                               + s(relPolewardness, species, k=4, bs="fs", m=2),
                               data = results,
                               method="REML")
-
 
 summary(meanPPT_relPolewarness_GS)
 
 setwd(wd_models)
 saveRDS(meanPPT_relPolewarness_GS, 'meanPPT_relPolewarness_GS')
 
-
-
 plot.gam(meanPPT_relPolewarness_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-plot.gam(meanT_relPolewarness_GS, select = 2, residuals = F, 
-         cex.lab = 2, cex.axis = 1.5)  #save 800
-
-#model S
-meanT_relPolewarness_S <- gam(Mean_T_SHAP ~
-                               s(relPolewardness, species, k=4, bs="fs", m=2),
-                             data = results,
-                             method="REML")
-
-summary(meanT_relPolewarness_S)
-
-setwd(wd_models)
-saveRDS(meanT_relPolewarness_S, 'meanT_relPolewarness_S')
-
-draw(meanT_relPolewarness_S, page = 1)
-
-plot.gam(meanT_relPolewarness_S, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.04, 0.06),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
-
-### maxT
+### maxPPT
 
 #model G
-maxT_relPolewarness_G <- gam(Max_T_SHAP ~
+maxPPT_relPolewarness_G <- gam(avg_Max_PPT_SHAP ~
                                 s(relPolewardness, k=4, bs="tp") 
                               + s(species, k=503, bs="re"),
                               data = results,
                               method="REML",
                               family="gaussian")
 
-
-summary(maxT_relPolewarness_G)
-logLik(maxT_relPolewarness_G)
+summary(maxPPT_relPolewarness_G)
 
 setwd(wd_models)
-saveRDS(maxT_relPolewarness_G, 'maxT_relPolewarness_G')
+saveRDS(maxPPT_relPolewarness_G, 'maxPPT_relPolewarness_G')
 
-draw(maxT_relPolewarness_G, page = 1)
 
-plot.gam(maxT_relPolewarness_G, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
+plot.gam(maxPPT_relPolewarness_G, select = 1, residuals = F, shade = T,
+         shade.col = '#1a985030', ylab = 'SHAP value',
+         ylim = c(-0.03, 0.03),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
-plot.gam(maxT_relPolewarness_G, select = 2, residuals = F, 
-         cex.lab = 2, cex.axis = 1.5)  #save 800
 
 #model GS
-maxT_relPolewarness_GS <- gam(Max_T_SHAP ~
+maxPPT_relPolewarness_GS <- gam(avg_Max_PPT_SHAP ~
                                  s(relPolewardness, k=4, m=2) 
                                + s(relPolewardness, species, k=4, bs="fs", m=2),
                                data = results,
                                method="REML")
 
 
-summary(maxT_relPolewarness_GS)
-logLik(maxT_relPolewarness_GS)
+summary(maxPPT_relPolewarness_GS)
 
 setwd(wd_models)
-saveRDS(maxT_relPolewarness_GS, 'maxT_relPolewarness_GS')
-
-draw(maxT_relPolewarness_GS, page = 1)
+saveRDS(maxPPT_relPolewarness_GS, 'maxPPT_relPolewarness_GS')
 
 
-plot.gam(maxT_relPolewarness_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
+plot.gam(maxPPT_relPolewarness_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#1a985030', ylab = 'SHAP value',
+         ylim = c(-0.03, 0.03),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
-plot.gam(maxT_relPolewarness_GS, select = 2, residuals = F, 
-         cex.lab = 2, cex.axis = 1.5)  #save 800
-
-
-#model S
-maxT_relPolewarness_S <- gam(Max_T_SHAP ~
-                                s(relPolewardness, species, k=4, bs="fs", m=2),
-                              data = results,
-                              method="REML")
-
-summary(maxT_relPolewarness_S)
-
-setwd(wd_models)
-saveRDS(maxT_relPolewarness_S, 'maxT_relPolewarness_S')
-
-draw(maxT_relPolewarness_S, page = 1)
-
-plot.gam(maxT_relPolewarness_S, select = 1, residuals = F, shade = T,
-         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 # SHAP values X absolute polewardness (GAM)
@@ -209,10 +153,10 @@ plot.gam(maxT_relPolewarness_S, select = 1, residuals = F, shade = T,
 #set par for plotting
 par(mar = c(6,6,6,6))
 
-### minT
+### minPPT
 
 #model G
-minT_absPolewarness_G <- gam(Min_T_SHAP ~
+minPPT_absPolewarness_G <- gam(avg_Min_PPT_SHAP ~
                                s(absPolewardness, k=4, bs="tp") 
                              + s(species, k=503, bs="re"),
                              data = results,
@@ -220,67 +164,43 @@ minT_absPolewarness_G <- gam(Min_T_SHAP ~
                              family="gaussian")
 
 
-summary(minT_absPolewarness_G)
-logLik(minT_absPolewarness_G)
+summary(minPPT_absPolewarness_G)
 
 setwd(wd_models)
-saveRDS(minT_absPolewarness_G, 'minT_absPolewarness_G')
+saveRDS(minPPT_absPolewarness_G, 'minPPT_absPolewarness_G')
 
-draw(minT_absPolewarness_G, page = 1)
 
-plot.gam(minT_absPolewarness_G, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.11, 0.11),
+plot.gam(minPPT_absPolewarness_G, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.09, 0.08),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
-plot.gam(minT_absPolewarness_G, select = 2, residuals = F, 
-         cex.lab = 2, cex.axis = 1.5)  #save 800
 
 #model GS
-minT_absPolewarness_GS <- gam(Min_T_SHAP ~
+minPPT_absPolewarness_GS <- gam(avg_Min_PPT_SHAP ~
                                 s(absPolewardness, k=4, m=2) 
                               + s(absPolewardness, species, k=4, bs="fs", m=2),
                               data = results,
                               method="REML")
 
 
-summary(minT_absPolewarness_GS)
-logLik(minT_absPolewarness_GS)
-
+summary(minPPT_absPolewarness_GS)
+ 
 setwd(wd_models)
-saveRDS(minT_absPolewarness_GS, 'minT_absPolewarness_GS')
-
-draw(minT_absPolewarness_GS, page = 1)
+saveRDS(minPPT_absPolewarness_GS, 'minPPT_absPolewarness_GS')
 
 
-plot.gam(minT_absPolewarness_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.11, 0.11),
+plot.gam(minPPT_absPolewarness_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.09, 0.08),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
-plot.gam(minT_absPolewarness_GS, select = 2, residuals = F, 
-         cex.lab = 2, cex.axis = 1.5)  #save 800
 
-#model S
-minT_absPolewarness_S <- gam(Min_T_SHAP ~
-                               s(absPolewardness, species, k=4, bs="fs", m=2),
-                             data = results,
-                             method="REML")
 
-summary(minT_absPolewarness_S)
-
-setwd(wd_models)
-saveRDS(minT_absPolewarness_S, 'minT_absPolewarness_S')
-
-draw(minT_absPolewarness_S, page = 1)
-
-plot.gam(minT_absPolewarness_S, select = 1, residuals = F, shade = T,
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-### meanT
+### meanPPT
 
 #model G
-meanT_absPolewarness_G <- gam(Mean_T_SHAP ~
+meanPPT_absPolewarness_G <- gam(avg_Mean_PPT_SHAP ~
                                 s(absPolewardness, k=4, bs="tp") 
                               + s(species, k=503, bs="re"),
                               data = results,
@@ -288,68 +208,40 @@ meanT_absPolewarness_G <- gam(Mean_T_SHAP ~
                               family="gaussian")
 
 
-summary(meanT_absPolewarness_G)
-logLik(meanT_absPolewarness_G)
+summary(meanPPT_absPolewarness_G)
 
 setwd(wd_models)
-saveRDS(meanT_absPolewarness_G, 'meanT_absPolewarness_G')
+saveRDS(meanPPT_absPolewarness_G, 'meanPPT_absPolewarness_G')
 
-draw(meanT_absPolewarness_G, page = 1)
 
-plot.gam(meanT_absPolewarness_G, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.11, 0.11),
+plot.gam(meanPPT_absPolewarness_G, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.25, 0.12),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
-plot.gam(meanT_absPolewarness_G, select = 2, residuals = F, 
-         cex.lab = 2, cex.axis = 1.5)  #save 800
+
 
 #model GS
-meanT_absPolewarness_GS <- gam(Mean_T_SHAP ~
+meanPPT_absPolewarness_GS <- gam(avg_Mean_PPT_SHAP ~
                                  s(absPolewardness, k=4, m=2) 
                                + s(absPolewardness, species, k=4, bs="fs", m=2),
                                data = results,
                                method="REML")
 
-#model GS
-meanT_absPolewarness_GS <- gam(Mean_T_SHAP ~
-                                 s(absPolewardness, k=4, m=2) 
-                               + s(absPolewardness, species, k=4, bs="fs", m=2),
-                               data = results,
-                               method="REML")
-
-
-summary(meanT_absPolewarness_GS)
+summary(meanPPT_absPolewarness_GS)
 
 setwd(wd_models)
-saveRDS(meanT_absPolewarness_GS, 'meanT_absPolewarness_GS')
+saveRDS(meanPPT_absPolewarness_GS, 'meanPPT_absPolewarness_GS')
 
-draw(meanT_absPolewarness_GS, page = 1)
-
-
-plot.gam(meanT_absPolewarness_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.11, 0.11),
+plot.gam(meanPPT_absPolewarness_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.25, 0.12),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
-plot.gam(meanT_absPolewarness_GS, select = 2, residuals = F, 
-         cex.lab = 2, cex.axis = 1.5)  #save 800
 
-#model S
-meanT_absPolewarness_S <- gam(Mean_T_SHAP ~
-                                s(absPolewardness, species, k=4, bs="fs", m=2),
-                              data = results,
-                              method="REML")
 
-summary(meanT_absPolewarness_S)
 
-setwd(wd_models)
-saveRDS(meanT_absPolewarness_S, 'meanT_absPolewarness_S')
 
-draw(meanT_absPolewarness_S, page = 1)
-
-plot.gam(meanT_absPolewarness_S, select = 1, residuals = F, shade = T,
-         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 
