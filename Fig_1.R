@@ -23,7 +23,7 @@ poly_sf <-  st_sfc(poly, crs = st_crs(world))
 poly_sf <- st_as_sf(poly_sf)
 
 #create points representing species occurrences
-points_sf <- st_sample(poly_sf, size = 50, type = "random")
+points_sf <- st_sample(poly_sf, size = 100, type = "random")
 points_sf <- st_as_sf(points_sf)
 
 #calculate rel polewardness for all points
@@ -216,7 +216,7 @@ text(st_bbox(box)[1] - 2.75,
        st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
      cex = 1.1, srt = 90)
 
-#save plot (width = 800)
+#save plot (width = 1000)
 
 ###### PLOT GRAPH SHOWING THE CENTRE-EDGE GRADIENT ######
 
@@ -245,7 +245,7 @@ rect(par("usr")[1], par("usr")[3],
 lin_mod_minT <- lm(points_sf$varContPol ~ points_sf$distEdgeNormal)
 abline(lin_mod_minT, col = '#2c7bb6', lwd = 7)
 
-#save plot (width = 800)
+#save plot (width = 1000)
 
 
 #create table object to save
@@ -276,15 +276,17 @@ par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
 plot(big_box, border = NA)
 
 #plot small box to inform the coordinates
-plot(box, add = T)
+plot(box, add = T, col = '#ffffbf20')
 
 #plot the polygon
-plot(poly_sf, lwd = 3, border = '#707070', col = '#F0F0F0', add = T)
+plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
 
 #plot the occurrence points (size is proportional to SHAP value)
 plot(st_geometry(points_sf),
-     add = T, pch = 19, cex = points_sf$varContNormal,
-     col = '#0000FF80')
+     add = T, pch = 19, cex = points_sf$varContNormal ^ 1.6,
+     col = '#2c7bb680')
+
+
 
 #label axes
 text(-5, 37.4, 'Latitude', srt = 90, cex = 1.2)
@@ -350,7 +352,7 @@ text(st_bbox(box)[1] - 2.75,
        st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
      cex = 1.1, srt = 90)
 
-#save plot (width = 800)
+#save plot (width = 1000)
 
 ###### PLOT GRAPH SHOWING THE LATITUDINAL GRADIENT ######
 
@@ -362,132 +364,40 @@ xlim <- c(0, 1)
 #set parametres for plotting
 par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
 
-#minT
+#minT (make points invisible)
 plot(points_sf$relPol, points_sf$varContPol, 
-     pch = 19, cex = 1, col = '#0000FF50',
+     pch = 19, cex = 1, col = '#FF808000',
      ylab = 'Variable contribution',
      xlab = 'Relative polewardness',
      cex.lab = 1.2,
      cex.axis = 1.2,
      ylim = c(ylim[1], ylim[2]))
 
+#plot rectangle for background colour
+rect(par("usr")[1], par("usr")[3],
+     par("usr")[2], par("usr")[4],
+     col = '#ffffbf20') 
+
 #fit linear model
 lin_mod_minT <- lm(points_sf$varContPol ~ points_sf$relPol)
-abline(lin_mod_minT, col = '#0000FF', lwd = 7)
+abline(lin_mod_minT, col = '#2c7bb6', lwd = 7)
 
-#save plot (width = 800)
-
-
+#save plot (width = 1000)
 
 
 
 
 
+###### PLOT MAP SHOWING EXPECTED DIFFERENCE BETWEEN EXTREMES AND MEANS ######
 
-#######################################################
-######################## LOAD #########################
-#######################################################
+#Legend: large ranges showing climatic extremes increase in explanatory power towards the edges, and means don't show a strong pattern.
 
-#load the coordinations when runinf from here
-setwd(wd_tables)
-points_table <- read.csv('Coordinates_points_large_map.csv')
+#Reference in text: "Climatic variables have higher explanatory power towards the poleward range limit (Fig. 1C)"
 
-#create a points_sf object with the modified longitutes
-points_sf <- st_as_sf(points_table, coords = c('lon', 'lat'), crs = st_crs(world))
-
-
-#create polygon representing species small range
-poly_S = st_polygon(
-  list(cbind(c(51, 50.7, 51, 51.2, 52.4, 53, 54.2, 55, 54.7, 53.5,
-               52.2, 51),
-             c(16, 16.8, 18, 18.1, 18.3, 19, 18.8, 18, 17.2, 16.2,
-               15.7, 16))))
-
-poly_S_sf <-  st_sfc(poly_S, crs = st_crs(world))
-poly_S_sf <- st_as_sf(poly_S_sf)
-
-#create points representing species occurrences
-points_S_sf <- st_sample(poly_S_sf, size = 25, type = "random")
-points_S_sf <- st_as_sf(points_S_sf)
-
-#create data on var contribution for all points
-points_S_sf$varCont <- rnorm(nrow(points_S_sf), mean = 0.1, sd = 0.1)
-
-summary(points_S_sf$varCont)
-
-#get min and max coord values of the range
-ext <- st_bbox(poly_S_sf) 
-minLat <- ext[2]
-latAmp <- ext[4] - ext[2]
-
-#calculate rel polewardness for all points
-points_S_sf$relPol <- (st_coordinates(points_S_sf)[,2] - minLat) / latAmp
-
-summary(points_S_sf$relPol)
-
-#normalize variable contribution from 0 to 5 (for size)
-points_S_sf$varContNormal <- 
-  round(((points_S_sf$varCont +
-            abs(min(points_S_sf$varCont))) * 2) + 0.7, 2)
-
-summary(points_S_sf$varContNormal)
-
-#make boxes for the map
-
-#calculate the size of the small box to plot around the range
-#make it big, to show that the range is small
-side_box <-  (max(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) +
-  min(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) / 4) * 3
-
-#calculate central lon and central lat of the range
-central_x <- (ext[3] + ext[1]) / 2
-names(central_x) <- 'xmean'
-central_y <- (ext[4] + ext[2]) / 2
-names(central_y) <- 'ymean'
-
-#calculate min and max lon and mean and max lat of the small box
-min_x <- central_x - (side_box / 2.1)
-names(min_x) <- 'xmin'
-max_x <- central_x + (side_box / 2.1)
-names(max_x) <- 'xmax'
-
-min_y <- central_y - (side_box / 2.2)
-names(min_y) <- 'ymin'
-max_y <- central_y + (side_box / 2.2)
-names(max_y) <- 'ymax'
-
-#create big box
-box_df <- data.frame(x = c(min_x,max_x,max_x,min_x,min_x), 
-                     y = c(max_y,max_y,min_y,min_y,max_y))
-
-box <- st_as_sfc(          #make the box    
-  st_bbox(st_as_sf(box_df, coords = c('x', 'y'), crs = st_crs(poly_S_sf))))
-
-#calculate the size of the box to plot in white in the background and give
-#space to other stuff
-side_big_box <-  (max(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) +
-  min(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) / 2) * 3
-
-#calculate min and max lon and mean and max lat of the big box
-min_x_BB <- central_x - (side_big_box / 1.7)
-names(min_x_BB) <- 'xmin'
-max_x_BB <- central_x + (side_big_box / 2)
-names(max_x_BB) <- 'xmax'
-
-min_y_BB <- central_y - (side_big_box / 1.7)
-names(min_y_BB) <- 'ymin'
-max_y_BB <- central_y + (side_big_box / 2)
-names(max_y_BB) <- 'ymax'
-
-#create big box
-big_box_df <- data.frame(x = c(min_x_BB,max_x_BB,max_x_BB,min_x_BB,min_x_BB), 
-                         y = c(max_y_BB,max_y_BB,min_y_BB,min_y_BB,max_y_BB))
-
-big_box <- st_as_sfc(          #make the box    
-  st_bbox(st_as_sf(big_box_df, coords = c('x', 'y'), crs = st_crs(poly_S_sf))))
-
-
-###### PLOT MAP SHOWING THE LATITUDINAL GRADIENT ######
+#divide points to show extremes and means
+shuffle_pts <- sample(c(1:nrow(points_sf)), size = nrow(points_sf))
+extre_pts <- points_sf[shuffle_pts[c(1:50)],]
+mean_pts <- points_sf[shuffle_pts[c(51:100)],]
 
 #set parametres for plotting
 par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
@@ -496,323 +406,120 @@ par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
 plot(big_box, border = NA)
 
 #plot small box to inform the coordinates
-plot(box, add = T)
+plot(box, add = T, col = '#ffffbf20')
 
 #plot the polygon
-plot(poly_S_sf, lwd = 3, border = '#707070', col = '#F0F0F0', add = T)
+plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
 
 #plot the occurrence points (size is proportional to SHAP value)
-plot(st_geometry(points_S_sf),
-     add = T, pch = 19, cex = points_S_sf$varContNormal,
-     col = '#0000FF80')
+plot(st_geometry(extre_pts),
+     add = T, pch = 19, cex = extre_pts$centralCex ^ 1.4,
+     col = '#9930FF80')
+
+#plot the occurrence points (size is proportional to SHAP value)
+plot(st_geometry(mean_pts),
+     add = T, pch = 19, cex = sqrt(mean_pts$centralCex),
+     col = '#FF600080')
 
 #label axes
-text(min_x_BB + (side_big_box / 19),
-     (min_y + max_y) / 2,
-     'Latitude', srt = 90, cex = 1.2)
-text((min_x + max_x) / 2,
-     min_y_BB + (side_big_box / 12),
-     'Longitude', srt = 00, cex = 1.2)
+text(-5, 37.4, 'Latitude', srt = 90, cex = 1.2)
+text(21.7, 16, 'Longitude', srt = 00, cex = 1.2)
 
 #add ticks to axes
 points(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - (side_box / 100),
+       st_bbox(box)[2] - 0.44,
        pch = '|',
-       cex = 0.75)
+       cex = 0.7)
 points((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-       st_bbox(box)[2] - (side_box / 100),
+       st_bbox(box)[2] - 0.44,
        pch = '|',
-       cex = 0.75)
+       cex = 0.7)
 points(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - (side_box / 100),
+       st_bbox(box)[2] - 0.44,
        pch = '|',
-       cex = 0.75)
+       cex = 0.7)
 
-points(st_bbox(box)[1] - (side_box / 100),
+points(st_bbox(box)[1] - 0.45,
        st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
        pch = '—',
-       cex = 0.75)
-points(st_bbox(box)[1] - (side_box / 100),
+       cex = 0.7)
+points(st_bbox(box)[1] - 0.45,
        (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
        pch = '—',
-       cex = 0.75)
-points(st_bbox(box)[1] - (side_box / 100),
+       cex = 0.7)
+points(st_bbox(box)[1] - 0.45,
        st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
        pch = '—',
-       cex = 0.75)
+       cex = 0.7)
 
 #add values to axes
 text(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - (side_box / 17),
+     st_bbox(box)[2] - 2.1,
      labels = paste0(round(
        st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
      cex = 1.1)
 text((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-     st_bbox(box)[2] - (side_box / 17),
+     st_bbox(box)[2] - 2.1,
      labels = paste0(round(
        (st_bbox(box)[1] + st_bbox(box)[3]) / 2, 1)),
      cex = 1.1)
 text(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - (side_box / 17),
+     st_bbox(box)[2] - 2.1,
      labels = paste0(round(
        st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
      cex = 1.1)
 
-text(st_bbox(box)[1] - (side_box / 15),
+text(st_bbox(box)[1] - 2.75,
      st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
      labels = paste0(round(
        st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
      cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - (side_box / 15),
+text(st_bbox(box)[1] - 2.75,
      (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
      labels = paste0(round(
        (st_bbox(box)[2] + st_bbox(box)[4]) / 2, 1)),
      cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - (side_box / 15),
+text(st_bbox(box)[1] - 2.75,
      st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
      labels = paste0(round(
        st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
      cex = 1.1, srt = 90)
 
-#save plot (width = 800)
+#save plot (width = 1000)
 
-
-###### PLOT GRAPH SHOWING THE LATITUDINAL GRADIENT ######
+###### PLOT GRAPH SHOWING THE CENTRE-EDGE GRADIENT ######
 
 #set y and x lims
-ylim <- c(-0.2, 0.9)
+ylim <- c(-0.2, 0.8)
 xlim <- c(0, 1)
-
 
 #set parametres for plotting
 par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
 
-#minT
-plot(points_S_sf$relPol, points_S_sf$varCont, 
-     pch = 19, cex = 1, col = '#0000FF50',
+#minT (make points invisible)
+plot(points_sf$distEdgeNormal, points_sf$varContPol, 
+     pch = 19, cex = 1, col = '#FF808000',
      ylab = 'Variable contribution',
-     xlab = 'Rel polewardness / Dist from edge',
+     xlab = 'Distance from edge',
      cex.lab = 1.2,
      cex.axis = 1.2,
      ylim = c(ylim[1], ylim[2]))
 
-#fit linear model
-lin_mod_minT <- lm(points_S_sf$varCont ~ points_S_sf$relPol)
-abline(lin_mod_minT, col = '#0000FF', lwd = 7)
-
-#save plot (width = 800)
-
-
-######## TROPICAL ###############
-
-#create polygon representing species in the tropica
-poly_T = st_polygon(
-  list(cbind(c(20.1, 19.2, 15.3, 15, 18.4, 28, 32.2, 34, 35, 34.5,
-               35.2, 40, 43, 45, 40, 28, 22, 20.1),
-             c(-16, -15.8, -14, -8.2, 3.4, 19, 21.8, 21, 18, 16.2,
-               14.8, 9, 2, -5.5, -12, -17, -17.3, -16))))
-
-poly_T_sf <-  st_sfc(poly_T, crs = st_crs(world))
-poly_T_sf <- st_as_sf(poly_T_sf)
-
-plot(poly_T_sf)
-
-#create points representing species occurrences
-points_T_sf <- st_sample(poly_T_sf, size = 45, type = "random")
-points_T_sf <- st_as_sf(points_T_sf)
-
-#create data on var contribution for all points
-points_T_sf$varCont <- rnorm(nrow(points_T_sf), mean = 0.2, sd = 0.2)
-
-summary(points_T_sf$varCont)
-
-#get min and max coord values of the range
-ext <- st_bbox(poly_T_sf) 
-minLat <- ext[2]
-latAmp <- ext[4] - ext[2]
-
-#calculate rel polewardness for all points
-points_T_sf$relPol <- (st_coordinates(points_T_sf)[,2] - minLat) / latAmp
-
-summary(points_T_sf$relPol)
-
-#normalize variable contribution from 0 to 5 (for size)
-points_T_sf$varContNormal <- 
-  round(((points_T_sf$varCont +
-            abs(min(points_T_sf$varCont))) * 2) + 0.7, 2)
-
-summary(points_T_sf$varContNormal)
-
-#make boxes for the map
-
-#calculate the size of the small box to plot around the range
-side_box <-  max(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) +
-                min(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) / 4
-
-#calculate central lon and central lat of the range
-central_x <- (ext[3] + ext[1]) / 2
-names(central_x) <- 'xmean'
-central_y <- (ext[4] + ext[2]) / 2
-names(central_y) <- 'ymean'
-
-#calculate min and max lon and mean and max lat of the small box
-min_x <- central_x - (side_box / 2)
-names(min_x) <- 'xmin'
-max_x <- central_x + (side_box / 2)
-names(max_x) <- 'xmax'
-
-min_y <- central_y - (side_box / 2)
-names(min_y) <- 'ymin'
-max_y <- central_y + (side_box / 2)
-names(max_y) <- 'ymax'
-
-#create big box
-box_df <- data.frame(x = c(min_x,max_x,max_x,min_x,min_x), 
-                     y = c(max_y,max_y,min_y,min_y,max_y))
-
-box <- st_as_sfc(          #make the box    
-  st_bbox(st_as_sf(box_df, coords = c('x', 'y'), crs = st_crs(poly_T_sf))))
-
-#calculate the size of the box to plot in white in the background and give
-#space to other stuff
-side_big_box <-  max(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) +
-                    min(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) / 2 
-
-#calculate min and max lon and mean and max lat of the big box
-min_x_BB <- central_x - (side_big_box / 1.675)
-names(min_x_BB) <- 'xmin'
-max_x_BB <- central_x + (side_big_box / 1.675)
-names(max_x_BB) <- 'xmax'
-
-min_y_BB <- central_y - (side_big_box / 1.675)
-names(min_y_BB) <- 'ymin'
-max_y_BB <- central_y + (side_big_box / 1.675)
-names(max_y_BB) <- 'ymax'
-
-#create big box
-big_box_df <- data.frame(x = c(min_x_BB,max_x_BB,max_x_BB,min_x_BB,min_x_BB), 
-                         y = c(max_y_BB,max_y_BB,min_y_BB,min_y_BB,max_y_BB))
-
-big_box <- st_as_sfc(          #make the box    
-  st_bbox(st_as_sf(big_box_df, coords = c('x', 'y'), crs = st_crs(poly_T_sf))))
-
-
-###### PLOT MAP SHOWING THE LATITUDINAL GRADIENT ######
-
-#set parametres for plotting
-par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
-
-#plot big white box to make room for the things I need to add around
-plot(big_box, border = NA)
-
-#plot small box to inform the coordinates
-plot(box, add = T)
-
-#plot the polygon
-plot(poly_T_sf, lwd = 3, border = '#707070', col = '#F0F0F0', add = T)
-
-#plot the occurrence points (size is proportional to SHAP value)
-plot(st_geometry(points_T_sf),
-     add = T, pch = 19, cex = points_T_sf$varContNormal,
-     col = '#0000FF80')
-
-#label axes
-text(min_x_BB + (side_big_box / 26),
-     (min_y + max_y) / 2,
-     'Latitude', srt = 90, cex = 1.2)
-text((min_x + max_x) / 2,
-     min_y_BB + (side_big_box / 22),
-     'Longitude', srt = 00, cex = 1.2)
-
-#add ticks to axes
-points(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - (side_box / 100),
-       pch = '|',
-       cex = 0.75)
-points((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-       st_bbox(box)[2] - (side_box / 100),
-       pch = '|',
-       cex = 0.75)
-points(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - (side_box / 100),
-       pch = '|',
-       cex = 0.75)
-
-points(st_bbox(box)[1] - (side_box / 100),
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.75)
-points(st_bbox(box)[1] - (side_box / 100),
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-       pch = '—',
-       cex = 0.75)
-points(st_bbox(box)[1] - (side_box / 100),
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.75)
-
-#add values to axes
-text(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - (side_box / 16),
-     labels = paste0(round(
-       st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-text((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-     st_bbox(box)[2] - (side_box / 16),
-     labels = paste0(round(
-       (st_bbox(box)[1] + st_bbox(box)[3]) / 2, 1)),
-     cex = 1.1)
-text(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - (side_box / 16),
-     labels = paste0(round(
-       st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-
-text(st_bbox(box)[1] - (side_box / 15),
-     st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - (side_box / 15),
-     (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-     labels = paste0(round(
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - (side_box / 15),
-     st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
-
-#add dashed line showing equator
-# abline(a = 0, b = 0, lty = 'dotted', lwd = 2, col = 'red')
-
-#save plot (width = 800)
-
-
-###### PLOT GRAPH SHOWING THE LATITUDINAL GRADIENT ######
-
-#set y and x lims
-ylim <- c(-0.2, 0.9)
-xlim <- c(0, 1)
-
-
-#set parametres for plotting
-par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
-
-#minT
-plot(points_T_sf$relPol, points_T_sf$varCont, 
-     pch = 19, cex = 1, col = '#0000FF50',
-     ylab = 'Variable contribution',
-     xlab = 'Rel polewardness / Dist from edge',
-     cex.lab = 1.2,
-     cex.axis = 1.2,
-     ylim = c(ylim[1], ylim[2]))
+#plot rectangle for background colour
+rect(par("usr")[1], par("usr")[3],
+     par("usr")[2], par("usr")[4],
+     col = '#ffffbf20') 
 
 #fit linear model
-lin_mod_minT <- lm(points_T_sf$varCont ~ points_T_sf$relPol)
-abline(lin_mod_minT, col = '#0000FF', lwd = 7)
+lin_mod_minT <- lm(points_sf$varContPol ~ points_sf$distEdgeNormal)
+lin_mod_minT_2 <- lm((points_sf$varContPol/6) + 0.2 ~ points_sf$distEdgeNormal)
 
-#save plot (width = 800)
+abline(lin_mod_minT, col = '#9930FF', lwd = 7)
+abline(lin_mod_minT_2, col = '#FF6000', lwd = 7)
+
+
+#save plot (width = 1000)
+
+
 
 
