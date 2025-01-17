@@ -1,5 +1,6 @@
 #load packages 
 library(raster); library(sp); library(data.table); library(bRacatus)
+library(CoordinateCleaner)
 
 #list wds
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
@@ -73,7 +74,16 @@ for(i in 1:length(sps_list))
   
   #keep only one entry per cell
   sps_occ_thin <- unique(as.data.table(sps_occ_range), by = 'cellID')
-
+  
+  #check if there are flagged occurrences with CoordinateCleaner
+  sps_occ_thin_CC <- clean_coordinates(sps_occ_thin,
+                              tests = c("capitals", "centroids", "equal",
+                                        "gbif", "institutions", "outliers",
+                                        "seas", "zeros", "duplicates"))
+  
+  #keep only records not flagged by CoordinateCleaner
+  sps_occ_thin <- sps_occ_thin_CC[sps_occ_thin_CC$.val == T,]
+  
   #populate n_thinned_recs column
   n_thinned_recs[i] <- nrow(sps_occ_thin)
   

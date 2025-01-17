@@ -7,6 +7,16 @@ wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manus
 #set seed
 set.seed(69)
 
+
+
+################# IMPORTANT NOTE ###################
+
+#.           make graph fist
+#.           use created values for the figure
+
+###################################################
+
+
 ##### MAP #####
 
 #load world map
@@ -128,6 +138,12 @@ summary(points_sf$varContrCentral)
 
 
 
+
+
+
+
+
+
 ###### PLOT MAP SHOWING THE CENTRAL GRADIENT ######
 
 #Legend: "Larger ranges showing populations close to the range centre being less affected by climatic extremes than those closer to range edges."
@@ -152,109 +168,54 @@ plot(st_geometry(points_sf),
      add = T, pch = 19, cex = points_sf$centralCex ^ 1.4,
      col = '#2c7bb680')
 
-#label axes
-#text(-5, 37.4, 'Latitude', srt = 90, cex = 1.2)
-#text(21.7, 16, 'Longitude', srt = 00, cex = 1.2)
+#save 1000
 
-#add ticks to axes
-# points(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-#        st_bbox(box)[2] - 0.44,
-#        pch = '|',
-#        cex = 0.7)
-# points((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-#        st_bbox(box)[2] - 0.44,
-#        pch = '|',
-#        cex = 0.7)
-# points(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-#        st_bbox(box)[2] - 0.44,
-#        pch = '|',
-#        cex = 0.7)
-# 
-# points(st_bbox(box)[1] - 0.45,
-#        st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-#        pch = '—',
-#        cex = 0.7)
-# points(st_bbox(box)[1] - 0.45,
-#        (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-#        pch = '—',
-#        cex = 0.7)
-# points(st_bbox(box)[1] - 0.45,
-#        st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-#        pch = '—',
-#        cex = 0.7)
-# 
-# #add values to axes
-# text(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-#      st_bbox(box)[2] - 2.1,
-#      labels = paste0(round(
-#        st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-#      cex = 1.1)
-# text((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-#      st_bbox(box)[2] - 2.1,
-#      labels = paste0(round(
-#        (st_bbox(box)[1] + st_bbox(box)[3]) / 2, 1)),
-#      cex = 1.1)
-# text(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-#      st_bbox(box)[2] - 2.1,
-#      labels = paste0(round(
-#        st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-#      cex = 1.1)
-# 
-# text(st_bbox(box)[1] - 2.75,
-#      st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-#      labels = paste0(round(
-#        st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-#      cex = 1.1, srt = 90)
-# text(st_bbox(box)[1] - 2.75,
-#      (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-#      labels = paste0(round(
-#        (st_bbox(box)[2] + st_bbox(box)[4]) / 2, 1)),
-#      cex = 1.1, srt = 90)
-# text(st_bbox(box)[1] - 2.75,
-#      st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-#      labels = paste0(round(
-#        st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-#      cex = 1.1, srt = 90)
 
-#save plot (width = 1000)
 
-###### PLOT GRAPH SHOWING THE CENTRE-EDGE GRADIENT ######
 
-# # Set seed for reproducibility
-# set.seed(123)
-# 
-# # Generate 100 random values for distEdgeNormal
-# distEdgeNormal <- runif(100, min = 0, max = 10)
-# 
-# # Generate ydata with a linear relationship plus some noise
-# ydata <- 0.5 * distEdgeNormal + rnorm(100, mean = 0, sd = 1)
-# 
-# # Combine into a data frame
-# data <- data.frame(distEdgeNormal, ydata)
-# 
-# # Fit the linear model
-# lin_mod <- lm(ydata ~ distEdgeNormal, data = data)
-# 
-# # Display the model summary
-# summary(lin_mod)
 
-#set y and x lims
-ylim <- c(-0.2, 0.8)
-xlim <- c(0, 1)
+###### PLOT GRAPH SHOWING THE CENTRAL GRADIENT ######
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Generate 100 random values for distEdgeNormal
+distEdgeNormal <- runif(100, min = 0, max = 500)
+
+# Generate ydata with a linear relationship plus some noise
+ydata <- ((-0.002 * distEdgeNormal + rnorm(100, mean = 0, sd = 0.2)) + 0.6) / 2
+
+# Combine into a data frame
+data <- data.frame(distEdgeNormal, ydata)
+
+# Fit the linear model
+lin_mod <- lm(ydata ~ distEdgeNormal, data = data)
+
+# Display the model summary
+summary(lin_mod)
 
 #set parametres for plotting
 par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
 
-#add some noise to the y axis data
-ydata <- points_sf$varContPol / 1.7
+# Create a sequence of x-values within the range of the data
+x_vals <- seq(min(data$distEdgeNormal),
+              max(data$distEdgeNormal),
+              length.out = 100)
 
-ydata <- points_sf$varContPol / 1.5 +
-  rnorm(length(points_sf$varContPol), 0.1, sd = 0.2)  - 0.3
+# Create a data frame for prediction
+new_data <- data.frame(distEdgeNormal = x_vals)
 
-#minT (make points invisible)
-plot(points_sf$distEdgeNormal, ydata , 
+# Predict y-values based on the model
+predicted <- predict(lin_mod, newdata = new_data)
+
+#set y and x lims
+ylim <- c(-0.5, 0.5)
+xlim <- c(0, 530)
+
+# Plot the data points again
+plot(data$distEdgeNormal, data$ydata, 
      pch = 19, cex = 0.8, col = '#2c7bb650',
-     axes = F, , xaxs="i", yaxs="i",
+     axes = F, , xaxs = "i", yaxs = "i",
      ylab = 'Variable contribution',
      xlab = 'Distance from edge',
      cex.lab = 1.2,
@@ -263,75 +224,136 @@ plot(points_sf$distEdgeNormal, ydata ,
      xlim = xlim)
 
 #add axes
-axis(1)
-axis(2, las=1)
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
 
-# Plot without visible points
-# plot(points_sf$distEdgeNormal, ydata, 
-#      pch = NA,  # Makes points completely invisible
-#      col = '#2c7bb650', 
-#      axes = FALSE, 
-#      xaxs = "i", yaxs = "i",
-#      ylab = 'Variable contribution',
-#      xlab = 'Distance from edge',
-#      cex.lab = 1.2,
-#      cex.axis = 1.2,
-#      ylim = ylim,  # Ensure these are properly defined
-#      xlim = xlim)
+# Add the restricted regression line
+lines(x_vals, predicted, col = '#2c7bb6', lwd = 7)
 
-# Add axes
-# axis(1)
-# axis(2, las = 1)
 
-# Fit linear model
-lin_mod_minT <- lm(ydata ~ points_sf$distEdgeNormal)
 
-# Create a sequence of x-values within the range of your data
-x_vals <- seq(min(points_sf$distEdgeNormal),
-              max(points_sf$distEdgeNormal),
-              length.out = 100)
+###### PLOT GRAPH SHOWING THE CENTRAL GRADIENT (ALTERNATIVE MEASUREMENT) ######
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Generate 33, 34, and 33 random values for distEdgeNormal
+distEdgeNormal_A <- runif(33, min = 0, max = 150) #1st segment
+distEdgeNormal_B <- runif(34, min = 150, max = 350) #2nd segment
+distEdgeNormal_C <- runif(33, min = 350, max = 500) #2nd segment
+
+
+# Generate ydata with a linear relationship plus some noise
+ydata_A <-
+  ((-0.002 * distEdgeNormal_A + rnorm(33, mean = 0.2, sd = 0.1)) + 0.13) 
+
+ydata_B <-
+  ((-0.002 * distEdgeNormal_B + rnorm(34, mean = 0, sd = 1)) + 0.4) / 5
+
+ydata_C <-
+  ((-0.002 * distEdgeNormal_C + rnorm(33, mean = -0.2, sd = 0.1)) + 0.9) 
+
+# Combine into a data frame
+data_A <- data.frame(distEdgeNormal_A, ydata_A)
+data_B <- data.frame(distEdgeNormal_B, ydata_B)
+data_C <- data.frame(distEdgeNormal_C, ydata_C)
+
+# Fit the linear model
+lin_mod_A <- lm(ydata_A ~ distEdgeNormal_A, data = data_A)
+lin_mod_B <- lm(ydata_B ~ distEdgeNormal_B, data = data_B)
+lin_mod_C <- lm(ydata_C ~ distEdgeNormal_C, data = data_C)
+
+# Display the model summary
+summary(lin_mod_A)
+summary(lin_mod_B)
+summary(lin_mod_C)
+
+#set parametres for plotting
+par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
+
+# Create a sequence of x-values within the range of the data
+x_vals_A <- seq(min(data_A$distEdgeNormal),
+                max(data_A$distEdgeNormal),
+                length.out = 33)
+x_vals_B <- seq(min(data_B$distEdgeNormal),
+                max(data_B$distEdgeNormal),
+                length.out = 34)
+x_vals_C <- seq(min(data_C$distEdgeNormal),
+                max(data_C$distEdgeNormal),
+                length.out = 33)
 
 # Create a data frame for prediction
-new_data <- data.frame(distEdgeNormal = x_vals)
+new_data_A <- data.frame(distEdgeNormal_A = x_vals_A)
+new_data_B <- data.frame(distEdgeNormal_B = x_vals_B)
+new_data_C <- data.frame(distEdgeNormal_C = x_vals_C)
 
-# Use predict() to get predicted y-values
-y_vals <- predict(lin_mod_minT, new_data$distEdgeNormal)
+# Predict y-values based on the model
+predicted_A <- predict(lin_mod_A, newdata = new_data_A)
+predicted_B<- predict(lin_mod_B, newdata = new_data_B)
+predicted_C <- predict(lin_mod_C, newdata = new_data_C)
 
-# Add the line to the plot, limited to the inside of the axes
-lines(new_data$distEdgeNormal, predicted, col = '#2c7bb6', lwd = 7)
+#set y and x lims
+ylim <- c(-0.5, 0.5)
+xlim <- c(0, 530)
 
-y_vals <- predict(lin_mod_minT,
-                  data.frame(points_sf$distEdgeNormal = x_vals))
+# Plot the data points again
+plot(data_A$distEdgeNormal, data_A$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb650',
+     axes = F, , xaxs = "i", yaxs = "i",
+     ylab = 'Variable contribution',
+     xlab = 'Distance from edge',
+     cex.lab = 1.2,
+     cex.axis = 1.2,
+     ylim = ylim,
+     xlim = xlim)
 
-# Draw the line only within the plot limits
-lines(x_vals, y_vals, col = '#2c7bb6', lwd = 7)
+points(data_B$distEdgeNormal, data_B$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb650')
 
-#fit linear model
-lin_mod_minT <- lm(ydata ~ points_sf$distEdgeNormal)
-abline(lin_mod_minT$coefficients[1],
-       lin_mod_minT$coefficients[2],
-       col = '#2c7bb6', lwd = 7)
+points(data_C$distEdgeNormal, data_C$ydata, 
+       pch = 19, cex = 0.8, col = '#2c7bb650')
+
+#add axes
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
+
+# Add the restricted regression line
+lines(new_data_A$distEdgeNormal, predicted_A, col = '#2c7bb6', lwd = 7)
+lines(new_data_B$distEdgeNormal, predicted_B, col = '#2c7bb6', lwd = 7)
+lines(new_data_C$distEdgeNormal, predicted_C, col = '#2c7bb6', lwd = 7)
+
+# For graphical purposes, I will replot joining the lines
+
+# Plot the data points again
+plot(data_A$distEdgeNormal, data_A$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb650',
+     axes = F, , xaxs = "i", yaxs = "i",
+     ylab = 'Variable contribution',
+     xlab = 'Distance from edge',
+     cex.lab = 1.2,
+     cex.axis = 1.2,
+     ylim = ylim,
+     xlim = xlim)
+
+points(data_B$distEdgeNormal, data_B$ydata, 
+       pch = 19, cex = 0.8, col = '#2c7bb650')
+
+points(data_C$distEdgeNormal, data_C$ydata, 
+       pch = 19, cex = 0.8, col = '#2c7bb650'
+       )
+
+#add axes
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
+
+lines(new_data_A$distEdgeNormal, predicted_A, col = '#2c7bb6', lwd = 7)
+lines(c(new_data_A$distEdgeNormal[33], new_data_C$distEdgeNormal[1]),
+      c(predicted_A[33],predicted_C[1]),
+      col = '#2c7bb6', lwd = 7)
+lines(new_data_C$distEdgeNormal, predicted_C, col = '#2c7bb6', lwd = 7)
 
 
- #plot rectangle for background colour
-# rect(par("usr")[1], par("usr")[3],
-#      par("usr")[2], par("usr")[4],
-#      col = '#ffffbf20') 
 
-
-
-#save plot (width = 1000)
-
-
-#create table object to save
-points_table <- cbind(st_coordinates(points_sf), st_drop_geometry(points_sf))
-names(points_table)[c(1,2)] <- c('lon', 'lat')
-
-########################
-
-#save new coordinates for the map
-setwd(wd_tables)
-write.csv(points_table, 'Points_large_map.csv', row.names = F)
 
 
 
@@ -350,9 +372,6 @@ par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
 #plot big white box to make room for the things I need to add around
 plot(big_box, border = NA)
 
-#plot small box to inform the coordinates
-plot(box, add = T, col = '#ffffbf20')
-
 #plot the polygon
 plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
 
@@ -361,75 +380,212 @@ plot(st_geometry(points_sf),
      add = T, pch = 19, cex = points_sf$varContNormal ^ 1.6,
      col = '#2c7bb680')
 
+#save 1000
 
 
-#label axes
-text(-5, 37.4, 'Latitude', srt = 90, cex = 1.2)
-text(21.7, 16, 'Longitude', srt = 00, cex = 1.2)
 
-#add ticks to axes
-points(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-points((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-points(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
 
-points(st_bbox(box)[1] - 0.45,
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.7)
-points(st_bbox(box)[1] - 0.45,
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-       pch = '—',
-       cex = 0.7)
-points(st_bbox(box)[1] - 0.45,
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.7)
 
-#add values to axes
-text(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-text((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       (st_bbox(box)[1] + st_bbox(box)[3]) / 2, 1)),
-     cex = 1.1)
-text(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-
-text(st_bbox(box)[1] - 2.75,
-     st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - 2.75,
-     (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-     labels = paste0(round(
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - 2.75,
-     st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
-
-#save plot (width = 1000)
 
 ###### PLOT GRAPH SHOWING THE LATITUDINAL GRADIENT ######
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Generate 100 random values for distEdgeNormal
+relPol <- runif(100, min = 0, max = 1)
+
+# Generate ydata with a linear relationship plus some noise
+ydata <- ((relPol + rnorm(100, mean = 0, sd = 0.2))) / 2
+
+# Combine into a data frame
+data <- data.frame(relPol, ydata)
+
+# Fit the linear model
+lin_mod <- lm(ydata ~ relPol, data = data)
+
+# Display the model summary
+summary(lin_mod)
+
+#set parametres for plotting
+par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
+
+# Create a sequence of x-values within the range of the data
+x_vals <- seq(min(data$relPol),
+              max(data$relPol),
+              length.out = 100)
+
+# Create a data frame for prediction
+new_data <- data.frame(relPol = x_vals)
+
+# Predict y-values based on the model
+predicted <- predict(lin_mod, newdata = new_data)
+
+#set y and x lims
+ylim <- c(-0.5, 0.5)
+xlim <- c(0, 1.05)
+
+# Plot the data points again
+plot(data$relPol, data$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb650',
+     axes = F, , xaxs = "i", yaxs = "i",
+     ylab = 'Variable contribution',
+     xlab = 'Relative polewardness',
+     cex.lab = 1.2,
+     cex.axis = 1.2,
+     ylim = ylim,
+     xlim = xlim)
+
+#add axes
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
+
+# Add the restricted regression line
+lines(x_vals, predicted, col = '#2c7bb6', lwd = 7)
+
+#save 800
+
+
+
+
+
+
+### PLOT GRAPH SHOWING THE LATITUDINAL GRADIENT (ALTERNATIVE MEASUREMENT) ###
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Generate 33, 34, and 33 random values for distEdgeNormal
+relPol_A <- runif(33, min = 0, max = 0.3) #1st segment
+relPol_B <- runif(34, min = 0.3, max = 0.7) #2nd segment
+relPol_C <- runif(33, min = 0.7, max = 1) #2nd segment
+
+# Generate ydata with a linear relationship plus some noise
+ydata_A <-
+  ((relPol_A + rnorm(33, mean = -0.2, sd = 0.1)) - 0.13) 
+
+ydata_B <-
+  ((relPol_B + rnorm(34, mean = 0, sd = 0.32)) / 4) - 0.05
+
+ydata_C <-
+  ((relPol_C + rnorm(33, mean = 0.2, sd = 0.1)) - 0.8) 
+
+
+# Combine into a data frame
+data_A <- data.frame(relPol_A, ydata_A)
+data_B <- data.frame(relPol_B, ydata_B)
+data_C <- data.frame(relPol_C, ydata_C)
+
+# Fit the linear model
+lin_mod_A <- lm(ydata_A ~ relPol_A, data = data_A)
+lin_mod_B <- lm(ydata_B ~ relPol_B, data = data_B)
+lin_mod_C <- lm(ydata_C ~ relPol_C, data = data_C)
+
+# Display the model summary
+summary(lin_mod_A)
+summary(lin_mod_B)
+summary(lin_mod_C)
+
+#set parametres for plotting
+par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
+
+# Create a sequence of x-values within the range of the data
+x_vals_A <- seq(min(data_A$relPo),
+                max(data_A$relPo),
+                length.out = 33)
+x_vals_B <- seq(min(data_B$relPo),
+                max(data_B$relPo),
+                length.out = 34)
+x_vals_C <- seq(min(data_C$relPo),
+                max(data_C$relPo),
+                length.out = 33)
+
+# Create a data frame for prediction
+new_data_A <- data.frame(relPol_A = x_vals_A)
+new_data_B <- data.frame(relPol_B = x_vals_B)
+new_data_C <- data.frame(relPol_C = x_vals_C)
+
+# Predict y-values based on the model
+predicted_A <- predict(lin_mod_A, newdata = new_data_A)
+predicted_B<- predict(lin_mod_B, newdata = new_data_B)
+predicted_C <- predict(lin_mod_C, newdata = new_data_C)
+
+#set y and x lims
+ylim <- c(-0.5, 0.5)
+xlim <- c(0, 1.05)
+
+# Plot the data points again
+plot(data_A$relPol, data_A$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb650',
+     axes = F, , xaxs = "i", yaxs = "i",
+     ylab = 'Variable contribution',
+     xlab = 'Relative polewardness',
+     cex.lab = 1.2,
+     cex.axis = 1.2,
+     ylim = ylim,
+     xlim = xlim)
+
+points(data_B$relPol, data_B$ydata, 
+       pch = 19, cex = 0.8, col = '#2c7bb650')
+
+points(data_C$relPol, data_C$ydata, 
+       pch = 19, cex = 0.8, col = '#2c7bb650')
+
+#add axes
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
+
+# Add the restricted regression line
+lines(new_data_A$relPol, predicted_A, col = '#2c7bb6', lwd = 7)
+lines(new_data_B$relPol, predicted_B, col = '#2c7bb6', lwd = 7)
+lines(new_data_C$relPol, predicted_C, col = '#2c7bb6', lwd = 7)
+
+
+# For graphical purposes, I will replot joining the lines
+
+# Plot the data points again
+plot(data_A$relPol, data_A$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb650',
+     axes = F, , xaxs = "i", yaxs = "i",
+     ylab = 'Variable contribution',
+     xlab = 'Relative polewardness',
+     cex.lab = 1.2,
+     cex.axis = 1.2,
+     ylim = ylim,
+     xlim = xlim)
+
+points(data_B$relPol, data_B$ydata, 
+       pch = 19, cex = 0.8, col = '#2c7bb650')
+
+points(data_C$relPol, data_C$ydata, 
+       pch = 19, cex = 0.8, col = '#2c7bb650')
+
+#add axes
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
+
+lines(new_data_A$relPol_A, predicted_A, col = '#2c7bb6', lwd = 7)
+lines(c(new_data_A$relPol[33], new_data_C$relPol[1]),
+      c(predicted_A[33],predicted_C[1]),
+      col = '#2c7bb6', lwd = 7)
+lines(new_data_C$relPol, predicted_C, col = '#2c7bb6', lwd = 7)
+
+
+#save 800
+
+
+
+
+
+
+
+
+
+
+
+
+summary(predicted)
+
 
 #set y and x lims
 ylim <- c(-0.2, 0.9)

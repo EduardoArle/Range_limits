@@ -6,6 +6,7 @@ wd_pts_measure <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/
 wd_res_shap <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20240926_Comparison'
 wd_orders <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
 wd_out <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_All_species_analysis'
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
 
 #list species
 setwd(wd_pts_measure)
@@ -136,6 +137,8 @@ for(i in 1:length(sps_tables))
   # control_ is mean temperature for all precipitation analyses 
   # and mean precipitation for all temperature analyses
   
+  # control_elev_ is elevation for all analyses
+  
   ## NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE ##
   
   names(minT2)[names(minT2) == 'avg_Mean_PPT_SHAP'] <- 'control_Min_T_SHAP'
@@ -208,10 +211,23 @@ missing
 #make a table with all species values
 all_sps_table <- rbindlist(sps_tables, fill = T)
 
-#include pairwise correlation info in the table
+#load correlation table
+setwd(wd_tables)
+correl <- read.csv('Correlation_variables.csv')
 
+#harmonise col names in both tables
+names(correl)[1] <- 'species'
+
+#delete nOcc col
+correl <- correl[,-2]
+
+#eliminate species that are not in the all_sps_table
+correl2 <- correl[which(correl$species %in% all_sps_table$species),]
+
+all_sps_table2 <- merge(all_sps_table, correl2,
+                        by = 'species', all.x = T)
 
 #save all species table
 setwd(wd_out)
-write.csv(all_sps_table, '20241210_Results_all_sps.csv', row.names = F)
+write.csv(all_sps_table2, '20241210_Results_all_sps.csv', row.names = F)
 
