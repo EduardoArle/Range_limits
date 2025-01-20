@@ -3,7 +3,7 @@ library(mgcv); library(itsadug)
 
 #list wds
 wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_All_species_analysis'
-wd_models <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/20250118_GAMs/Models'
+wd_models <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/20241210_GAMs'
 
 #read results table
 setwd(wd_tables)
@@ -15,448 +15,7 @@ names(results)[c(10,12)] <- c("absPolewardness","relPolewardness" )
 #transform species names in factor
 results$species <- as.factor(results$species)
 
-
-
 ###########.  GAM   ################
-
-
-#select only species that had lower correl between vars
-results_minT <- results[abs(results$Cor_vars_minT) <= 0.7,]
-n_sps_minT <- length(unique(results_minT$species))
-
-results_meanT <- results[abs(results$Cor_vars_meanT) <= 0.7,]
-n_sps_meanT <- length(unique(results_meanT$species))
-
-results_maxT <- results[abs(results$Cor_vars_maxT) <= 0.7,]
-n_sps_maxT <- length(unique(results_maxT$species))
-
-
-
-# SHAP values X distance from edge (GAM)
-
-#set par for plotting
-par(mar = c(6,6,6,6), pty='m')
-
-### minT
-
-#model G
-minT_distEdge_G <- gam(avg_Min_T_SHAP ~
-                         s(distEdge, k=4, bs="tp") 
-                       + s(species, k = n_sps_minT, bs="re"),
-                       data = results_minT,
-                       method="REML",
-                       family="gaussian")
-
-
-summary(minT_distEdge_G)
-
-setwd(wd_models)
-saveRDS(minT_distEdge_G, 'minT_distEdge_G')
-
-
-plot.gam(minT_distEdge_G, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.15, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-#model GS
-minT_distEdge_GS <- gam(avg_Min_T_SHAP ~
-                          s(distEdge, k=4, m=2) 
-                        + s(distEdge, species, k=4, bs="fs", m=2),
-                        data = results_minT,
-                        method="REML")
-
-
-summary(minT_distEdge_GS)
-
-setwd(wd_models)
-saveRDS(minT_distEdge_GS, 'minT_distEdge_GS')
-
-
-plot.gam(minT_distEdge_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.15, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-### meanT
-
-#model G
-meanT_distEdge_G <- gam(avg_Mean_T_SHAP ~
-                          s(distEdge, k=4, bs="tp") 
-                        + s(species, k = n_sps_meanT, bs="re"),
-                        data = results_meanT,
-                        method="REML",
-                        family="gaussian")
-
-
-summary(meanT_distEdge_G)
-
-setwd(wd_models)
-saveRDS(meanT_distEdge_G, 'meanT_distEdge_G')
-
-
-plot.gam(meanT_distEdge_G, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.15, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-#model GS
-meanT_distEdge_GS <- gam(avg_Mean_T_SHAP ~
-                           s(distEdge, k=4, m=2) 
-                         + s(distEdge, species, k=4, bs="fs", m=2),
-                         data = results_meanT,
-                         method="REML")
-
-
-summary(meanT_distEdge_GS)
-
-setwd(wd_models)
-saveRDS(meanT_distEdge_GS, 'meanT_distEdge_GS')
-
-
-plot.gam(meanT_distEdge_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.15, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-### maxT
-
-#model G
-maxT_distEdge_G <- gam(avg_Max_T_SHAP ~
-                         s(distEdge, k=4, bs="tp") 
-                       + s(species, k = n_sps_maxT, bs="re"),
-                       data = results_maxT,
-                       method="REML",
-                       family="gaussian")
-
-
-summary(maxT_distEdge_G)
-
-setwd(wd_models)
-saveRDS(maxT_distEdge_G, 'maxT_distEdge_G')
-
-
-plot.gam(maxT_distEdge_G, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.15, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-#model GS
-maxT_distEdge_GS <- gam(avg_Max_T_SHAP ~
-                          s(distEdge, k=4, m=2) 
-                        + s(distEdge, species, k=4, bs="fs", m=2),
-                        data = results_maxT,
-                        method="REML")
-
-
-summary(maxT_distEdge_GS)
-
-setwd(wd_models)
-saveRDS(maxT_distEdge_GS, 'maxT_distEdge_GS')
-
-
-plot.gam(maxT_distEdge_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.15, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-
-
-# SHAP values X relative polewardness (GAM)
-
-#set par for plotting
-par(mar = c(6,6,6,6))
-
-### minT
-
-#model G
-minT_relPol_G <- gam(avg_Min_T_SHAP ~
-                         s(relPolewardness, k=4, bs="tp") 
-                       + s(species, k = n_sps_minT, bs="re"),
-                       data = results_minT,
-                       method="REML",
-                       family="gaussian")
-
-
-summary(minT_relPol_G)
-
-setwd(wd_models)
-saveRDS(minT_relPol_G, 'minT_relPol_G')
-
-
-plot.gam(minT_relPol_G, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-#model GS
-minT_relPol_GS <- gam(avg_Min_T_SHAP ~
-                          s(relPolewardness, k=4, m=2) 
-                        + s(relPolewardness, species, k=4, bs="fs", m=2),
-                        data = results_minT,
-                        method="REML")
-
-
-summary(minT_relPol_GS)
-
-setwd(wd_models)
-saveRDS(minT_relPol_GS, 'minT_relPol_GS')
-
-
-plot.gam(minT_relPol_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-### meanT
-
-#model G
-meanT_relPol_G <- gam(avg_Mean_T_SHAP ~
-                          s(relPolewardness, k=4, bs="tp") 
-                        + s(species, k = n_sps_meanT, bs="re"),
-                        data = results_meanT,
-                        method="REML",
-                        family="gaussian")
-
-
-summary(meanT_relPol_G)
-
-setwd(wd_models)
-saveRDS(meanT_relPol_G, 'meanT_relPol_G')
-
-
-plot.gam(meanT_relPol_G, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-#model GS
-meanT_relPol_GS <- gam(avg_Mean_T_SHAP ~
-                           s(relPolewardness, k=4, m=2) 
-                         + s(relPolewardness, species, k=4, bs="fs", m=2),
-                         data = results_meanT,
-                         method="REML")
-
-
-summary(meanT_relPol_GS)
-
-setwd(wd_models)
-saveRDS(meanT_relPol_GS, 'meanT_relPol_GS')
-
-
-plot.gam(meanT_relPol_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-### maxT
-
-#model G
-maxT_relPol_G <- gam(avg_Max_T_SHAP ~
-                         s(relPolewardness, k=4, bs="tp") 
-                       + s(species, k = n_sps_maxT, bs="re"),
-                       data = results_maxT,
-                       method="REML",
-                       family="gaussian")
-
-
-summary(maxT_relPol_G)
-
-setwd(wd_models)
-saveRDS(maxT_relPol_G, 'maxT_relPol_G')
-
-
-plot.gam(maxT_relPol_G, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.06, 0.06),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-#model GS
-maxT_relPol_GS <- gam(avg_Max_T_SHAP ~
-                          s(relPolewardness, k=4, m=2) 
-                        + s(relPolewardness, species, k=4, bs="fs", m=2),
-                        data = results_maxT,
-                        method="REML")
-
-
-summary(maxT_relPol_GS)
-
-setwd(wd_models)
-saveRDS(maxT_relPol_GS, 'maxT_relPol_GS')
-
-
-plot.gam(maxT_relPol_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-
-# SHAP values X absolute polewardness (GAM)
-
-#set par for plotting
-par(mar = c(6,6,6,6))
-
-### minT
-
-#model G
-minT_absPol_G <- gam(avg_Min_T_SHAP ~
-                       s(absPolewardness, k=4, bs="tp") 
-                     + s(species, k = n_sps_minT, bs="re"),
-                     data = results_minT,
-                     method="REML",
-                     family="gaussian")
-
-
-summary(minT_absPol_G)
-
-setwd(wd_models)
-saveRDS(minT_absPol_G, 'minT_absPol_G')
-
-
-plot.gam(minT_absPol_G, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-#model GS
-minT_absPol_GS <- gam(avg_Min_T_SHAP ~
-                        s(absPolewardness, k=4, m=2) 
-                      + s(absPolewardness, species, k=4, bs="fs", m=2),
-                      data = results_minT,
-                      method="REML")
-
-
-summary(minT_absPol_GS)
-
-setwd(wd_models)
-saveRDS(minT_absPol_GS, 'minT_absPol_GS')
-
-
-plot.gam(minT_absPol_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-### meanT
-
-#model G
-meanT_absPol_G <- gam(avg_Mean_T_SHAP ~
-                        s(absPolewardness, k=4, bs="tp") 
-                      + s(species, k = n_sps_meanT, bs="re"),
-                      data = results_meanT,
-                      method="REML",
-                      family="gaussian")
-
-
-summary(meanT_absPol_G)
-
-setwd(wd_models)
-saveRDS(meanT_absPol_G, 'meanT_absPol_G')
-
-
-plot.gam(meanT_absPol_G, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-#model GS
-meanT_absPol_GS <- gam(avg_Mean_T_SHAP ~
-                         s(absPolewardness, k=4, m=2) 
-                       + s(absPolewardness, species, k=4, bs="fs", m=2),
-                       data = results_meanT,
-                       method="REML")
-
-
-summary(meanT_absPol_GS)
-
-setwd(wd_models)
-saveRDS(meanT_absPol_GS, 'meanT_absPol_GS')
-
-
-plot.gam(meanT_absPol_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-### maxT
-
-#model G
-maxT_absPol_G <- gam(avg_Max_T_SHAP ~
-                       s(absPolewardness, k=4, bs="tp") 
-                     + s(species, k = n_sps_maxT, bs="re"),
-                     data = results_maxT,
-                     method="REML",
-                     family="gaussian")
-
-
-summary(maxT_absPol_G)
-
-setwd(wd_models)
-saveRDS(maxT_absPol_G, 'maxT_absPol_G')
-
-
-plot.gam(maxT_absPol_G, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-#model GS
-maxT_absPol_GS <- gam(avg_Max_T_SHAP ~
-                        s(absPolewardness, k=4, m=2) 
-                      + s(absPolewardness, species, k=4, bs="fs", m=2),
-                      data = results_maxT,
-                      method="REML")
-
-
-summary(maxT_absPol_GS)
-
-setwd(wd_models)
-saveRDS(maxT_absPol_GS, 'maxT_absPol_GS')
-
-
-plot.gam(maxT_absPol_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
-         cex.lab = 2, cex.axis = 1.5) #save 800
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ########################
 ######### PPT ##########
@@ -615,7 +174,7 @@ minPPT_absPolewarness_G <- gam(avg_Min_PPT_SHAP ~
                              family="gaussian")
 
 
-summary(minPPT_absPolewarness_G)
+summary(minT_absPolewarness_G)
 
 setwd(wd_models)
 saveRDS(minPPT_absPolewarness_G, 'minPPT_absPolewarness_G')
@@ -704,7 +263,7 @@ plot.gam(meanPPT_absPolewarness_GS, select = 1, residuals = F, shade = T,
 
 
 
-### maxT
+### maxPPT
 
 #model G
 maxPPT_absPolewarness_G <- gam(Max_PPT_SHAP ~
@@ -770,6 +329,213 @@ draw(maxT_absPolewarness_S, page = 1)
 plot.gam(maxT_absPolewarness_S, select = 1, residuals = F, shade = T,
          cex.lab = 2, cex.axis = 1.5) #save 800
 
+
+
+# SHAP values X distance from edge (GAM)
+
+#set par for plotting
+par(mar = c(6,6,6,6))
+
+### minT
+
+#model G
+minT_distEdge_G <- gam(Min_T_SHAP ~
+                               s(distEdge, k=4, bs="tp") 
+                             + s(species, k=503, bs="re"),
+                             data = results,
+                             method="REML",
+                             family="gaussian")
+
+
+summary(minT_distEdge_G)
+
+setwd(wd_models)
+saveRDS(minT_distEdge_G, 'minT_distEdge_G')
+
+draw(minT_distEdge_G, page = 1)
+
+plot.gam(minT_distEdge_G, select = 1, residuals = F, shade = T,
+         shade.col = '#0000FF30', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+plot.gam(minT_distEdge_G, select = 2, residuals = F, 
+         cex.lab = 2, cex.axis = 1.5)  #save 800
+
+#model GS
+minT_distEdge_GS <- gam(Min_T_SHAP ~
+                                s(distEdge, k=4, m=2) 
+                              + s(distEdge, species, k=4, bs="fs", m=2),
+                              data = results,
+                              method="REML")
+
+
+summary(minT_distEdge_GS)
+
+setwd(wd_models)
+saveRDS(minT_distEdge_GS, 'minT_distEdge_GS')
+
+draw(minT_distEdge_GS, page = 1)
+
+
+plot.gam(minT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#0000FF30', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+plot.gam(minT_distEdge_GS, select = 2, residuals = F, 
+         cex.lab = 2, cex.axis = 1.5)  #save 800
+
+#model S
+minT_distEdge_S <- gam(Min_T_SHAP ~
+                               s(distEdge, species, k=4, bs="fs", m=2),
+                             data = results,
+                             method="REML")
+
+summary(minT_distEdge_S)
+
+setwd(wd_models)
+saveRDS(minT_distEdge_S, 'minT_distEdge_S')
+
+draw(minT_distEdge_S, page = 1)
+
+plot.gam(minT_distEdge_S, select = 1, residuals = F, shade = T,
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+### meanT
+
+#model G
+meanT_distEdge_G <- gam(Mean_T_SHAP ~
+                                s(distEdge, k=4, bs="tp") 
+                              + s(species, k=503, bs="re"),
+                              data = results,
+                              method="REML",
+                              family="gaussian")
+
+
+summary(meanT_distEdge_G)
+
+setwd(wd_models)
+saveRDS(meanT_distEdge_G, 'meanT_distEdge_G')
+
+draw(meanT_distEdge_G, page = 1)
+
+plot.gam(meanT_distEdge_G, select = 1, residuals = F, shade = T,
+         shade.col = '#80008030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+plot.gam(meanT_distEdge_G, select = 2, residuals = F, 
+         cex.lab = 2, cex.axis = 1.5)  #save 800
+
+#model GS
+meanT_distEdge_GS <- gam(Mean_T_SHAP ~
+                                 s(distEdge, k=4, m=2) 
+                               + s(distEdge, species, k=4, bs="fs", m=2),
+                               data = results,
+                               method="REML")
+
+
+summary(meanT_distEdge_GS)
+
+setwd(wd_models)
+saveRDS(meanT_distEdge_GS, 'meanT_distEdge_GS')
+
+draw(meanT_distEdge_GS, page = 1)
+
+
+plot.gam(meanT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#80008030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+plot.gam(meanT_distEdge_GS, select = 2, residuals = F, 
+         cex.lab = 2, cex.axis = 1.5)  #save 800
+
+#model S
+meanT_distEdge_S <- gam(Mean_T_SHAP ~
+                                s(distEdge, species, k=4, bs="fs", m=2),
+                              data = results,
+                              method="REML")
+
+summary(meanT_distEdge_S)
+
+setwd(wd_models)
+saveRDS(meanT_distEdge_S, 'meanT_distEdge_S')
+
+draw(meanT_distEdge_S, page = 1)
+
+plot.gam(meanT_distEdge_S, select = 1, residuals = F, shade = T,
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+### maxT
+
+#model G
+maxT_distEdge_G <- gam(Max_T_SHAP ~
+                               s(distEdge, k=4, bs="tp") 
+                             + s(species, k=503, bs="re"),
+                             data = results,
+                             method="REML",
+                             family="gaussian")
+
+
+summary(maxT_distEdge_G)
+
+setwd(wd_models)
+saveRDS(maxT_distEdge_G, 'maxT_distEdge_G')
+
+draw(maxT_distEdge_G, page = 1)
+
+plot.gam(maxT_distEdge_G, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+plot.gam(maxT_distEdge_G, select = 2, residuals = F, 
+         cex.lab = 2, cex.axis = 1.5)  #save 800
+
+#model GS
+maxT_distEdge_GS <- gam(Max_T_SHAP ~
+                                s(distEdge, k=4, m=2) 
+                              + s(distEdge, species, k=4, bs="fs", m=2),
+                              data = results,
+                              method="REML")
+
+
+summary(maxT_distEdge_GS)
+
+setwd(wd_models)
+saveRDS(maxT_distEdge_GS, 'maxT_distEdge_GS')
+
+draw(maxT_distEdge_GS, page = 1)
+
+
+plot.gam(maxT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+plot.gam(maxT_distEdge_GS, select = 2, residuals = F, 
+         cex.lab = 2, cex.axis = 1.5)  #save 800
+
+
+#model S
+maxT_distEdge_S <- gam(Max_T_SHAP ~
+                               s(distEdge, species, k=4, bs="fs", m=2),
+                             data = results,
+                             method="REML")
+
+summary(maxT_distEdge_S)
+
+setwd(wd_models)
+saveRDS(maxT_distEdge_S, 'maxT_distEdge_S')
+
+draw(maxT_distEdge_S, page = 1)
+
+plot.gam(maxT_distEdge_S, select = 1, residuals = F, shade = T,
+         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 

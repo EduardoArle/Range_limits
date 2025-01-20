@@ -199,9 +199,12 @@ for(i in 1:length(sps_tables))
   print(i)
 }
 
-#exclude empty items on list
-empty <- sapply(sps_tables, function(x){class(x)})
-sps_tables2 <- sps_tables[empty == "data.frame"]
+#exclude empty items on list that had no models
+no_models <- sapply(sps_tables, ncol)
+sps_tables2 <- sps_tables[no_models > 17]
+
+#exclude Isothrix orinoci (synonym)
+sps_tables2 <- sps_tables2[-which(names(sps_tables2) == 'Isothrix orinoci')]
 
 #check which species do not have info on order
 orders <- sapply(sps_tables2, function(x){unique(x$order)})
@@ -209,23 +212,25 @@ missing <- which(is.na(orders))
 missing 
 
 #make a table with all species values
-all_sps_table <- rbindlist(sps_tables, fill = T)
+all_sps_table <- rbindlist(sps_tables2, fill = T)
 
 #load correlation table
 setwd(wd_tables)
 correl <- read.csv('Correlation_variables.csv')
 
+#delete nOcc col
+correl <- correl[,-which(names(correl) == 'n_occ')]
+
 #harmonise col names in both tables
 names(correl)[1] <- 'species'
 
-#delete nOcc col
-correl <- correl[,-2]
-
 #eliminate species that are not in the all_sps_table
-correl2 <- correl[which(correl$species %in% all_sps_table$species),]
+correl2 <- correl[which(correl$species %in% unique(all_sps_table$species)),]
 
 all_sps_table2 <- merge(all_sps_table, correl2,
                         by = 'species', all.x = T)
+
+all_sps_table2 <- as.data.frame(all_sps_table2)
 
 #save all species table
 setwd(wd_out)

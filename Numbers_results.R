@@ -7,6 +7,70 @@ wd_all_sps_res <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/
 wd_biomes <- '/Users/carloseduardoaribeiro/Documents/General data/Biomes/official'
 wd_map_stuff <- '/Users/carloseduardoaribeiro/Documents/Collaborations/Rachel/Fogo'
 
+
+#load file with all results
+setwd(wd_all_sps_res)
+all_res <- read.csv('20241210_Results_all_sps.csv')
+
+#get the total number of points that were used in any models 
+n_pts <- nrow(all_res)
+n_pts
+
+#get the total number of species for which any model was made
+n_species_all <- length(unique(all_res$species))
+n_species_all
+
+#create a version of the file including only entries that were not too correlated
+all_res_cor <- all_res[which(abs(all_res$Cor_vars_minT) <= 0.7 |
+                             abs(all_res$Cor_vars_meanT) <= 0.7 |
+                             abs(all_res$Cor_vars_maxT) <= 0.7 |
+                             abs(all_res$Cor_vars_minT) <= 0.7 |
+                             abs(all_res$Cor_vars_meanT) <= 0.7 |
+                             abs(all_res$Cor_vars_maxT) <= 0.7),]
+
+#n points that were used valid models (by var correl)
+n_pts_val_models <- nrow(all_res_cor)
+n_pts_val_models
+
+#get the total number of species for which any model was made
+n_species_model <- length(unique(all_res_cor$species))
+n_species_model
+
+#get number of species for which each model was made 
+
+
+#################. FIIXXXXX ##############
+
+# not !is.na, but by the correl
+
+
+all_res_cor_minT <- all_res_cor[which(!is.na(all_res_cor$avg_Min_T_SHAP)),]
+all_res_cor_meanT <- all_res_cor[which(!is.na(all_res_cor$avg_Mean_T_SHAP)),]
+all_res_cor_maxT <- all_res_cor[which(!is.na(all_res_cor$avg_Max_T_SHAP)),]
+all_res_cor_minPPT <- all_res_cor[which(!is.na(all_res_cor$avg_Min_PPT_SHAP)),]
+all_res_cor_meanPPT <- all_res_cor[which(!is.na(all_res_cor$avg_Mean_PPT_SHAP)),]
+all_res_cor_maxPPT <- all_res_cor[which(!is.na(all_res_cor$avg_Max_PPT_SHAP)),]
+
+n_sps_minT <- length(unique(all_res_cor_minT$species))
+n_sps_meanT <- length(unique(all_res_cor_meanT$species))
+n_sps_maxT <- length(unique(all_res_cor_maxT$species))
+n_sps_minPPT <- length(unique(all_res_cor_minPPT$species))
+n_sps_meanPPT <- length(unique(all_res_cor_meanPPT$species))
+n_sps_maxPPT <- length(unique(all_res_cor_maxPPT$species))
+
+n_sps_minT
+n_sps_meanT
+n_sps_maxT
+n_sps_minPPT
+n_sps_meanPPT
+n_sps_maxPPT
+
+
+
+
+
+###########################################################################
+
 #load mistressfile
 setwd(wd_tables)
 mistress_file <-  read.csv('Mistressfile.csv')

@@ -578,47 +578,6 @@ lines(new_data_C$relPol, predicted_C, col = '#2c7bb6', lwd = 7)
 
 
 
-
-
-
-
-
-
-summary(predicted)
-
-
-#set y and x lims
-ylim <- c(-0.2, 0.9)
-xlim <- c(0, 1)
-
-
-#set parametres for plotting
-par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
-
-#minT (make points invisible)
-plot(points_sf$relPol, points_sf$varContPol, 
-     pch = 19, cex = 1, col = '#FF808000',
-     ylab = 'Variable contribution',
-     xlab = 'Relative polewardness',
-     cex.lab = 1.2,
-     cex.axis = 1.2,
-     ylim = c(ylim[1], ylim[2]))
-
-#plot rectangle for background colour
-rect(par("usr")[1], par("usr")[3],
-     par("usr")[2], par("usr")[4],
-     col = '#ffffbf20') 
-
-#fit linear model
-lin_mod_minT <- lm(points_sf$varContPol ~ points_sf$relPol)
-abline(lin_mod_minT, col = '#2c7bb6', lwd = 7)
-
-#save plot (width = 1000)
-
-
-
-
-
 ###### PLOT MAP SHOWING EXPECTED DIFFERENCE BETWEEN EXTREMES AND MEANS ######
 
 #Legend: large ranges showing climatic extremes increase in explanatory power towards the edges, and means don't show a strong pattern.
@@ -636,117 +595,93 @@ par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
 #plot big white box to make room for the things I need to add around
 plot(big_box, border = NA)
 
-#plot small box to inform the coordinates
-plot(box, add = T, col = '#ffffbf20')
-
 #plot the polygon
 plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
 
 #plot the occurrence points (size is proportional to SHAP value)
 plot(st_geometry(extre_pts),
      add = T, pch = 19, cex = extre_pts$centralCex ^ 1.4,
-     col = '#9930FF80')
+     col = '#2c7bb680')
 
 #plot the occurrence points (size is proportional to SHAP value)
 plot(st_geometry(mean_pts),
      add = T, pch = 19, cex = sqrt(mean_pts$centralCex),
-     col = '#FF600080')
+     col = '#f46d4380')
 
-#label axes
-text(-5, 37.4, 'Latitude', srt = 90, cex = 1.2)
-text(21.7, 16, 'Longitude', srt = 00, cex = 1.2)
-
-#add ticks to axes
-points(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-points((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-points(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-       st_bbox(box)[2] - 0.44,
-       pch = '|',
-       cex = 0.7)
-
-points(st_bbox(box)[1] - 0.45,
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.7)
-points(st_bbox(box)[1] - 0.45,
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-       pch = '—',
-       cex = 0.7)
-points(st_bbox(box)[1] - 0.45,
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-       pch = '—',
-       cex = 0.7)
-
-#add values to axes
-text(st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       st_bbox(box)[1] + (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-text((st_bbox(box)[1] + st_bbox(box)[3]) / 2,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       (st_bbox(box)[1] + st_bbox(box)[3]) / 2, 1)),
-     cex = 1.1)
-text(st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10,
-     st_bbox(box)[2] - 2.1,
-     labels = paste0(round(
-       st_bbox(box)[3] - (st_bbox(box)[3] - st_bbox(box)[1]) / 10, 1)),
-     cex = 1.1)
-
-text(st_bbox(box)[1] - 2.75,
-     st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[2] + (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - 2.75,
-     (st_bbox(box)[2] + st_bbox(box)[4]) / 2,
-     labels = paste0(round(
-       (st_bbox(box)[2] + st_bbox(box)[4]) / 2, 1)),
-     cex = 1.1, srt = 90)
-text(st_bbox(box)[1] - 2.75,
-     st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10,
-     labels = paste0(round(
-       st_bbox(box)[4] - (st_bbox(box)[4] - st_bbox(box)[2]) / 10, 1)),
-     cex = 1.1, srt = 90)
 
 #save plot (width = 1000)
 
+
+
+
 ###### PLOT GRAPH SHOWING THE CENTRE-EDGE GRADIENT ######
 
-#set y and x lims
-ylim <- c(-0.2, 0.8)
-xlim <- c(0, 1)
+# Set seed for reproducibility
+set.seed(123)
+
+# Generate 100 random values for distEdgeNormal
+distEdgeNormal <- runif(100, min = 0, max = 500)
+
+# Generate ydata with a linear relationship plus some noise
+ydata <- ((-0.002 * distEdgeNormal + rnorm(100, mean = 0, sd = 0.2)) + 0.6) / 2
+
+# Combine into a data frame
+data <- data.frame(distEdgeNormal, ydata)
+
+# Fit the linear model
+lin_mod <- lm(ydata ~ distEdgeNormal, data = data)
+
+# Display the model summary
+summary(lin_mod)
 
 #set parametres for plotting
 par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
 
-#minT (make points invisible)
-plot(points_sf$distEdgeNormal, points_sf$varContPol, 
-     pch = 19, cex = 1, col = '#FF808000',
+# Create a sequence of x-values within the range of the data
+x_vals <- seq(min(data$distEdgeNormal),
+              max(data$distEdgeNormal),
+              length.out = 100)
+
+# Create a data frame for prediction
+new_data <- data.frame(distEdgeNormal = x_vals)
+
+# Predict y-values based on the model
+predicted <- predict(lin_mod, newdata = new_data)
+
+#set y and x lims
+ylim <- c(-0.5, 0.5)
+xlim <- c(0, 530)
+
+# Plot the data points (with no points)
+plot(data$distEdgeNormal, data$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb600',
+     axes = F, , xaxs = "i", yaxs = "i",
      ylab = 'Variable contribution',
      xlab = 'Distance from edge',
      cex.lab = 1.2,
      cex.axis = 1.2,
-     ylim = c(ylim[1], ylim[2]))
+     ylim = ylim,
+     xlim = xlim)
 
-#plot rectangle for background colour
-rect(par("usr")[1], par("usr")[3],
-     par("usr")[2], par("usr")[4],
-     col = '#ffffbf20') 
+#add axes
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
+
+# Add the restricted regression line
+lines(x_vals, predicted, col = '#2c7bb6', lwd = 7)
+lines(x_vals, predicted / 6, col = '#f46d43', lwd = 7)
+
+
+
+
+
 
 #fit linear model
 lin_mod_minT <- lm(points_sf$varContPol ~ points_sf$distEdgeNormal)
 lin_mod_minT_2 <- lm((points_sf$varContPol/6) + 0.2 ~ points_sf$distEdgeNormal)
 
 abline(lin_mod_minT, col = '#9930FF', lwd = 7)
-abline(lin_mod_minT_2, col = '#FF6000', lwd = 7)
+abline(lin_mod_minT_2, col = '#f46d43', lwd = 7)
 
 
 #save plot (width = 1000)

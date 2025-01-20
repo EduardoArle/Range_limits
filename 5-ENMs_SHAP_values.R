@@ -6,7 +6,7 @@ library(xgboost);library(caret);library(pROC);library(PresenceAbsence)
 #list wds
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_variables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/BioClim_layers'
- wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20240926_Comparison'
+wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20240926_Comparison'
 wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
 
 
@@ -964,7 +964,7 @@ SD_sens_sel_maxPPT <- numeric()
 SD_spec_sel_maxPPT <- numeric()
 
 
-for(i in 63:length(sps_list))
+for(i in 1:length(sps_list))
 {
   #select species 
   sps <- sps_list[i]
