@@ -17,19 +17,23 @@ results$species <- as.factor(results$species)
 
 
 
-###########.  GAM   ################
+########################
+########## T ###########
+########################
 
 
 #select only species that had lower correl between vars
 results_minT <- results[abs(results$Cor_vars_minT) <= 0.7,]
+results_minT <- results_minT[complete.cases(results_minT$Cor_vars_minT),]
 n_sps_minT <- length(unique(results_minT$species))
 
 results_meanT <- results[abs(results$Cor_vars_meanT) <= 0.7,]
+results_meanT <- results_meanT[complete.cases(results_meanT$Cor_vars_meanT),]
 n_sps_meanT <- length(unique(results_meanT$species))
 
 results_maxT <- results[abs(results$Cor_vars_maxT) <= 0.7,]
+results_maxT <- results_maxT[complete.cases(results_maxT$Cor_vars_maxT),]
 n_sps_maxT <- length(unique(results_maxT$species))
-
 
 
 # SHAP values X distance from edge (GAM)
@@ -447,14 +451,140 @@ plot.gam(maxT_absPol_GS, select = 1, residuals = F, shade = T,
 
 
 
+# SHAP values X elevation (GAM)
+
+#set par for plotting
+par(mar = c(6,6,6,6))
+
+### minT
+
+#model G
+minT_elev_G <- gam(avg_Min_T_SHAP ~
+                       s(elevation, k=4, bs="tp") 
+                     + s(species, k = n_sps_minT, bs="re"),
+                     data = results_minT,
+                     method="REML",
+                     family="gaussian")
+
+
+summary(minT_elev_G)
+
+setwd(wd_models)
+saveRDS(minT_elev_G, 'minT_elev_G')
+
+
+plot.gam(minT_elev_G, select = 1, residuals = F, shade = T,
+         shade.col = '#0000FF30', ylab = 'SHAP value',
+         ylim = c(-0.5, 0.2),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+minT_elev_GS <- gam(avg_Min_T_SHAP ~
+                        s(elevation, k=4, m=2) 
+                      + s(elevation, species, k=4, bs="fs", m=2),
+                      data = results_minT,
+                      method="REML")
+
+
+summary(minT_elev_GS)
+
+setwd(wd_models)
+saveRDS(minT_elev_GS, 'minT_elev_GS')
+
+
+plot.gam(minT_elev_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#0000FF30', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+### meanT
+
+#model G
+meanT_elev_G <- gam(avg_Mean_T_SHAP ~
+                        s(elevation, k=4, bs="tp") 
+                      + s(species, k = n_sps_meanT, bs="re"),
+                      data = results_meanT,
+                      method="REML",
+                      family="gaussian")
+
+
+summary(meanT_elev_G)
+
+setwd(wd_models)
+saveRDS(meanT_elev_G, 'meanT_elev_G')
+
+
+plot.gam(meanT_elev_G, select = 1, residuals = F, shade = T,
+         shade.col = '#80008030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+meanT_elev_GS <- gam(avg_Mean_T_SHAP ~
+                         s(elevation, k=4, m=2) 
+                       + s(elevation, species, k=4, bs="fs", m=2),
+                       data = results_meanT,
+                       method="REML")
+
+
+summary(meanT_elev_GS)
+
+setwd(wd_models)
+saveRDS(meanT_elev_GS, 'meanT_elev_GS')
+
+
+plot.gam(meanT_elev_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#80008030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 
+### maxT
+
+#model G
+maxT_elev_G <- gam(avg_Max_T_SHAP ~
+                       s(elevation, k=4, bs="tp") 
+                     + s(species, k = n_sps_maxT, bs="re"),
+                     data = results_maxT,
+                     method="REML",
+                     family="gaussian")
+
+
+summary(maxT_elev_G)
+
+setwd(wd_models)
+saveRDS(maxT_elev_G, 'maxT_elev_G')
+
+
+plot.gam(maxT_elev_G, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 
+#model GS
+maxT_elev_GS <- gam(avg_Max_T_SHAP ~
+                        s(elevation, k=4, m=2) 
+                      + s(elevation, species, k=4, bs="fs", m=2),
+                      data = results_maxT,
+                      method="REML")
 
 
+summary(maxT_elev_GS)
+
+setwd(wd_models)
+saveRDS(maxT_elevl_GS, 'maxT_elev_GS')
+
+
+plot.gam(maxT_elev_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 
@@ -463,6 +593,448 @@ plot.gam(maxT_absPol_GS, select = 1, residuals = F, shade = T,
 ########################
 
 
+#select only species that had lower correl between vars
+results_minPPT <- results[abs(results$Cor_vars_minPPT) <= 0.7,]
+results_minPPT <- results_minPPT[complete.cases
+                                 (results_minPPT$Cor_vars_minPPT),]
+n_sps_minPPT <- length(unique(results_minPPT$species))
+
+results_meanPPT <- results[abs(results$Cor_vars_meanPPT) <= 0.7,]
+results_meanPPT <- results_meanPPT[complete.cases
+                                   (results_meanPPT$Cor_vars_meanPPT),]
+n_sps_meanPPT <- length(unique(results_meanPPT$species))
+
+results_maxPPT <- results[abs(results$Cor_vars_maxPPT) <= 0.7,]
+results_maxPPT <- results_maxPPT[complete.cases
+                                 (results_maxPPT$Cor_vars_maxPPT),]
+n_sps_maxPPT <- length(unique(results_maxPPT$species))
+
+
+
+# SHAP values X distance from edge (GAM)
+
+#set par for plotting
+par(mar = c(6,6,6,6), pty='m')
+
+### minPPT
+
+#model G
+minPPT_distEdge_G <- gam(avg_Min_PPT_SHAP ~
+                         s(distEdge, k=4, bs="tp") 
+                       + s(species, k = n_sps_minPPT, bs="re"),
+                       data = results_minPPT,
+                       method="REML",
+                       family="gaussian")
+
+
+summary(minPPT_distEdge_G)
+
+setwd(wd_models)
+saveRDS(minPPT_distEdge_G, 'minPPT_distEdge_G')
+
+
+plot.gam(minPPT_distEdge_G, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.05, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+minPPT_distEdge_GS <- gam(avg_Min_PPT_SHAP ~
+                          s(distEdge, k=4, m=2) 
+                        + s(distEdge, species, k=4, bs="fs", m=2),
+                        data = results_minPPT,
+                        method="REML")
+
+
+summary(minPPT_distEdge_GS)
+
+setwd(wd_models)
+saveRDS(minPPT_distEdge_GS, 'minPPT_distEdge_GS')
+
+
+plot.gam(minPPT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.05, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+### meanPPT
+
+#model G
+meanPPT_distEdge_G <- gam(avg_Mean_PPT_SHAP ~
+                          s(distEdge, k=4, bs="tp") 
+                        + s(species, k = n_sps_meanPPT, bs="re"),
+                        data = results_meanPPT,
+                        method="REML",
+                        family="gaussian")
+
+
+summary(meanPPT_distEdge_G)
+
+setwd(wd_models)
+saveRDS(meanPPT_distEdge_G, 'meanPPT_distEdge_G')
+
+
+plot.gam(meanPPT_distEdge_G, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.15, 0.05),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+meanPPT_distEdge_GS <- gam(avg_Mean_PPT_SHAP ~
+                           s(distEdge, k=4, m=2) 
+                         + s(distEdge, species, k=4, bs="fs", m=2),
+                         data = results_meanPPT,
+                         method="REML")
+
+
+summary(meanPPT_distEdge_GS)
+
+setwd(wd_models)
+saveRDS(meanPPT_distEdge_GS, 'meanPPT_distEdge_GS')
+
+
+plot.gam(meanPPT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.15, 0.05),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+### maxPPT
+
+#model G
+maxPPT_distEdge_G <- gam(avg_Max_PPT_SHAP ~
+                         s(distEdge, k=4, bs="tp") 
+                       + s(species, k = n_sps_maxPPT, bs="re"),
+                       data = results_maxPPT,
+                       method="REML",
+                       family="gaussian")
+
+
+summary(maxPPT_distEdge_G)
+
+setwd(wd_models)
+saveRDS(maxPPT_distEdge_G, 'maxPPT_distEdge_G')
+
+
+plot.gam(maxPPT_distEdge_G, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
+         ylim = c(-0.15, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#model GS
+maxPPT_distEdge_GS <- gam(avg_Max_PPT_SHAP ~
+                          s(distEdge, k=4, m=2) 
+                        + s(distEdge, species, k=4, bs="fs", m=2),
+                        data = results_maxPPT,
+                        method="REML")
+
+
+summary(maxPPT_distEdge_GS)
+
+setwd(wd_models)
+saveRDS(maxPPT_distEdge_GS, 'maxPPT_distEdge_GS')
+
+
+plot.gam(maxPPT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
+         ylim = c(-0.15, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+
+
+# SHAP values X relative polewardness (GAM)
+
+#set par for plotting
+par(mar = c(6,6,6,6))
+
+### minPPT
+
+#model G
+minPPT_relPol_G <- gam(avg_Min_PPT_SHAP ~
+                       s(relPolewardness, k=4, bs="tp") 
+                     + s(species, k = n_sps_minPPT, bs="re"),
+                     data = results_minPPT,
+                     method="REML",
+                     family="gaussian")
+
+
+summary(minPPT_relPol_G)
+
+setwd(wd_models)
+saveRDS(minPPT_relPol_G, 'minPPT_relPol_G')
+
+
+plot.gam(minPPT_relPol_G, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.03, 0.03),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+minPPT_relPol_GS <- gam(avg_Min_PPT_SHAP ~
+                        s(relPolewardness, k=4, m=2) 
+                      + s(relPolewardness, species, k=4, bs="fs", m=2),
+                      data = results_minPPT,
+                      method="REML")
+
+
+summary(minPPT_relPol_GS)
+
+setwd(wd_models)
+saveRDS(minPPT_relPol_GS, 'minPPT_relPol_GS')
+
+
+plot.gam(minPPT_relPol_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.03, 0.03),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+### meanPPT
+
+#model G
+meanPPT_relPol_G <- gam(avg_Mean_PPT_SHAP ~
+                        s(relPolewardness, k=4, bs="tp") 
+                      + s(species, k = n_sps_meanPPT, bs="re"),
+                      data = results_meanPPT,
+                      method="REML",
+                      family="gaussian")
+
+
+summary(meanPPT_relPol_G)
+
+setwd(wd_models)
+saveRDS(meanPPT_relPol_G, 'meanPPT_relPol_G')
+
+
+plot.gam(meanPPT_relPol_G, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.04, 0.06),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+meanPPT_relPol_GS <- gam(avg_Mean_PPT_SHAP ~
+                         s(relPolewardness, k=4, m=2) 
+                       + s(relPolewardness, species, k=4, bs="fs", m=2),
+                       data = results_meanPPT,
+                       method="REML")
+
+
+summary(meanPPT_relPol_GS)
+
+setwd(wd_models)
+saveRDS(meanPPT_relPol_GS, 'meanPPT_relPol_GS')
+
+
+plot.gam(meanPPT_relPol_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.04, 0.06),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+### maxPPT
+
+#model G
+maxPPT_relPol_G <- gam(avg_Max_PPT_SHAP ~
+                       s(relPolewardness, k=4, bs="tp") 
+                     + s(species, k = n_sps_maxPPT, bs="re"),
+                     data = results_maxPPT,
+                     method="REML",
+                     family="gaussian")
+
+
+summary(maxPPT_relPol_G)
+
+setwd(wd_models)
+saveRDS(maxPPT_relPol_G, 'maxPPT_relPol_G')
+
+
+plot.gam(maxPPT_relPol_G, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
+         ylim = c(-0.03, 0.03),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#model GS
+maxPPT_relPol_GS <- gam(avg_Max_PPT_SHAP ~
+                        s(relPolewardness, k=4, m=2) 
+                      + s(relPolewardness, species, k=4, bs="fs", m=2),
+                      data = results_maxPPT,
+                      method="REML")
+
+
+summary(maxPPT_relPol_GS)
+
+setwd(wd_models)
+saveRDS(maxPPT_relPol_GS, 'maxPPT_relPol_GS')
+
+
+plot.gam(maxPPT_relPol_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
+         ylim = c(-0.03, 0.03),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+
+# SHAP values X absolute polewardness (GAM)
+
+#set par for plotting
+par(mar = c(6,6,6,6))
+
+### minPPT
+
+#model G
+minPPT_absPol_G <- gam(avg_Min_PPT_SHAP ~
+                       s(absPolewardness, k=4, bs="tp") 
+                     + s(species, k = n_sps_minPPT, bs="re"),
+                     data = results_minPPT,
+                     method="REML",
+                     family="gaussian")
+
+
+summary(minPPT_absPol_G)
+
+setwd(wd_models)
+saveRDS(minPPT_absPol_G, 'minPPT_absPol_G')
+
+
+plot.gam(minPPT_absPol_G, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.08, 0.08),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+minPPT_absPol_GS <- gam(avg_Min_PPT_SHAP ~
+                        s(absPolewardness, k=4, m=2) 
+                      + s(absPolewardness, species, k=4, bs="fs", m=2),
+                      data = results_minPPT,
+                      method="REML")
+
+
+summary(minPPT_absPol_GS)
+
+setwd(wd_models)
+saveRDS(minPPT_absPol_GS, 'minPPT_absPol_GS')
+
+
+plot.gam(minPPT_absPol_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.08, 0.08),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+### meanPPT
+
+#model G
+meanPPT_absPol_G <- gam(avg_Mean_PPT_SHAP ~
+                        s(absPolewardness, k=4, bs="tp") 
+                      + s(species, k = n_sps_meanPPT, bs="re"),
+                      data = results_meanPPT,
+                      method="REML",
+                      family="gaussian")
+
+
+summary(meanPPT_absPol_G)
+
+setwd(wd_models)
+saveRDS(meanPPT_absPol_G, 'meanPPT_absPol_G')
+
+
+plot.gam(meanPPT_absPol_G, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.25, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+meanPPT_absPol_GS <- gam(avg_Mean_PPT_SHAP ~
+                         s(absPolewardness, k=4, m=2) 
+                       + s(absPolewardness, species, k=4, bs="fs", m=2),
+                       data = results_meanPPT,
+                       method="REML")
+
+
+summary(meanPPT_absPol_GS)
+
+setwd(wd_models)
+saveRDS(meanPPT_absPol_GS, 'meanPPT_absPol_GS')
+
+
+plot.gam(meanPPT_absPol_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.25, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+### maxPPT
+
+#model G
+maxPPT_absPol_G <- gam(avg_Max_PPT_SHAP ~
+                       s(absPolewardness, k=4, bs="tp") 
+                     + s(species, k = n_sps_maxPPT, bs="re"),
+                     data = results_maxPPT,
+                     method="REML",
+                     family="gaussian")
+
+
+summary(maxPPT_absPol_G)
+
+setwd(wd_models)
+saveRDS(maxPPT_absPol_G, 'maxPPT_absPol_G')
+
+
+plot.gam(maxPPT_absPol_G, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#model GS
+maxPPT_absPol_GS <- gam(avg_Max_PPT_SHAP ~
+                        s(absPolewardness, k=4, m=2) 
+                      + s(absPolewardness, species, k=4, bs="fs", m=2),
+                      data = results_maxPPT,
+                      method="REML")
+
+
+summary(maxPPT_absPol_GS)
+
+setwd(wd_models)
+saveRDS(maxPPT_absPol_GS, 'maxPPT_absPol_GS')
+
+
+plot.gam(maxPPT_absPol_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+
+
+
+
+
+
+
+
+
+######################################################################
 # SHAP values X relative polewardness (GAM)
 
 #set par for plotting

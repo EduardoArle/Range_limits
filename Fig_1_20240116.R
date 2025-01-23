@@ -4,22 +4,15 @@ library(rnaturalearth); library(sf); library(units)
 #list wds
 wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Figures/Fig 1/Things for the figure'
 
-#set seed
+#set seed for reproducibility
 set.seed(69)
 
+#set parametres for plotting
+par(mar = c(7,5,5,5), pty="m", mfrow = c(1,1))
 
+##### Make polygon for map #####
 
-################# IMPORTANT NOTE ###################
-
-#.           make graph fist
-#.           use created values for the figure
-
-###################################################
-
-
-##### MAP #####
-
-#load world map
+#load world map (just to have a reference system)
 world <- ne_countries(returnclass = "sf")
 
 #create polygon representing species range
@@ -32,188 +25,89 @@ poly = st_polygon(
 poly_sf <-  st_sfc(poly, crs = st_crs(world))
 poly_sf <- st_as_sf(poly_sf)
 
+#get min and max coord values of the range
+ext <- st_bbox(poly_sf)
+
 #create points representing species occurrences
 points_sf <- st_sample(poly_sf, size = 100, type = "random")
 points_sf <- st_as_sf(points_sf)
 
 #calculate rel polewardness for all points
-points_sf$relPol <- (st_coordinates(points_sf)[,2] - 25) / 25
-  
-#create data on var contribution for all points
-points_sf$varContPol <- (points_sf$relPol +
-  rnorm(nrow(points_sf), mean = 0.2, sd = 0.1)) - 0.3
+points_sf$relPol <- (st_coordinates(points_sf)[,2] - ext$ymin) / ext$ymin
 
-summary(points_sf$varContPol)
+#create box to calculate distance from edge
 
-#normalize variable contribution from 0 to 5 (for size)
-points_sf$varContNormal <- 
-  round(((points_sf$varContPol +
-             abs(min(points_sf$varContPol))) * 2) + 0.3, 2)
-
-summary(points_sf$varContNormal)
-  
-#make boxes for the map
-
-#get min and max coord values of the range
-ext <- st_bbox(poly_sf)  
-
-#calculate the size of the small box to plot around the range
-side_box <-  max(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) +
-  min(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) / 4
-
-#calculate central lon and central lat of the range
-central_x <- (ext[3] + ext[1]) / 2
-names(central_x) <- 'xmean'
-central_y <- (ext[4] + ext[2]) / 2
-names(central_y) <- 'ymean'
-
-#calculate min and max lon and mean and max lat of the small box
-min_x <- central_x - (side_box / 1.65)
-names(min_x) <- 'xmin'
-max_x <- central_x + (side_box / 1.65)
-names(max_x) <- 'xmax'
-
-min_y <- central_y - (side_box / 2)
-names(min_y) <- 'ymin'
-max_y <- central_y + (side_box / 2)
-names(max_y) <- 'ymax'
+#calculate the size of the box to plot around the range
+lon_mar <- abs(ext[3] - ext[1]) / 8
+lat_mar <- abs(ext[4] - ext[2]) / 8
                           
-#create big box
-box_df <- data.frame(x = c(min_x,max_x,max_x,min_x,min_x), 
-                     y = c(max_y,max_y,min_y,min_y,max_y))
+#calculate coords for the box
+b_xmin <- ext$xmin - lon_mar
+b_xmax <- ext$xmax + lon_mar
+b_ymin <- ext$ymin - lat_mar
+b_ymax <- ext$ymax + lat_mar
 
-box <- st_as_sfc(          #make the box    
+#create box to calculate distance from edge
+box_df <- data.frame(x = c(b_xmin,b_xmax,b_xmax,b_xmin,b_xmin),
+                     y = c(b_ymax,b_ymax,b_ymin,b_ymin,b_ymax))
+
+box <- st_as_sfc(          #make the box
   st_bbox(st_as_sf(box_df, coords = c('x', 'y'), crs = st_crs(poly_sf))))
-
-#calculate the size of the box to plot in white in the background and give
-#space to other stuff
-side_big_box <-  max(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) +
-  min(c(abs(ext[3] - ext[1]), abs(ext[4] - ext[2]))) / 2
-
-#calculate min and max lon and mean and max lat of the big box
-min_x_BB <- central_x - (side_big_box / 2)
-names(min_x_BB) <- 'xmin'
-max_x_BB <- central_x + (side_big_box / 2)
-names(max_x_BB) <- 'xmax'
-
-min_y_BB <- central_y - (side_big_box / 1.5)
-names(min_y_BB) <- 'ymin'
-max_y_BB <- central_y + (side_big_box / 2)
-names(max_y_BB) <- 'ymax'
-
-#create big box
-big_box_df <- data.frame(x = c(min_x_BB,max_x_BB,max_x_BB,min_x_BB,min_x_BB), 
-                     y = c(max_y_BB,max_y_BB,min_y_BB,min_y_BB,max_y_BB))
-
-big_box <- st_as_sfc(          #make the box    
-  st_bbox(st_as_sf(big_box_df, coords = c('x', 'y'), crs = st_crs(poly_sf))))
-
-
-##### Calculate distance from the edges to show the 'centralness'
 
 #cut the range out of the box
 range_cut <- st_difference(box, poly_sf)
+
+#visualise steps
+plot(box)
+plot(poly_sf, add = T, col = '#f23598')
+plot(range_cut, add = T, col = '#89f336')
+plot(points_sf, add = T, pch = 21, col = '#000000', bg = '#98fbcb')
 
 #calculate the dist from each point to edge in km
 points_sf$distEdge <- as.numeric(
   set_units(st_distance(points_sf, range_cut), km)[,1])
 
-#calculate index (0-1) of distance to edge
-points_sf$distEdgeNormal_0 <- points_sf$distEdge / max(points_sf$distEdge)
-
-#this option for the points uses the same calculation of the relPol but inversed
-points_sf$distEdgeNormal <- 1 - points_sf$relPol
-
-#create vector for sizes in points
-points_sf$centralCex <- ((7 - log(points_sf$distEdge)) / 1.3) + 
-  rnorm(nrow(points_sf), mean = 0.25, sd = 0.4)
-
-summary(points_sf$centralCex)
-
-#create exemplary values of var contribution showing an increase towards edges
-points_sf$varContrCentral <- (points_sf$centralCex - 1.2) / 5
-
-summary(points_sf$varContrCentral)
-
-
-
-
-
-
-
-
-
-
-###### PLOT MAP SHOWING THE CENTRAL GRADIENT ######
-
-#Legend: "Larger ranges showing populations close to the range centre being less affected by climatic extremes than those closer to range edges."
-
-#Reference in text: "The relationship between climatic variables and species occurrences changes between the range centre and range edges (Fig. 1A)"
-
-
-#set parametres for plotting
-par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
-
-#plot big white box to make room for the things I need to add around
-plot(big_box, border = NA)
-
-#plot small box to inform the coordinates
-#plot(box, add = T, col = '#ffffbf20')
-
-#plot the polygon
-plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
-
-#plot the occurrence points (size is proportional to SHAP value)
-plot(st_geometry(points_sf),
-     add = T, pch = 19, cex = points_sf$centralCex ^ 1.4,
-     col = '#2c7bb680')
-
-#save 1000
-
-
-
+distEdge <- points_sf$distEdge
 
 
 ###### PLOT GRAPH SHOWING THE CENTRAL GRADIENT ######
 
-# Set seed for reproducibility
-set.seed(123)
+#generate ydata with a linear relationship plus some noise
+ydata <- ((-0.002 * distEdge + rnorm(100, mean = 0, sd = 0.2)) + 0.6) / 2
 
-# Generate 100 random values for distEdgeNormal
-distEdgeNormal <- runif(100, min = 0, max = 500)
+#combine into a data frame
+data <- data.frame(distEdge, ydata)
 
-# Generate ydata with a linear relationship plus some noise
-ydata <- ((-0.002 * distEdgeNormal + rnorm(100, mean = 0, sd = 0.2)) + 0.6) / 2
+#fit the linear model
+lin_mod <- lm(ydata ~ distEdge, data = data)
 
-# Combine into a data frame
-data <- data.frame(distEdgeNormal, ydata)
-
-# Fit the linear model
-lin_mod <- lm(ydata ~ distEdgeNormal, data = data)
-
-# Display the model summary
+#display the model summary
 summary(lin_mod)
 
-#set parametres for plotting
-par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
-
-# Create a sequence of x-values within the range of the data
-x_vals <- seq(min(data$distEdgeNormal),
-              max(data$distEdgeNormal),
+#preate a sequence of x-values within the range of the data
+x_vals <- seq(min(data$distEdge),
+              max(data$distEdge),
               length.out = 100)
 
-# Create a data frame for prediction
-new_data <- data.frame(distEdgeNormal = x_vals)
+#preate a data frame for prediction
+new_data <- data.frame(distEdge = x_vals)
 
-# Predict y-values based on the model
+#predict y-values based on the model
 predicted <- predict(lin_mod, newdata = new_data)
 
 #set y and x lims
-ylim <- c(-0.5, 0.5)
-xlim <- c(0, 530)
+ylim <- c(floor(min(ydata) * 10) / 10, ceiling(max(ydata) *10) / 10)
+xlim <- c(0, ceiling(max(distEdge) / 100) * 100)
+
+
+
+
+par(mar = c(6,9,5,5), pty="m", mfrow = c(1,1))
+
+
 
 # Plot the data points again
-plot(data$distEdgeNormal, data$ydata, 
+plot(data$distEdge, data$ydata, 
      pch = 19, cex = 0.8, col = '#2c7bb650',
      axes = F, , xaxs = "i", yaxs = "i",
      ylab = 'Variable contribution',
@@ -223,27 +117,43 @@ plot(data$distEdgeNormal, data$ydata,
      ylim = ylim,
      xlim = xlim)
 
+#prepare parametres for axes
+
+#determine number of ticks per axis
+n_ticks_x <- 5
+n_ticks_y <- 5
+
+#calculate distance between ticks
+dist_tick_x <- (xlim[2] - xlim[1]) / (n_ticks_x - 1)
+dist_tick_y <- (ylim[2] - ylim[1]) / (n_ticks_y - 1)
+
+#calculate positions of ticks
+ticks_x <- seq(xlim[1], xlim[2], dist_tick_x)
+ticks_y <- seq(ylim[1], ylim[2], dist_tick_y)
+
 #add axes
-axis(1, pos = -0.4)
-axis(2, pos = 0, las=2)
+axis(1, pos = ylim[1], at = ticks_x)
+axis(2, las = 2, at = ticks_y)
 
 # Add the restricted regression line
 lines(x_vals, predicted, col = '#2c7bb6', lwd = 7)
 
 
 
+
+
+
 ###### PLOT GRAPH SHOWING THE CENTRAL GRADIENT (ALTERNATIVE MEASUREMENT) ######
 
-# Set seed for reproducibility
-set.seed(123)
 
-# Generate 33, 34, and 33 random values for distEdgeNormal
+
+#generate 33, 34, and 33 random values for distEdgeNormal
 distEdgeNormal_A <- runif(33, min = 0, max = 150) #1st segment
 distEdgeNormal_B <- runif(34, min = 150, max = 350) #2nd segment
 distEdgeNormal_C <- runif(33, min = 350, max = 500) #2nd segment
 
 
-# Generate ydata with a linear relationship plus some noise
+#generate ydata with a linear relationship plus some noise
 ydata_A <-
   ((-0.002 * distEdgeNormal_A + rnorm(33, mean = 0.2, sd = 0.1)) + 0.13) 
 
@@ -253,17 +163,17 @@ ydata_B <-
 ydata_C <-
   ((-0.002 * distEdgeNormal_C + rnorm(33, mean = -0.2, sd = 0.1)) + 0.9) 
 
-# Combine into a data frame
+#combine into a data frame
 data_A <- data.frame(distEdgeNormal_A, ydata_A)
 data_B <- data.frame(distEdgeNormal_B, ydata_B)
 data_C <- data.frame(distEdgeNormal_C, ydata_C)
 
-# Fit the linear model
+#fit the linear model
 lin_mod_A <- lm(ydata_A ~ distEdgeNormal_A, data = data_A)
 lin_mod_B <- lm(ydata_B ~ distEdgeNormal_B, data = data_B)
 lin_mod_C <- lm(ydata_C ~ distEdgeNormal_C, data = data_C)
 
-# Display the model summary
+#display the model summary
 summary(lin_mod_A)
 summary(lin_mod_B)
 summary(lin_mod_C)
@@ -308,7 +218,7 @@ plot(data_A$distEdgeNormal, data_A$ydata,
      xlim = xlim)
 
 points(data_B$distEdgeNormal, data_B$ydata, 
-     pch = 19, cex = 0.8, col = '#2c7bb650')
+       pch = 19, cex = 0.8, col = '#2c7bb650')
 
 points(data_C$distEdgeNormal, data_C$ydata, 
        pch = 19, cex = 0.8, col = '#2c7bb650')
@@ -340,7 +250,7 @@ points(data_B$distEdgeNormal, data_B$ydata,
 
 points(data_C$distEdgeNormal, data_C$ydata, 
        pch = 19, cex = 0.8, col = '#2c7bb650'
-       )
+)
 
 #add axes
 axis(1, pos = -0.4)
@@ -351,6 +261,42 @@ lines(c(new_data_A$distEdgeNormal[33], new_data_C$distEdgeNormal[1]),
       c(predicted_A[33],predicted_C[1]),
       col = '#2c7bb6', lwd = 7)
 lines(new_data_C$distEdgeNormal, predicted_C, col = '#2c7bb6', lwd = 7)
+
+
+
+
+
+###### PLOT MAP SHOWING THE CENTRAL GRADIENT ######
+
+#Legend: "Larger ranges showing populations close to the range centre being less affected by climatic extremes than those closer to range edges."
+
+#Reference in text: "The relationship between climatic variables and species occurrences changes between the range centre and range edges (Fig. 1A)"
+
+
+#set parametres for plotting
+par(mar = c(0,0,0,0), pty="s", mfrow = c(1,1))
+
+#plot big white box to make room for the things I need to add around
+plot(big_box, border = NA)
+
+#plot small box to inform the coordinates
+#plot(box, add = T, col = '#ffffbf20')
+
+#plot the polygon
+plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
+
+#plot the occurrence points (size is proportional to SHAP value)
+plot(st_geometry(points_sf),
+     add = T, pch = 19, cex = points_sf$centralCex ^ 1.4,
+     col = '#80808080')
+
+#save 1000
+
+
+
+
+
+
 
 
 
@@ -669,7 +615,31 @@ axis(2, pos = 0, las=2)
 
 # Add the restricted regression line
 lines(x_vals, predicted, col = '#2c7bb6', lwd = 7)
-lines(x_vals, predicted / 6, col = '#f46d43', lwd = 7)
+lines(x_vals, (predicted / 1.1) - 0.07, col = '#f46d43', lwd = 7)
+lines(x_vals, predicted / 6, col = '#ffc00c', lwd = 7)
+
+
+# Plot the data points (with no points)
+plot(data$distEdgeNormal, data$ydata, 
+     pch = 19, cex = 0.8, col = '#2c7bb600',
+     axes = F, , xaxs = "i", yaxs = "i",
+     ylab = 'Variable contribution',
+     xlab = 'Distance from edge',
+     cex.lab = 1.2,
+     cex.axis = 1.2,
+     ylim = ylim,
+     xlim = xlim)
+
+#add axes
+axis(1, pos = -0.4)
+axis(2, pos = 0, las=2)
+
+# Add the restricted regression line
+lines(x_vals, predicted, col = '#2c7bb6', lwd = 7)
+lines(x_vals, predicted * -0.9, col = '#f46d43', lwd = 7)
+lines(x_vals, predicted / 6, col = '#ffc00c', lwd = 7)
+
+
 
 
 
