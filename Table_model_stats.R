@@ -34,10 +34,6 @@ names_models <- c('minT_distEdge', 'meanT_distEdge', 'maxT_distEdge',
                   'minPPT_elev', 'meanPPT_elev', 'maxPPT_elev')
 
 
-############## while all elevation stuff is not run #############
-names_models <- names_models[c(1:22)]
-
-
 #create empty vectors to populate with results
 AIC_Model_G <- numeric()
 AIC_Model_GS <- numeric()
@@ -63,11 +59,15 @@ table <- data.frame(Models = names_models,
                     D_DE = round(DE_Model_GS - DE_Model_G, 2))
 
 #calculate mean and SD of differences between G and GS
-mean_D_AIC <- mean(table$D_AIC)
-sd_D_AIC <- sd(table$D_AIC)
+#(excluding elevation for now)
 
-mean_D_DE <- mean(table$D_DE)
-sd_D_DE <- sd(table$D_DE)
+table_noElev <- table[-c(10:12,22:24),]
+
+mean_D_AIC <- mean(table_noElev$D_AIC)
+sd_D_AIC <- sd(table_noElev$D_AIC)
+
+mean_D_DE <- mean(table_noElev$D_DE)
+sd_D_DE <- sd(table_noElev$D_DE)
 
 #save table
 setwd(wd_result)

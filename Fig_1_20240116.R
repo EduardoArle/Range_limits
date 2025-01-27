@@ -51,7 +51,8 @@ b_ymax <- ext$ymax + lat_mar
 box_df <- data.frame(x = c(b_xmin,b_xmax,b_xmax,b_xmin,b_xmin),
                      y = c(b_ymax,b_ymax,b_ymin,b_ymin,b_ymax))
 
-box <- st_as_sfc(          #make the box
+#make the box
+box <- st_as_sfc(          
   st_bbox(st_as_sf(box_df, coords = c('x', 'y'), crs = st_crs(poly_sf))))
 
 #cut the range out of the box
