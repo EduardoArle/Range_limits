@@ -100,11 +100,7 @@ ylim <- c(floor(min(ydata) * 10) / 10, ceiling(max(ydata) *10) / 10)
 xlim <- c(0, ceiling(max(distEdge) / 100) * 100)
 
 
-
-
 par(mar = c(6,9,5,5), pty="m", mfrow = c(1,1))
-
-
 
 # Plot the data points again
 plot(data$distEdge, data$ydata, 
@@ -140,62 +136,55 @@ lines(x_vals, predicted, col = '#2c7bb6', lwd = 7)
 
 
 
-
-
-
 ###### PLOT GRAPH SHOWING THE CENTRAL GRADIENT (ALTERNATIVE MEASUREMENT) ######
 
 
-
 #generate 33, 34, and 33 random values for distEdgeNormal
-distEdgeNormal_A <- runif(33, min = 0, max = 150) #1st segment
-distEdgeNormal_B <- runif(34, min = 150, max = 350) #2nd segment
-distEdgeNormal_C <- runif(33, min = 350, max = 500) #2nd segment
+distEdge_A <- runif(33, min = 0, max = 175) #1st segment
+distEdge_B <- runif(34, min = 175, max = 575) #2nd segment
+distEdge_C <- runif(33, min = 575, max = 750) #2nd segment
 
 
 #generate ydata with a linear relationship plus some noise
 ydata_A <-
-  ((-0.002 * distEdgeNormal_A + rnorm(33, mean = 0.2, sd = 0.1)) + 0.13) 
+  ((-0.002 * distEdge_A + rnorm(33, mean = 0.2, sd = 0.1)) + 0.13) 
 
 ydata_B <-
-  ((-0.002 * distEdgeNormal_B + rnorm(34, mean = 0, sd = 1)) + 0.4) / 5
+  ((-0.002 * distEdge_B + rnorm(34, mean = 0, sd = 0.3)) + 0.4) / 5
 
 ydata_C <-
-  ((-0.002 * distEdgeNormal_C + rnorm(33, mean = -0.2, sd = 0.1)) + 0.9) 
+  ((-0.002 * distEdge_C + rnorm(33, mean = -0.2, sd = 0.1)) + 0.9) 
 
 #combine into a data frame
-data_A <- data.frame(distEdgeNormal_A, ydata_A)
-data_B <- data.frame(distEdgeNormal_B, ydata_B)
-data_C <- data.frame(distEdgeNormal_C, ydata_C)
+data_A <- data.frame(distEdge_A, ydata_A)
+data_B <- data.frame(distEdge_B, ydata_B)
+data_C <- data.frame(distEdge_C, ydata_C)
 
 #fit the linear model
-lin_mod_A <- lm(ydata_A ~ distEdgeNormal_A, data = data_A)
-lin_mod_B <- lm(ydata_B ~ distEdgeNormal_B, data = data_B)
-lin_mod_C <- lm(ydata_C ~ distEdgeNormal_C, data = data_C)
+lin_mod_A <- lm(ydata_A ~ distEdge_A, data = data_A)
+lin_mod_B <- lm(ydata_B ~ distEdge_B, data = data_B)
+lin_mod_C <- lm(ydata_C ~ distEdge_C, data = data_C)
 
 #display the model summary
 summary(lin_mod_A)
 summary(lin_mod_B)
 summary(lin_mod_C)
 
-#set parametres for plotting
-par(mar = c(5,5,5,5), pty="s", mfrow = c(1,1))
-
 # Create a sequence of x-values within the range of the data
-x_vals_A <- seq(min(data_A$distEdgeNormal),
-                max(data_A$distEdgeNormal),
+x_vals_A <- seq(min(data_A$distEdge),
+                max(data_A$distEdge),
                 length.out = 33)
-x_vals_B <- seq(min(data_B$distEdgeNormal),
-                max(data_B$distEdgeNormal),
+x_vals_B <- seq(min(data_B$distEdge),
+                max(data_B$distEdge),
                 length.out = 34)
-x_vals_C <- seq(min(data_C$distEdgeNormal),
-                max(data_C$distEdgeNormal),
+x_vals_C <- seq(min(data_C$distEdge),
+                max(data_C$distEdge),
                 length.out = 33)
 
 # Create a data frame for prediction
-new_data_A <- data.frame(distEdgeNormal_A = x_vals_A)
-new_data_B <- data.frame(distEdgeNormal_B = x_vals_B)
-new_data_C <- data.frame(distEdgeNormal_C = x_vals_C)
+new_data_A <- data.frame(distEdge_A = x_vals_A)
+new_data_B <- data.frame(distEdge_B = x_vals_B)
+new_data_C <- data.frame(distEdge_C = x_vals_C)
 
 # Predict y-values based on the model
 predicted_A <- predict(lin_mod_A, newdata = new_data_A)
@@ -203,11 +192,11 @@ predicted_B<- predict(lin_mod_B, newdata = new_data_B)
 predicted_C <- predict(lin_mod_C, newdata = new_data_C)
 
 #set y and x lims
-ylim <- c(-0.5, 0.5)
-xlim <- c(0, 530)
+ylim <- c(floor(min(ydata) * 10) / 10, ceiling(max(ydata) *10) / 10)
+xlim <- c(0, ceiling(max(distEdge) / 100) * 100)
 
 # Plot the data points again
-plot(data_A$distEdgeNormal, data_A$ydata, 
+plot(data_A$distEdge, data_A$ydata, 
      pch = 19, cex = 0.8, col = '#2c7bb650',
      axes = F, , xaxs = "i", yaxs = "i",
      ylab = 'Variable contribution',
@@ -217,20 +206,21 @@ plot(data_A$distEdgeNormal, data_A$ydata,
      ylim = ylim,
      xlim = xlim)
 
-points(data_B$distEdgeNormal, data_B$ydata, 
+points(data_B$distEdge, data_B$ydata, 
        pch = 19, cex = 0.8, col = '#2c7bb650')
 
-points(data_C$distEdgeNormal, data_C$ydata, 
+points(data_C$distEdge, data_C$ydata, 
        pch = 19, cex = 0.8, col = '#2c7bb650')
 
 #add axes
-axis(1, pos = -0.4)
-axis(2, pos = 0, las=2)
+axis(1, pos = ylim[1], at = ticks_x)
+axis(2, las = 2, at = ticks_y)
+
 
 # Add the restricted regression line
-lines(new_data_A$distEdgeNormal, predicted_A, col = '#2c7bb6', lwd = 7)
-lines(new_data_B$distEdgeNormal, predicted_B, col = '#2c7bb6', lwd = 7)
-lines(new_data_C$distEdgeNormal, predicted_C, col = '#2c7bb6', lwd = 7)
+lines(new_data_A$distEdge, predicted_A, col = '#2c7bb6', lwd = 7)
+lines(new_data_B$distEdge, predicted_B, col = '#2c7bb6', lwd = 7)
+lines(new_data_C$distEdge, predicted_C, col = '#2c7bb6', lwd = 7)
 
 # For graphical purposes, I will replot joining the lines
 

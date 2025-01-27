@@ -1220,39 +1220,39 @@ meanPPT_elev_G <- gam(avg_Mean_PPT_SHAP ~
                     family="gaussian")
 
 
-summary(meanT_elev_G)
+summary(meanPPT_elev_G)
 
 #AIC
-AIC_meanT_elev_G <- AIC(meanT_elev_G)
+AIC_meanPPT_elev_G <- AIC(meanPPT_elev_G)
 
 #gam.check
-check <- gam.check(meanT_elev_G)
+check <- gam.check(meanPPT_elev_G)
 
 setwd(wd_models)
-saveRDS(meanT_elev_G, 'meanT_elev_G')
+saveRDS(meanPPT_elev_G, 'meanPPT_elev_G')
 
 
-plot.gam(meanT_elev_G, select = 1, residuals = F, shade = T,
+plot.gam(meanPPT_elev_G, select = 1, residuals = F, shade = T,
          shade.col = '#8c510a30', ylab = 'SHAP value',
          ylim = c(-0.05, 0.25),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 #model GS
-meanT_elev_GS <- gam(avg_Mean_T_SHAP ~
+meanPPT_elev_GS <- gam(avg_Mean_PPT_SHAP ~
                        s(elevation, k=4, m=2) 
                      + s(elevation, species, k=4, bs="fs", m=2),
-                     data = results_meanT,
+                     data = results_meanPPT,
                      method="REML")
 
 
-summary(meanT_elev_GS)
+summary(meanPPT_elev_GS)
 
 #AIC
-AIC_meanT_elev_GS <- AIC(meanT_elev_GS)
+AIC_meanPPT_elev_GS <- AIC(meanPPT_elev_GS)
 
 setwd(wd_models)
-saveRDS(meanT_elev_GS, 'meanT_elev_GS')
+saveRDS(meanPPT_elev_GS, 'meanPPT_elev_GS')
 
 
 plot.gam(meanT_elev_GS, select = 1, residuals = F, shade = T,
@@ -1262,53 +1262,53 @@ plot.gam(meanT_elev_GS, select = 1, residuals = F, shade = T,
 
 
 
-### maxT
+### maxPPT
 
 #model G
-maxT_elev_G <- gam(avg_Max_T_SHAP ~
+maxPPT_elev_G <- gam(avg_Max_PPT_SHAP ~
                      s(elevation, k=4, bs="tp") 
-                   + s(species, k = n_sps_maxT, bs="re"),
-                   data = results_maxT,
+                   + s(species, k = n_sps_maxPPT, bs="re"),
+                   data = results_maxPPT,
                    method="REML",
                    family="gaussian")
 
 
-summary(maxT_elev_G)
+summary(maxPPT_elev_G)
 
 #AIC
-AIC_maxT_elev_G <- AIC(maxT_elev_G)
+AIC_maxPPT_elev_G <- AIC(maxPPT_elev_G)
 
 setwd(wd_models)
-saveRDS(maxT_elev_G, 'maxT_elev_G')
+saveRDS(maxPPT_elev_G, 'maxPPT_elev_G')
 
 
-plot.gam(maxT_elev_G, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
+plot.gam(maxPPT_elev_G, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
          ylim = c(-0.1, 0.2),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 
 #model GS
-maxT_elev_GS <- gam(avg_Max_T_SHAP ~
+maxPPT_elev_GS <- gam(avg_Max_PPT_SHAP ~
                       s(elevation, k=4, m=2) 
                     + s(elevation, species, k=4, bs="fs", m=2),
-                    data = results_maxT,
+                    data = results_maxPPT,
                     method="REML")
 
 
-summary(maxT_elev_GS)
+summary(maxPPT_elev_GS)
 
 #AIC
-AIC_maxT_elev_GS <- AIC(maxT_elev_GS)
+AIC_maxPPT_elev_GS <- AIC(maxPPT_elev_GS)
 
 setwd(wd_models)
-saveRDS(maxT_elev_GS, 'maxT_elev_GS')
+saveRDS(maxPPT_elev_GS, 'maxPPT_elev_GS')
 
 
-plot.gam(maxT_elev_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
+plot.gam(maxPPT_elev_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#00FF0030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.2),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
