@@ -54,6 +54,9 @@ minT_distEdge_G <- gam(avg_Min_T_SHAP ~
 
 summary(minT_distEdge_G)
 
+#AIC
+AIC_minT_distEdge_G <- AIC(minT_distEdge_G)
+
 setwd(wd_models)
 saveRDS(minT_distEdge_G, 'minT_distEdge_G')
 
@@ -73,6 +76,9 @@ minT_distEdge_GS <- gam(avg_Min_T_SHAP ~
 
 
 summary(minT_distEdge_GS)
+
+#AIC
+AIC_minT_distEdge_GS <- AIC(minT_distEdge_GS)
 
 setwd(wd_models)
 saveRDS(minT_distEdge_GS, 'minT_distEdge_GS')
@@ -97,6 +103,9 @@ meanT_distEdge_G <- gam(avg_Mean_T_SHAP ~
 
 summary(meanT_distEdge_G)
 
+#AIC
+AIC_meanT_distEdge_G <- AIC(meanT_distEdge_G)
+
 setwd(wd_models)
 saveRDS(meanT_distEdge_G, 'meanT_distEdge_G')
 
@@ -116,6 +125,9 @@ meanT_distEdge_GS <- gam(avg_Mean_T_SHAP ~
 
 
 summary(meanT_distEdge_GS)
+
+#AIC
+AIC_meanT_distEdge_GS <- AIC(meanT_distEdge_GS)
 
 setwd(wd_models)
 saveRDS(meanT_distEdge_GS, 'meanT_distEdge_GS')
@@ -141,6 +153,9 @@ maxT_distEdge_G <- gam(avg_Max_T_SHAP ~
 
 summary(maxT_distEdge_G)
 
+#AIC
+AIC_maxT_distEdge_G <- AIC(maxT_distEdge_G)
+
 setwd(wd_models)
 saveRDS(maxT_distEdge_G, 'maxT_distEdge_G')
 
@@ -161,6 +176,9 @@ maxT_distEdge_GS <- gam(avg_Max_T_SHAP ~
 
 
 summary(maxT_distEdge_GS)
+
+#AIC
+AIC_maxT_distEdge_GS <- AIC(maxT_distEdge_GS)
 
 setwd(wd_models)
 saveRDS(maxT_distEdge_GS, 'maxT_distEdge_GS')
@@ -193,6 +211,9 @@ minT_relPol_G <- gam(avg_Min_T_SHAP ~
 
 summary(minT_relPol_G)
 
+#AIC
+AIC_minT_relPol_G <- AIC(minT_relPol_G)
+
 setwd(wd_models)
 saveRDS(minT_relPol_G, 'minT_relPol_G')
 
@@ -212,6 +233,9 @@ minT_relPol_GS <- gam(avg_Min_T_SHAP ~
 
 
 summary(minT_relPol_GS)
+
+#AIC
+AIC_minT_relPol_GS <- AIC(minT_relPol_GS)
 
 setwd(wd_models)
 saveRDS(minT_relPol_GS, 'minT_relPol_GS')
@@ -236,6 +260,9 @@ meanT_relPol_G <- gam(avg_Mean_T_SHAP ~
 
 summary(meanT_relPol_G)
 
+#AIC
+AIC_meanT_relPol_G <- AIC(meanT_relPol_G)
+
 setwd(wd_models)
 saveRDS(meanT_relPol_G, 'meanT_relPol_G')
 
@@ -255,6 +282,9 @@ meanT_relPol_GS <- gam(avg_Mean_T_SHAP ~
 
 
 summary(meanT_relPol_GS)
+
+#AIC
+AIC_meanT_relPol_GS <- AIC(meanT_relPol_GS)
 
 setwd(wd_models)
 saveRDS(meanT_relPol_GS, 'meanT_relPol_GS')
@@ -280,6 +310,9 @@ maxT_relPol_G <- gam(avg_Max_T_SHAP ~
 
 summary(maxT_relPol_G)
 
+#AIC
+AIC_maxT_relPol_G <- AIC(maxT_relPol_G)
+
 setwd(wd_models)
 saveRDS(maxT_relPol_G, 'maxT_relPol_G')
 
@@ -300,6 +333,9 @@ maxT_relPol_GS <- gam(avg_Max_T_SHAP ~
 
 
 summary(maxT_relPol_GS)
+
+#AIC
+AIC_maxT_relPol_GS <- AIC(maxT_relPol_GS)
 
 setwd(wd_models)
 saveRDS(maxT_relPol_GS, 'maxT_relPol_GS')
@@ -331,6 +367,9 @@ minT_absPol_G <- gam(avg_Min_T_SHAP ~
 
 summary(minT_absPol_G)
 
+#AIC
+AIC_minT_absPol_G <- AIC(minT_absPol_G)
+
 setwd(wd_models)
 saveRDS(minT_absPol_G, 'minT_absPol_G')
 
@@ -350,6 +389,9 @@ minT_absPol_GS <- gam(avg_Min_T_SHAP ~
 
 
 summary(minT_absPol_GS)
+
+#AIC
+AIC_minT_absPol_GS <- AIC(minT_absPol_GS)
 
 setwd(wd_models)
 saveRDS(minT_absPol_GS, 'minT_absPol_GS')
@@ -374,6 +416,9 @@ meanT_absPol_G <- gam(avg_Mean_T_SHAP ~
 
 summary(meanT_absPol_G)
 
+#AIC
+AIC_meanT_absPol_G <- AIC(meanT_absPol_G)
+
 setwd(wd_models)
 saveRDS(meanT_absPol_G, 'meanT_absPol_G')
 
@@ -393,6 +438,9 @@ meanT_absPol_GS <- gam(avg_Mean_T_SHAP ~
 
 
 summary(meanT_absPol_GS)
+
+#AIC
+AIC_meanT_absPol_GS <- AIC(meanT_absPol_GS)
 
 setwd(wd_models)
 saveRDS(meanT_absPol_GS, 'meanT_absPol_GS')
@@ -418,6 +466,9 @@ maxT_absPol_G <- gam(avg_Max_T_SHAP ~
 
 summary(maxT_absPol_G)
 
+#AIC
+AIC_maxT_absPol_G <- AIC(maxT_absPol_G)
+
 setwd(wd_models)
 saveRDS(maxT_absPol_G, 'maxT_absPol_G')
 
@@ -438,6 +489,9 @@ maxT_absPol_GS <- gam(avg_Max_T_SHAP ~
 
 
 summary(maxT_absPol_GS)
+
+#AIC
+AIC_maxT_absPol_GS <- AIC(maxT_absPol_GS)
 
 setwd(wd_models)
 saveRDS(maxT_absPol_GS, 'maxT_absPol_GS')
@@ -469,13 +523,16 @@ minT_elev_G <- gam(avg_Min_T_SHAP ~
 
 summary(minT_elev_G)
 
+#AIC
+AIC_minT_elev_G <- AIC(minT_elev_G)
+
 setwd(wd_models)
 saveRDS(minT_elev_G, 'minT_elev_G')
 
 
 plot.gam(minT_elev_G, select = 1, residuals = F, shade = T,
          shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.5, 0.2),
+         ylim = c(-0.05, 0.25),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
@@ -489,13 +546,16 @@ minT_elev_GS <- gam(avg_Min_T_SHAP ~
 
 summary(minT_elev_GS)
 
+#AIC
+AIC_minT_elev_GS <- AIC(minT_elev_GS)
+
 setwd(wd_models)
 saveRDS(minT_elev_GS, 'minT_elev_GS')
 
 
 plot.gam(minT_elev_GS, select = 1, residuals = F, shade = T,
          shade.col = '#0000FF30', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
+         ylim = c(-0.05, 0.25),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
@@ -512,13 +572,16 @@ meanT_elev_G <- gam(avg_Mean_T_SHAP ~
 
 summary(meanT_elev_G)
 
+#AIC
+AIC_meanT_elev_G <- AIC(meanT_elev_G)
+
 setwd(wd_models)
 saveRDS(meanT_elev_G, 'meanT_elev_G')
 
 
 plot.gam(meanT_elev_G, select = 1, residuals = F, shade = T,
          shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
+         ylim = c(-0.05, 0.25),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
@@ -532,13 +595,16 @@ meanT_elev_GS <- gam(avg_Mean_T_SHAP ~
 
 summary(meanT_elev_GS)
 
+#AIC
+AIC_meanT_elev_GS <- AIC(meanT_elev_GS)
+
 setwd(wd_models)
 saveRDS(meanT_elev_GS, 'meanT_elev_GS')
 
 
 plot.gam(meanT_elev_GS, select = 1, residuals = F, shade = T,
          shade.col = '#80008030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
+         ylim = c(-0.5, 0.1),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
@@ -556,13 +622,16 @@ maxT_elev_G <- gam(avg_Max_T_SHAP ~
 
 summary(maxT_elev_G)
 
+#AIC
+AIC_maxT_elev_G <- AIC(maxT_elev_G)
+
 setwd(wd_models)
 saveRDS(maxT_elev_G, 'maxT_elev_G')
 
 
 plot.gam(maxT_elev_G, select = 1, residuals = F, shade = T,
          shade.col = '#FF000030', ylab = 'SHAP value',
-         ylim = c(-0.1, 0.1),
+         ylim = c(-0.1, 0.2),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
@@ -577,8 +646,11 @@ maxT_elev_GS <- gam(avg_Max_T_SHAP ~
 
 summary(maxT_elev_GS)
 
+#AIC
+AIC_maxT_elev_GS <- AIC(maxT_elev_GS)
+
 setwd(wd_models)
-saveRDS(maxT_elevl_GS, 'maxT_elev_GS')
+saveRDS(maxT_elev_GS, 'maxT_elev_GS')
 
 
 plot.gam(maxT_elev_GS, select = 1, residuals = F, shade = T,
@@ -629,6 +701,9 @@ minPPT_distEdge_G <- gam(avg_Min_PPT_SHAP ~
 
 summary(minPPT_distEdge_G)
 
+#AIC
+AIC_minPPT_distEdge_G <- AIC(minPPT_distEdge_G)
+
 setwd(wd_models)
 saveRDS(minPPT_distEdge_G, 'minPPT_distEdge_G')
 
@@ -648,6 +723,9 @@ minPPT_distEdge_GS <- gam(avg_Min_PPT_SHAP ~
 
 
 summary(minPPT_distEdge_GS)
+
+#AIC
+AIC_minPPT_distEdge_GS <- AIC(minPPT_distEdge_GS)
 
 setwd(wd_models)
 saveRDS(minPPT_distEdge_GS, 'minPPT_distEdge_GS')
@@ -672,6 +750,9 @@ meanPPT_distEdge_G <- gam(avg_Mean_PPT_SHAP ~
 
 summary(meanPPT_distEdge_G)
 
+#AIC
+AIC_meanPPT_distEdge_G <- AIC(meanPPT_distEdge_G)
+
 setwd(wd_models)
 saveRDS(meanPPT_distEdge_G, 'meanPPT_distEdge_G')
 
@@ -691,6 +772,9 @@ meanPPT_distEdge_GS <- gam(avg_Mean_PPT_SHAP ~
 
 
 summary(meanPPT_distEdge_GS)
+
+#AIC
+AIC_meanPPT_distEdge_GS <- AIC(meanPPT_distEdge_GS)
 
 setwd(wd_models)
 saveRDS(meanPPT_distEdge_GS, 'meanPPT_distEdge_GS')
@@ -716,6 +800,9 @@ maxPPT_distEdge_G <- gam(avg_Max_PPT_SHAP ~
 
 summary(maxPPT_distEdge_G)
 
+#AIC
+AIC_maxPPT_distEdge_G <- AIC(maxPPT_distEdge_G)
+
 setwd(wd_models)
 saveRDS(maxPPT_distEdge_G, 'maxPPT_distEdge_G')
 
@@ -736,6 +823,9 @@ maxPPT_distEdge_GS <- gam(avg_Max_PPT_SHAP ~
 
 
 summary(maxPPT_distEdge_GS)
+
+#AIC
+AIC_maxPPT_distEdge_GS <- AIC(maxPPT_distEdge_GS)
 
 setwd(wd_models)
 saveRDS(maxPPT_distEdge_GS, 'maxPPT_distEdge_GS')
@@ -768,6 +858,9 @@ minPPT_relPol_G <- gam(avg_Min_PPT_SHAP ~
 
 summary(minPPT_relPol_G)
 
+#AIC
+AIC_minPPT_relPol_G <- AIC(minPPT_relPol_G)
+
 setwd(wd_models)
 saveRDS(minPPT_relPol_G, 'minPPT_relPol_G')
 
@@ -787,6 +880,9 @@ minPPT_relPol_GS <- gam(avg_Min_PPT_SHAP ~
 
 
 summary(minPPT_relPol_GS)
+
+#AIC
+AIC_minPPT_relPol_GS <- AIC(minPPT_relPol_GS)
 
 setwd(wd_models)
 saveRDS(minPPT_relPol_GS, 'minPPT_relPol_GS')
@@ -811,6 +907,9 @@ meanPPT_relPol_G <- gam(avg_Mean_PPT_SHAP ~
 
 summary(meanPPT_relPol_G)
 
+#AIC
+AIC_meanPPT_relPol_G <- AIC(meanPPT_relPol_G)
+
 setwd(wd_models)
 saveRDS(meanPPT_relPol_G, 'meanPPT_relPol_G')
 
@@ -830,6 +929,9 @@ meanPPT_relPol_GS <- gam(avg_Mean_PPT_SHAP ~
 
 
 summary(meanPPT_relPol_GS)
+
+#AIC
+AIC_meanPPT_relPol_GS <- AIC(meanPPT_relPol_GS)
 
 setwd(wd_models)
 saveRDS(meanPPT_relPol_GS, 'meanPPT_relPol_GS')
@@ -855,6 +957,9 @@ maxPPT_relPol_G <- gam(avg_Max_PPT_SHAP ~
 
 summary(maxPPT_relPol_G)
 
+#AIC
+AIC_maxPPT_relPol_G <- AIC(maxPPT_relPol_G)
+
 setwd(wd_models)
 saveRDS(maxPPT_relPol_G, 'maxPPT_relPol_G')
 
@@ -875,6 +980,9 @@ maxPPT_relPol_GS <- gam(avg_Max_PPT_SHAP ~
 
 
 summary(maxPPT_relPol_GS)
+
+#AIC
+AIC_maxPPT_relPol_GS <- AIC(maxPPT_relPol_GS)
 
 setwd(wd_models)
 saveRDS(maxPPT_relPol_GS, 'maxPPT_relPol_GS')
@@ -906,6 +1014,9 @@ minPPT_absPol_G <- gam(avg_Min_PPT_SHAP ~
 
 summary(minPPT_absPol_G)
 
+#AIC
+AIC_minPPT_absPol_G <- AIC(minPPT_absPol_G)
+
 setwd(wd_models)
 saveRDS(minPPT_absPol_G, 'minPPT_absPol_G')
 
@@ -925,6 +1036,9 @@ minPPT_absPol_GS <- gam(avg_Min_PPT_SHAP ~
 
 
 summary(minPPT_absPol_GS)
+
+#AIC
+AIC_minPPT_absPol_GS <- AIC(minPPT_absPol_GS)
 
 setwd(wd_models)
 saveRDS(minPPT_absPol_GS, 'minPPT_absPol_GS')
@@ -949,6 +1063,9 @@ meanPPT_absPol_G <- gam(avg_Mean_PPT_SHAP ~
 
 summary(meanPPT_absPol_G)
 
+#AIC
+AIC_meanPPT_absPol_G <- AIC(meanPPT_absPol_G)
+
 setwd(wd_models)
 saveRDS(meanPPT_absPol_G, 'meanPPT_absPol_G')
 
@@ -968,6 +1085,9 @@ meanPPT_absPol_GS <- gam(avg_Mean_PPT_SHAP ~
 
 
 summary(meanPPT_absPol_GS)
+
+#AIC
+AIC_meanPPT_absPol_GS <- AIC(meanPPT_absPol_GS)
 
 setwd(wd_models)
 saveRDS(meanPPT_absPol_GS, 'meanPPT_absPol_GS')
@@ -993,6 +1113,9 @@ maxPPT_absPol_G <- gam(avg_Max_PPT_SHAP ~
 
 summary(maxPPT_absPol_G)
 
+#AIC
+AIC_maxPPT_absPol_G <- AIC(maxPPT_absPol_G)
+
 setwd(wd_models)
 saveRDS(maxPPT_absPol_G, 'maxPPT_absPol_G')
 
@@ -1014,6 +1137,9 @@ maxPPT_absPol_GS <- gam(avg_Max_PPT_SHAP ~
 
 summary(maxPPT_absPol_GS)
 
+#AIC
+AIC_maxPPT_absPol_GS <- AIC(maxPPT_absPol_GS)
+
 setwd(wd_models)
 saveRDS(maxPPT_absPol_GS, 'maxPPT_absPol_GS')
 
@@ -1025,7 +1151,165 @@ plot.gam(maxPPT_absPol_GS, select = 1, residuals = F, shade = T,
 
 
 
+# SHAP values X elevation (GAM)
 
+
+### minT
+
+#model G
+minPPT_elev_G <- gam(avg_Min_PPT_SHAP ~
+                     s(elevation, k=4, bs="tp") 
+                   + s(species, k = n_sps_minPPT, bs="re"),
+                   data = results_minPPT,
+                   method="REML",
+                   family="gaussian")
+
+
+summary(minPPT_elev_G)
+
+#AIC
+AIC_minPPT_elev_G <- AIC(minPPT_elev_G)
+
+#gam.check
+check <- gam.check(minPPT_elev_G)
+
+setwd(wd_models)
+saveRDS(minPPT_elev_G, 'minPPT_elev_G')
+
+
+plot.gam(minPPT_elev_G, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.05, 0.05),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+minPPT_elev_GS <- gam(avg_Min_PPT_SHAP ~
+                      s(elevation, k=4, m=2) 
+                    + s(elevation, species, k=4, bs="fs", m=2),
+                    data = results_minPPT,
+                    method="REML")
+
+
+summary(minPPT_elev_GS)
+
+#AIC
+AIC_minPPT_elev_GS <- AIC(minPPT_elev_GS)
+
+#gam.check
+check <- gam.check(minPPT_elev_GS)
+
+setwd(wd_models)
+saveRDS(minPPT_elev_GS, 'minPPT_elev_GS')
+
+
+plot.gam(minPPT_elev_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#fc8d5930', ylab = 'SHAP value',
+         ylim = c(-0.08, 0.45),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+### meanPPT
+
+#model G
+meanPPT_elev_G <- gam(avg_Mean_PPT_SHAP ~
+                      s(elevation, k=4, bs="tp") 
+                    + s(species, k = n_sps_meanPPT, bs="re"),
+                    data = results_meanPPT,
+                    method="REML",
+                    family="gaussian")
+
+
+summary(meanT_elev_G)
+
+#AIC
+AIC_meanT_elev_G <- AIC(meanT_elev_G)
+
+#gam.check
+check <- gam.check(meanT_elev_G)
+
+setwd(wd_models)
+saveRDS(meanT_elev_G, 'meanT_elev_G')
+
+
+plot.gam(meanT_elev_G, select = 1, residuals = F, shade = T,
+         shade.col = '#8c510a30', ylab = 'SHAP value',
+         ylim = c(-0.05, 0.25),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS
+meanT_elev_GS <- gam(avg_Mean_T_SHAP ~
+                       s(elevation, k=4, m=2) 
+                     + s(elevation, species, k=4, bs="fs", m=2),
+                     data = results_meanT,
+                     method="REML")
+
+
+summary(meanT_elev_GS)
+
+#AIC
+AIC_meanT_elev_GS <- AIC(meanT_elev_GS)
+
+setwd(wd_models)
+saveRDS(meanT_elev_GS, 'meanT_elev_GS')
+
+
+plot.gam(meanT_elev_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#80008030', ylab = 'SHAP value',
+         ylim = c(-0.5, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+### maxT
+
+#model G
+maxT_elev_G <- gam(avg_Max_T_SHAP ~
+                     s(elevation, k=4, bs="tp") 
+                   + s(species, k = n_sps_maxT, bs="re"),
+                   data = results_maxT,
+                   method="REML",
+                   family="gaussian")
+
+
+summary(maxT_elev_G)
+
+#AIC
+AIC_maxT_elev_G <- AIC(maxT_elev_G)
+
+setwd(wd_models)
+saveRDS(maxT_elev_G, 'maxT_elev_G')
+
+
+plot.gam(maxT_elev_G, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.2),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#model GS
+maxT_elev_GS <- gam(avg_Max_T_SHAP ~
+                      s(elevation, k=4, m=2) 
+                    + s(elevation, species, k=4, bs="fs", m=2),
+                    data = results_maxT,
+                    method="REML")
+
+
+summary(maxT_elev_GS)
+
+#AIC
+AIC_maxT_elev_GS <- AIC(maxT_elev_GS)
+
+setwd(wd_models)
+saveRDS(maxT_elev_GS, 'maxT_elev_GS')
+
+
+plot.gam(maxT_elev_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030', ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
 
 
 
