@@ -15,13 +15,15 @@
 ####
 ####  7 - Range location for each species *numeric abs mean lat
 ####
-####  8 - Range shape for each species (how round is the range?) *gradient
+####  8 - Latitudinal amplitude of each species range *numeric
 ####
-####  9 - Taxonomic order (script 6)
+####  9 - Range shape for each species (how round is the range?) *gradient
 ####
-####  10 - Body mass
+####  10 - Taxonomic order (script 6)
 ####
-####  11 - Number of presences
+####  11 - Body mass
+####
+####  12 - Number of presences
 
 #load libraries
 library(sf); library(units); library(raster)
@@ -190,6 +192,9 @@ for(i in 1:length(sps_list))
   
   ### Calculate the range position (mean latitude)
   pr_sps2$rangeLoc <- abs((ymax + ymin) / 2)
+  
+  ### Calculate the latitudinal amplitude of the range
+  pr_sps2$latAmpl <- abs(ymax - ymin)
   
   #save table
   setwd(wd_pts_measure)

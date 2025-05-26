@@ -3,9 +3,9 @@ library(data.table)
 
 #list wds
 wd_pts_measure <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_Point_and_range_measurements'
-wd_res_shap <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20240926_Comparison'
+wd_res_shap <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250421_Comparison'
 wd_orders <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
-wd_out <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_All_species_analysis'
+wd_out <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250504_All_species_analysis'
 wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
 
 #list species
@@ -201,7 +201,7 @@ for(i in 1:length(sps_tables))
 
 #exclude empty items on list that had no models
 no_models <- sapply(sps_tables, ncol)
-sps_tables2 <- sps_tables[no_models > 17]
+sps_tables2 <- sps_tables[no_models > 17] #17 is the ncol of tables that produced no models
 
 #exclude Isothrix orinoci (synonym)
 sps_tables2 <- sps_tables2[-which(names(sps_tables2) == 'Isothrix orinoci')]
@@ -234,5 +234,5 @@ all_sps_table2 <- as.data.frame(all_sps_table2)
 
 #save all species table
 setwd(wd_out)
-write.csv(all_sps_table2, '20241210_Results_all_sps.csv', row.names = F)
+write.csv(all_sps_table2, '20250504_Results_all_sps.csv', row.names = F)
 

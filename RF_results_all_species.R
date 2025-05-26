@@ -1,30 +1,33 @@
 #load packages
-library(randomForest); #library(glmmTMB)
+library(randomForest)
 
 #list wds
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_All_species_analysis'
 
-wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/All_species_analysis'
-
-#read temperature results table
-
+#read results table
 setwd(wd_tables)
-results <- read.csv('Results_all_sps.csv')
+results <- read.csv('20241210_Results_all_sps.csv')
 
 #run RF minT
-minT <- randomForest(Min_T_SHAP ~
+
+#select only species that had lower correl between vars
+results_minT <- results[abs(results$Cor_vars_minT) <= 0.7,]
+results_minT <- results_minT[complete.cases(results_minT$Cor_vars_minT),]
+
+minT <- randomForest(avg_Min_T_SHAP ~
                         decimalLatitude +
                         species +
                         rangeSize +
+                        rangeLoc +
                         roundness +
                         distEdge +
-                        absPolarwardness +
                         relPolarwardness +
                         elevation +
                         biome +
                         bodyMass +
-                        n_occ +
+                        nOcc +
                         order,
-                      data = results, ntree = 1000,
+                      data = results_minT, ntree = 1000,
                       keep.forest = FALSE,
                       na.action = na.omit,
                       importance = TRUE)
@@ -44,20 +47,25 @@ minT$importance
 
 
 #run RF meanT
-meanT <- randomForest(Mean_T_SHAP ~
+
+#select only species that had lower correl between vars
+results_meanT <- results[abs(results$Cor_vars_meanT) <= 0.7,]
+results_meanT <- results_meanT[complete.cases(results_meanT$Cor_vars_meanT),]
+
+meanT <- randomForest(avg_Mean_T_SHAP ~
                        decimalLatitude +
                        species +
                        rangeSize +
                        roundness +
                        distEdge +
-                       absPolarwardness +
+                       rangeLoc +
                        relPolarwardness +
                        elevation +
                        biome +
                        bodyMass +
-                       n_occ +
+                       nOcc +
                        order,
-                     data = results, ntree = 1000,
+                     data = results_meanT, ntree = 1000,
                      keep.forest = FALSE,
                      na.action = na.omit,
                      importance = TRUE)
@@ -68,20 +76,25 @@ varImpPlot(meanT)
 #save in '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/RF_2'  1000 size
 
 #run RF maxT
-maxT <- randomForest(Max_T_SHAP ~
+
+#select only species that had lower correl between vars
+results_maxT <- results[abs(results$Cor_vars_maxT) <= 0.7,]
+results_maxT <- results_meanT[complete.cases(results_maxT$Cor_vars_maxT),]
+
+maxT <- randomForest(avg_Max_T_SHAP ~
                         decimalLatitude +
                         species +
                         rangeSize +
                         roundness +
                         distEdge +
-                        absPolarwardness +
+                        rangeLoc +
                         relPolarwardness +
                         elevation +
                         biome +
                         bodyMass +
-                        n_occ +
+                        nOcc +
                         order,
-                      data = results, ntree = 1000,
+                      data = results_maxT, ntree = 1000,
                       keep.forest = FALSE,
                       na.action = na.omit,
                       importance = TRUE)
