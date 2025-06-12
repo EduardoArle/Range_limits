@@ -1,7 +1,105 @@
 #list wds
 wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Slopes'
+wd_table <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Figures/Fig 3'
 
-#read slopes table
+############################################################################# 
+################################# Panel A ###################################
+############################################################################# 
+
+#read table with boruta results
+setwd(wd_table)
+tab <- read.csv('Covariable_importance.csv')
+
+#add row names and delete first col
+row.names(tab) <- tab[,1]
+tab <- tab[,-1]
+
+#create table with colours
+tab_col <- tab
+tab_col[tab_col > -5 & tab_col < 5] <- '#ffc00c'
+tab_col[tab_col == -5] <- '#990050'
+tab_col[tab_col == 5] <- '#008050'
+
+#set margins
+par(mar=c(7.5,6,3,1))
+
+#make the empty plot
+plot(1, type="n", xlab="", ylab="", xlim=c(0, 10), ylim=c(0, 10),
+     xaxs = "i",yaxs = "i", axes=F, frame.plot=TRUE)
+
+#decide how many rows and cols the table needs
+rows <- nrow(tab)
+cols <- ncol(tab)
+
+#make lines creating a table (cols)
+for(i in 1:(cols-1))
+{
+  a <- c(i*10/cols,i*10/cols,i*10/cols)
+  b <- c(0,5,10)
+  lines(a,b)
+}
+
+#make lines creating a table (rows)
+for(i in 1:(rows-1))
+{
+  a <- c(0,5,10)
+  b <- c(i*10/rows,i*10/rows,i*10/rows)
+  lines(a,b)
+}
+
+#plot squares with colours in the results table
+for(i in 1:rows)
+{
+  for(j in 1:cols)
+  {
+    points((10/cols/2)+(10/cols*(j-1)),
+           (10/rows/2)+(10/rows*(i-1)),
+           bg = tab_col[rows - i + 1, j],
+           pch = 22, cex = 5)
+  }
+}
+
+#add x axis
+axis(side = 1, 
+     at = seq(10/cols/2,(10/cols/2)+(10/cols*(cols-1)),by = 10/cols),
+     labels = NA, cex.axis = .8, padj = 0, las =2)
+
+#add x labels, rotate 35 degrees (srt)
+text(seq(10/cols/2,(10/cols/2)+(10/cols*(cols-1)),by = 10/cols), 
+     par("usr")[3]-0.35, 
+     srt = 35, adj = 1, xpd = TRUE,
+     labels = gsub('\\.', ' ',names(tab)), cex = 1.3)
+
+#add y axis
+# axis(side = 2, 
+#      at = seq(10/rows/2,(10/rows/2)+(10/rows*(rows-1)),by = 10/rows),
+#      labels = NA, cex.axis = 1, padj = 0, las =1)
+
+#add y labels, in three parts
+
+#horizontal text, 1 value per row 'min' , 'mean' , 'max'
+text(par("usr")[3]-0.2, 
+     seq(10/rows/2,(10/rows/2)+(10/rows*(rows-1)),by = 10/rows), 
+     adj = 1, xpd = TRUE,
+     labels = rev(gsub("^(.*?)[A-Z].*$", "\\1", row.names(tab))), cex = 1.3)
+
+#vertical text, 1 value grouping every 3 rows with 'min' , 'mean' , 'max'
+text(par("usr")[3]-1.4,
+     seq(10/rows/2,(10/rows/2)+(10/rows*(rows-1)),by = 10/rows)[c(3,6,9,12)] +
+        c(-1, -5, -1, -5)  * 1/rows,  #termo de ajuste de position,
+     srt = 90, adj = 1, xpd = TRUE,
+     labels = c('distEdge', 'relPol','distEdge', 'relPol'), cex = 1.6)
+
+#vertical text, 1 value grouping 6 rows, temperature and precipitatio 
+text(par("usr")[3]-2.2,
+     seq(10/rows/2,(10/rows/2)+(10/rows*(rows-1)),by = 10/rows)[c(5,11)] +
+       c(0, 0)  * 1/rows,  #termo de ajuste de position,
+     srt = 90, adj = 1, xpd = TRUE,
+     labels = c('PRECIPITATION', 'TEMPERATURE'), cex = 1.6)
+
+
+#save 1250
+
 setwd(wd_slopes)
 slopes <- read.csv('Slopes.csv')
 
@@ -21,74 +119,24 @@ s_minT_relPol$nOcc_log <- log(s_minT_relPol$nOcc)
 
 #plot meaningful variables against slope
 
-################
+
+############################################################################# 
+################################# Panel B ###################################
+############################################################################# 
+
 ## Range size ##
-################
-
-#restricted ylim
-
-# Define x and y limits
-x_lim <- range(s_minT_relPol$rangeSize_log10)
-y_lim <- c(-0.3, 0.3)
-
-#plot graph
-plot(s_minT_relPol$rangeSize_log10, s_minT_relPol$slope_minT_relPol,
-     axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#50305030',
-     ylim = y_lim, xlim = x_lim)
-
-# Define original values and their log-transformed positions
-range_vals <- max(s_minT_relPol$rangeSize_log10) -
-                min(s_minT_relPol$rangeSize_log10)
-
-plotting_positions <- c(min(s_minT_relPol$rangeSize_log10),
-                        min(s_minT_relPol$rangeSize_log10) + range_vals/4,
-                        min(s_minT_relPol$rangeSize_log10) + range_vals/2,
-                        min(s_minT_relPol$rangeSize_log10) + range_vals/4*3,
-                        max(s_minT_relPol$rangeSize_log10))
-
-plotting_values <- round(10 ^ plotting_positions / 1000)
-
-#add axes
-axis(1, at = plotting_positions, labels = plotting_values,
-     pos = y_lim[1], cex.axis = 2)
-axis(2, pos = x_lim[1], las=2, cex.axis = 2)
-
-#add axes lables 
-mtext('Range size', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
-
-#define x range explicitly
-x_vals <- s_minT_relPol$rangeSize_log10
-x_range <- range(x_vals)
-
-#fit linear model
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals)
-
-#predict y-values only for positive x-values
-x_seq <- seq(min(plotting_positions) + range_vals/100,
-             max(plotting_positions) - range_vals/100,
-             length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
-
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#503050', lwd = 8)
-
-#save 800
-
 
 #restricted ylim weighted by nOcc
 
 # Define x and y limits
 x_lim <- range(s_minT_relPol$rangeSize_log10)
-y_lim <- c(-0.3, 0.3)
+y_lim <- c(-0.05, 0.2)
 
 #plot graph
 plot(s_minT_relPol$rangeSize_log10, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#50305030',
+     xlab = "", ylab = "", cex = 1.5,
+     pch = 19, col = '#50305020',
      ylim = y_lim, xlim = x_lim)
 
 # Define original values and their log-transformed positions
@@ -110,7 +158,7 @@ axis(2, pos = x_lim[1], las=2, cex.axis = 2)
 
 #add axes lables 
 mtext('Range size', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
+mtext('Slope', side = 2, line = 6.5, cex = 2.5)
 
 #define x range explicitly
 x_vals <- s_minT_relPol$rangeSize_log10
@@ -124,67 +172,41 @@ lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals,
 x_seq <- seq(min(plotting_positions) + range_vals/100,
              max(plotting_positions) - range_vals/100,
              length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
+y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
+                  interval = "confidence")
 
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#503050', lwd = 8)
+#add regression line from the y-axis onwards
+lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
 
-
-#################
-### Roundness ###
-#################
-
-
-#restricted ylim
-
-# Define x and y limits
-x_lim <- c(0, 1)
-y_lim <- c(-0.3, 0.3)
-
-#plot graph
-plot(s_minT_relPol$roundness, s_minT_relPol$slope_minT_relPol,
-     axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#00805030',
-     ylim = y_lim, xlim = x_lim)
-
-#add axes
-axis(1, pos = y_lim[1], cex.axis = 2)
-axis(2, pos = x_lim[1], las=2, cex.axis = 2)
-
-
-#add axes lables 
-mtext('Roundness', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
-
-#define x range explicitly
-x_vals <- s_minT_relPol$roundness
-x_range <- range(x_vals)
-
-#fit linear model
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals)
-
-#predict y-values only for positive x-values
-x_seq <- seq(0.01, 0.99, length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
-
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#008050', lwd = 8)
+#dd shaded confidence interval
+polygon(c(x_seq, rev(x_seq)),
+        c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
+        col = '#50305030',
+        border = NA)
 
 #save 800
+
+############################################################################# 
+################################# Panel C ###################################
+############################################################################# 
+
+## Latitudinal amplitude ##
 
 
 #restricted ylim weighted by nOcc
 
 # Define x and y limits
-x_lim <- c(0, 1)
-y_lim <- c(-0.3, 0.3)
+x_lim <- range(s_minT_relPol$latAmplitude)
+y_lim <- c(-0.05, 0.2)
+
+# Ensure x_lim starts at 0 for a clean intersection
+x_lim[1] <- 0 
 
 #plot graph
-plot(s_minT_relPol$roundness, s_minT_relPol$slope_minT_relPol,
+plot(s_minT_relPol$latAmplitude, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#00805030',
+     xlab = "", ylab = "", cex = 1.5,
+     pch = 19, col = '#50305020',
      ylim = y_lim, xlim = x_lim)
 
 #add axes
@@ -193,82 +215,49 @@ axis(2, pos = x_lim[1], las=2, cex.axis = 2)
 
 
 #add axes lables 
-mtext('Roundness', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
+mtext('Latitudinal amplitude', side = 1, line = 3.8, cex = 2.5)  
+#mtext('Slope', side = 2, line = 6.5, cex = 2.5)
 
 #define x range explicitly
-x_vals <- s_minT_relPol$roundness
+x_vals <- s_minT_relPol$latAmplitude
 x_range <- range(x_vals)
+range_val <- x_range[2] - x_range[1]
 
 #fit linear model
 lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals,
                    weights = s_minT_relPol$nOcc_log)
 
 #predict y-values only for positive x-values
-x_seq <- seq(0.01, 0.99, length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
+x_seq <- seq(range_val/100, max(x_vals) - range_val/100,
+             length.out = 100)  # Ensuring it starts at 0
+y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
+                  interval = "confidence")
 
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#008050', lwd = 8)
+#add regression line from the y-axis onwards
+lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
+
+#dd shaded confidence interval
+polygon(c(x_seq, rev(x_seq)),
+        c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
+        col = '#50305030',
+        border = NA)
 
 #save 800
 
 
 
-########################
+############################################################################# 
+################################# Panel D ###################################
+############################################################################# 
+
 ### Elevation median ###
-########################
-
-
-#restricted ylim
-
-# Define x and y limits
-x_lim <- range(s_minT_relPol$elevMedian)
-y_lim <- c(-0.3, 0.3)
-
-# Ensure x_lim starts at 0 for a clean intersection
-x_lim[1] <- 0 
-
-#plot graph
-plot(s_minT_relPol$elevMedian, s_minT_relPol$slope_minT_relPol,
-     axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#99005030',
-     ylim = y_lim, xlim = x_lim)
-
-#add axes
-axis(1, pos = y_lim[1], cex.axis = 2)
-axis(2, pos = x_lim[1], las=2, cex.axis = 2)
-
-
-#add axes lables 
-mtext('Elevation median', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
-
-#define x range explicitly
-x_vals <- s_minT_relPol$elevMedian
-x_range <- range(x_vals)
-range_val <- x_range[2] - x_range[1]
-
-#fit linear model
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals)
-
-#predict y-values only for positive x-values
-x_seq <- seq(range_val/100, max(x_vals) - range_val/100,
-             length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
-
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#990050', lwd = 8)
-
-#save 800
 
 
 #restricted ylim weighted by nOcc
 
 # Define x and y limits
 x_lim <- range(s_minT_relPol$elevMedian)
-y_lim <- c(-0.3, 0.3)
+y_lim <- c(-0.05, 0.2)
 
 # Ensure x_lim starts at 0 for a clean intersection
 x_lim[1] <- 0 
@@ -276,8 +265,8 @@ x_lim[1] <- 0
 #plot graph
 plot(s_minT_relPol$elevMedian, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#99005030',
+     xlab = "", ylab = "", cex = 1.5,
+     pch = 19, col = '#50305020',
      ylim = y_lim, xlim = x_lim)
 
 #add axes
@@ -287,7 +276,7 @@ axis(2, pos = x_lim[1], las=2, cex.axis = 2)
 
 #add axes lables 
 mtext('Elevation median', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
+mtext('Slope', side = 2, line = 6.5, cex = 2.5)
 
 #define x range explicitly
 x_vals <- s_minT_relPol$elevMedian
@@ -301,116 +290,32 @@ lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals,
 #predict y-values only for positive x-values
 x_seq <- seq(range_val/100, max(x_vals) - range_val/100,
              length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
+y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
+                  interval = "confidence")
 
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#990050', lwd = 8)
+#add regression line from the y-axis onwards
+lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
 
-#save 800
-
-
-
-#############################
-### Latitudinal amplitude ###
-#############################
-
-
-#restricted ylim
-
-# Define x and y limits
-x_lim <- range(s_minT_relPol$latAmplitude)
-y_lim <- c(-0.3, 0.3)
-
-# Ensure x_lim starts at 0 for a clean intersection
-x_lim[1] <- 0 
-
-#plot graph
-plot(s_minT_relPol$latAmplitude, s_minT_relPol$slope_minT_relPol,
-     axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#F0803030',
-     ylim = y_lim, xlim = x_lim)
-
-#add axes
-axis(1, pos = y_lim[1], cex.axis = 2)
-axis(2, pos = x_lim[1], las=2, cex.axis = 2)
-
-#add axes lables 
-mtext('Latitudinal amplitude', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
-
-#define x range explicitly
-x_vals <- s_minT_relPol$latAmplitude
-x_range <- range(x_vals)
-range_val <- x_range[2] - x_range[1]
-
-#fit linear model
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals)
-
-#predict y-values only for positive x-values
-x_seq <- seq(range_val/100, max(x_vals) - range_val/100,
-             length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
-
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#F08030', lwd = 8)
+#add shaded confidence interval
+polygon(c(x_seq, rev(x_seq)),
+        c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
+        col = '#50305030',
+        border = NA)
 
 #save 800
 
+
+############################################################################# 
+################################# Panel E ###################################
+############################################################################# 
+
+
+## Elevational amplitude ##
 #restricted ylim weighted by nOcc
 
 # Define x and y limits
-x_lim <- range(s_minT_relPol$latAmplitude)
-y_lim <- c(-0.3, 0.3)
-
-# Ensure x_lim starts at 0 for a clean intersection
-x_lim[1] <- 0 
-
-#plot graph
-plot(s_minT_relPol$latAmplitude, s_minT_relPol$slope_minT_relPol,
-     axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#F0803030',
-     ylim = y_lim, xlim = x_lim)
-
-#add axes
-axis(1, pos = y_lim[1], cex.axis = 2)
-axis(2, pos = x_lim[1], las=2, cex.axis = 2)
-
-
-#add axes lables 
-mtext('Latitudinal amplitude', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
-
-#define x range explicitly
-x_vals <- s_minT_relPol$latAmplitude
-x_range <- range(x_vals)
-range_val <- x_range[2] - x_range[1]
-
-#fit linear model
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals,
-                   weights = s_minT_relPol$nOcc_log)
-
-#predict y-values only for positive x-values
-x_seq <- seq(range_val/100, max(x_vals) - range_val/100,
-             length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
-
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#F08030', lwd = 8)
-
-
-
-#############################
-### Elevational amplitude ###
-#############################
-
-
-#restricted ylim
-
-# Define x and y limits
 x_lim <- range(s_minT_relPol$elevAmplitude)
-y_lim <- c(-0.3, 0.3)
+y_lim <- c(-0.05, 0.2)
 
 # Ensure x_lim starts at 0 for a clean intersection
 x_lim[1] <- 0 
@@ -418,8 +323,8 @@ x_lim[1] <- 0
 #plot graph
 plot(s_minT_relPol$elevAmplitude, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#0080FF30',
+     xlab = "", ylab = "", cex = 1.5,
+     pch = 19, col = '#50305020',
      ylim = y_lim, xlim = x_lim)
 
 #add axes
@@ -428,49 +333,7 @@ axis(2, pos = x_lim[1], las=2, cex.axis = 2)
 
 #add axes lables 
 mtext('Elevational amplitude', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
-
-#define x range explicitly
-x_vals <- s_minT_relPol$elevAmplitude
-x_range <- range(x_vals)
-range_val <- x_range[2] - x_range[1]
-
-#fit linear model
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals)
-
-#predict y-values only for positive x-values
-x_seq <- seq(range_val/100, max(x_vals) - range_val/100,
-             length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
-
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#0080FF', lwd = 8)
-
-#save 800
-
-#restricted ylim weighted by nOcc
-
-# Define x and y limits
-x_lim <- range(s_minT_relPol$elevAmplitude)
-y_lim <- c(-0.3, 0.3)
-
-# Ensure x_lim starts at 0 for a clean intersection
-x_lim[1] <- 0 
-
-#plot graph
-plot(s_minT_relPol$elevAmplitude, s_minT_relPol$slope_minT_relPol,
-     axes = F, xaxs = "i", yaxs = "i",
-     xlab = "", ylab = "",
-     pch = 19, col = '#0080FF30',
-     ylim = y_lim, xlim = x_lim)
-
-#add axes
-axis(1, pos = y_lim[1], cex.axis = 2)
-axis(2, pos = x_lim[1], las=2, cex.axis = 2)
-
-#add axes lables 
-mtext('Elevational amplitude', side = 1, line = 3.8, cex = 2.5)  
-mtext('Slope minT vs. relPol', side = 2, line = 6.5, cex = 2.5)
+#mtext('Slope', side = 2, line = 6.5, cex = 2.5)
 
 #define x range explicitly
 x_vals <- s_minT_relPol$elevAmplitude
@@ -484,257 +347,16 @@ lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ x_vals,
 #predict y-values only for positive x-values
 x_seq <- seq(range_val/100, max(x_vals) - range_val/100,
              length.out = 100)  # Ensuring it starts at 0
-y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq))
+y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
+                  interval = "confidence")
 
-# Add regression line from the y-axis onwards
-lines(x_seq, y_pred, col = '#0080FF', lwd = 8)
+#add regression line from the y-axis onwards
+lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
 
-#save 800
+#add shaded confidence interval
+polygon(c(x_seq, rev(x_seq)),
+        c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
+        col = '#50305030',
+        border = NA)
 
 
-
-
-###############################. PLOTS FROM BORUTA SCRIPT ###################
-
-
-#plot meaningful variables against slope
-
-## Range size
-
-#lm without weights
-plot(log(s_minT_relPol$rangeSize, 10), s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~
-                     log(s_minT_relPol$rangeSize, 10))
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-#restricted ylim
-plot(log(s_minT_relPol$rangeSize, 10), s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030',
-     ylim = c(-0.2, 0.2))
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~
-                     log(s_minT_relPol$rangeSize, 10))
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-#make lm with weights = nOcc
-plot(log(s_minT_relPol$rangeSize, 10), s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = s_minT_relPol$nOcc)
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-#restricted ylim
-plot(s_minT_relPol$rangeSize, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030',
-     ylim = c(-0.2, 0.2))
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = s_minT_relPol$nOcc)
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-
-#make lm with weights = log(nOcc)
-plot(s_minT_relPol$rangeSize, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = log(s_minT_relPol$nOcc))
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-#restricted ylim
-plot(s_minT_relPol$rangeSize, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030',
-     ylim = c(-0.2, 0.2))
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = log(s_minT_relPol$nOcc))
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-
-
-
-## Roundness
-
-#lm without weights
-plot(s_minT_relPol$roundness, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range roundness',
-     pch = 19, col = '#10207030')
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~
-                     log(s_minT_relPol$rangeSize, 10))
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$roundness)
-
-abline(lin_mod_minT, col = '#102070', lwd = 3)
-
-
-#restricted ylim
-plot(s_minT_relPol$roundness, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range roundness',
-     pch = 19, col = '#10207030',
-     ylim = c(-0.2, 0.2))
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$roundness)
-
-abline(lin_mod_minT, col = '#102070', lwd = 3) 
-
-
-
-#make lm with weights = nOcc
-plot(s_minT_relPol$rangeSize, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = s_minT_relPol$nOcc)
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-#restricted ylim
-plot(s_minT_relPol$rangeSize, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030',
-     ylim = c(-0.2, 0.2))
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = s_minT_relPol$nOcc)
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-
-#make lm with weights = log(nOcc)
-plot(s_minT_relPol$rangeSize, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = log(s_minT_relPol$nOcc))
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-#restricted ylim
-plot(s_minT_relPol$rangeSize, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030',
-     ylim = c(-0.2, 0.2))
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$rangeSize,
-                   weights = log(s_minT_relPol$nOcc))
-
-abline(lin_mod_minT, col = '#503050', lwd = 3)
-
-
-
-
-
-plot(s_minT_relPol$elevMedian, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Median elevation',
-     pch = 19, col = '#80800030')
-
-plot(s_minT_relPol$elevAmplitude, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Elevation amplitude',
-     pch = 19, col = '#f0800030')
-
-lin_mod_minT <- lm(s_minT_relPol$slope_minT_relPol ~ s_minT_relPol$elevAmplitude,
-                   weights = s_minT_relPol$nOcc)
-abline(lin_mod_minT, col = '#f08000', lwd = 3)
-
-plot(s_minT_relPol$latAmplitude, s_minT_relPol$slope_minT_relPol,
-     ylab = 'Slope minT_relPol', xlab = 'Latitudinal amplitude',
-     pch = 19, col = '#f0806030')
-
-
-
-#plot meaningful variables against slope
-
-plot(s_meanT_relPol$rangeSize, s_meanT_relPol$slope_meanT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_meanT <- lm(s_meanT_relPol$slope_meanT_relPol ~ s_meanT_relPol$rangeSize)
-abline(lin_mod_meanT, col = '#503050', lwd = 3)
-
-
-plot(s_meanT_relPol$bodyMass, s_meanT_relPol$slope_meanT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Body mass',
-     pch = 19, col = '#80305030')
-
-plot(s_meanT_relPol$elevMedian, s_meanT_relPol$slope_meanT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Median elevation',
-     pch = 19, col = '#80800030')
-
-plot(s_meanT_relPol$elevAmplitude, s_meanT_relPol$slope_meanT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Elevation amplitude',
-     pch = 19, col = '#f0800030')
-
-plot(s_meanT_relPol$latAmplitude, s_meanT_relPol$slope_meanT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Latitudinal amplitude',
-     pch = 19, col = '#f0806030')
-
-
-
-#plot meaningful variables against slope
-
-plot(s_maxT_relPol$rangeSize, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope maxT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_maxT <- lm(s_meanT_relPol$slope_maxT_relPol ~ s_meanT_relPol$rangeSize)
-abline(lin_mod_maxT, col = '#503050', lwd = 3)
-
-plot(s_maxT_relPol$nOcc, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope maxT_relPol', xlab = 'n Occ',
-     pch = 19, col = '#80305030')
-
-plot(s_maxT_relPol$elevAmplitude, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Elevation amplitude',
-     pch = 19, col = '#f0800030')
-
-plot(s_maxT_relPol$latAmplitude, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Latitudinal amplitude',
-     pch = 19, col = '#f0806030')
-
-
-#### plot graph of slope vs range size
-
-#### plot graph of slope vs latitudinal amplitude
-
-
-### running only the species with a useful fir (lower 0.3)
-
-
-#plot meaningful variables against slope
-
-plot(s_maxT_relPol$rangeSize, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope maxT_relPol', xlab = 'Range size',
-     pch = 19, col = '#50305030')
-
-lin_mod_maxT <- lm(s_meanT_relPol$slope_maxT_relPol ~ s_meanT_relPol$rangeSize)
-abline(lin_mod_maxT, col = '#503050', lwd = 3)
-
-plot(s_maxT_relPol$nOcc, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope maxT_relPol', xlab = 'n Occ',
-     pch = 19, col = '#80305030')
-
-plot(s_maxT_relPol$elevAmplitude, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Elevation amplitude',
-     pch = 19, col = '#f0800030')
-
-plot(s_maxT_relPol$latAmplitude, s_maxT_relPol$slope_maxT_relPol,
-     ylab = 'Slope meanT_relPol', xlab = 'Latitudinal amplitude',
-     pch = 19, col = '#f0806030')

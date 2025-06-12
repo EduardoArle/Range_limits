@@ -69,6 +69,9 @@ for(i in 1:length(sps_list))
   #select each sps
   res_sps <- results[results$species == sps_list[i],]
   
+  #make table keeping only points up to 250km away from range edges
+  res_sps_250 <- res_sps[res_sps$distEdge <= 250,]
+  
   #populate the cols with the available explanatory variables
   rangeSize[i] <- unique(res_sps$rangeSize)
   rangeLoc[i] <- unique(res_sps$rangeLoc)
@@ -84,7 +87,6 @@ for(i in 1:length(sps_list))
   #calculate elevation amplitide (95 % quantile)
   elev_95 <- quantile(res_sps$elevation, probs = c(0.025, 0.975))
   elevAmplitude[i] <- elev_95[2] - elev_95[1]
-  
  
   #run lms for shap values against relPol and distEdge
   lm_minT_relPol <- try(lm(res_sps$avg_Min_T_SHAP ~ res_sps$relPolewardness,
@@ -94,12 +96,12 @@ for(i in 1:length(sps_list))
   lm_maxT_relPol <- try(lm(res_sps$avg_Max_T_SHAP ~ res_sps$relPolewardness,
                        data = res_sps), silent = T)
   
-  lm_minT_distEdge <- try(lm(res_sps$avg_Min_T_SHAP ~ res_sps$distEdge,
-                       data = res_sps), silent = T)
-  lm_meanT_distEdge <- try(lm(res_sps$avg_Mean_T_SHAP ~ res_sps$distEdge,
-                        data = res_sps), silent = T)
-  lm_maxT_distEdge <- try(lm(res_sps$avg_Max_T_SHAP ~ res_sps$distEdge,
-                       data = res_sps), silent = T)
+  lm_minT_distEdge <- try(lm(res_sps_250$avg_Min_T_SHAP ~ res_sps_250$distEdge,
+                       data = res_sps_250), silent = T)
+  lm_meanT_distEdge <- try(lm(res_sps_250$avg_Mean_T_SHAP ~ res_sps_250$distEdge,
+                        data = res_sps_250), silent = T)
+  lm_maxT_distEdge <- try(lm(res_sps_250$avg_Max_T_SHAP ~ res_sps_250$distEdge,
+                       data = res_sps_250), silent = T)
   
   lm_minPPT_relPol <- try(lm(res_sps$avg_Min_PPT_SHAP ~ res_sps$relPolewardness,
                        data = res_sps), silent = T)
@@ -108,12 +110,15 @@ for(i in 1:length(sps_list))
   lm_maxPPT_relPol <- try(lm(res_sps$avg_Max_PPT_SHAP ~ res_sps$relPolewardness,
                        data = res_sps), silent = T)
   
-  lm_minPPT_distEdge <- try(lm(res_sps$avg_Min_PPT_SHAP ~ res_sps$distEdge,
-                         data = res_sps), silent = T)
-  lm_meanPPT_distEdge <- try(lm(res_sps$avg_Mean_PPT_SHAP ~ res_sps$distEdge,
-                          data = res_sps), silent = T)
-  lm_maxPPT_distEdge <- try(lm(res_sps$avg_Max_PPT_SHAP ~ res_sps$distEdge,
-                         data = res_sps), silent = T)
+  lm_minPPT_distEdge <- try(lm(res_sps_250$avg_Min_PPT_SHAP ~
+                               res_sps_250$distEdge,
+                         data = res_sps_250), silent = T)
+  lm_meanPPT_distEdge <- try(lm(res_sps_250$avg_Mean_PPT_SHAP ~
+                                res_sps_250$distEdge,
+                          data = res_sps_250), silent = T)
+  lm_maxPPT_distEdge <- try(lm(res_sps_250$avg_Max_PPT_SHAP ~
+                               res_sps_250$distEdge,
+                         data = res_sps_250), silent = T)
   
   #calculate slope and MRMSE of lms
   
@@ -308,4 +313,4 @@ slopes <- data.frame(species = sps_list, rangeSize = rangeSize,
 
 #save table with slopes
 setwd(wd_slopes)
-write.csv(slopes, 'Slopes.csv', row.names = F)
+write.csv(slopes, '20250531_Slopes.csv', row.names = F)
