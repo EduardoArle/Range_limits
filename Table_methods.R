@@ -6,22 +6,22 @@ plot(1, type = "n", xlab = "", ylab = "", xlim = c(0, 10), ylim = c(0, 10),
      xaxs = "i", yaxs = "i", axes = F, frame.plot = TRUE)
 
 #make lines creating a table (cols)
-lines(c(0, 0), c(0, 10), lwd = 3)
-lines(c(3.5, 3.5), c(0, 10), lwd = 2)
-lines(c(10, 10), c(0, 10), lwd = 3)
+lines(c(0, 0), c(0, 10), lwd = 2, col = '#808080')
+lines(c(3.5, 3.5), c(0, 10), lwd = 1.5, col = '#808080')
+lines(c(10, 10), c(0, 10), lwd = 2,, col = '#808080')
 
 #make lines creating a table (rows)
-lines(c(0, 10), c(0, 0), lwd = 3)
-lines(c(0, 10), c(10/10, 10/10))
-lines(c(0, 10), c(10/10 *2, 10/10 *2))
-lines(c(0, 10), c(10/10 *3, 10/10 *3))
-lines(c(0, 10), c(10/10 *4, 10/10 *4))
-lines(c(0, 10), c(10/10 *5, 10/10 *5))
-lines(c(0, 10), c(10/10 *6, 10/10 *6))
-lines(c(0, 10), c(10/10 *7, 10/10 *7))
-lines(c(0, 10), c(10/10 *8, 10/10 *8))
-lines(c(0, 10), c(10/10 *9, 10/10 *9), lwd = 2)
-lines(c(0, 10), c(10, 10), lwd = 3)
+lines(c(0, 10), c(0, 0), lwd = 2,, col = '#808080')
+lines(c(0, 10), c(10/10, 10/10), col = '#808080')
+lines(c(0, 10), c(10/10 *2, 10/10 *2), col = '#808080')
+lines(c(0, 10), c(10/10 *3, 10/10 *3), col = '#808080')
+lines(c(0, 10), c(10/10 *4, 10/10 *4), col = '#808080')
+lines(c(0, 10), c(10/10 *5, 10/10 *5), col = '#808080')
+lines(c(0, 10), c(10/10 *6, 10/10 *6), col = '#808080')
+lines(c(0, 10), c(10/10 *7, 10/10 *7), col = '#808080')
+lines(c(0, 10), c(10/10 *8, 10/10 *8), col = '#808080')
+lines(c(0, 10), c(10/10 *9, 10/10 *9), lwd = 1.5, col = '#808080')
+lines(c(0, 10), c(10, 10), lwd = 2, col = '#808080')
 
 #define sizes
 cex_att <- 0.7
@@ -51,11 +51,11 @@ text(3.6, 0.5, 'to climate (Burns & Strauss 2011). Retrieved via the taxize R pa
 text(3.6, 0.25, 'and manually completed using IUCN Red List data (IUCN 2024).',
      cex = cex_desc, adj = 0)
 
-'Number of occurrences used to fit models, as model performance tends to increase with sample size (Guisan et al. 2017; Moudrý et al. 2024). Fewer records generally reduce the ability to detect clear niche patterns.'
+'Number of occurrences used to fit models (log), as model performance tends to increase with sample size (Guisan et al. 2017; Moudrý et al. 2024). Fewer records generally reduce the ability to detect clear niche patterns.'
 
-text(3.6, 10/10 + 0.75, 'Number of occurrence used to fit models, as model performance tends',
+text(3.6, 10/10 + 0.75, 'Number of occurrences (log) used to fit models, as model performance',
      cex = cex_desc, adj = 0)
-text(3.6, 10/10 + 0.5, expression('to increase with sample size (Guisan' ~ italic('et al.') ~  '2017; Moudrý' ~ italic('et al.') ~ '2024).'),
+text(3.6, 10/10 + 0.5, expression('tends to increase with sample size (Guisan' ~ italic('et al.') ~  '2017; Moudrý' ~ italic('et al.') ~ '2024).'),
      cex = cex_desc, adj = 0)
 text(3.6, 10/10 + 0.25, 'Fewer records generally reduce the ability to detect clear niche patterns.',
      cex = cex_desc, adj = 0)
@@ -81,7 +81,7 @@ text(3.6, (10/10 * 3) + 0.25, expression('geography, potentially weakening clima
 
 
 text(3.6, (10/10 * 4) + 0.75, 'Calculated as the difference between the 97.5% and 2.5% elevation', cex = cex_desc, adj = 0)
-text(3.6, (10/10 * 4) + 0.5, 'quantiles across presence records. Broader ranges suggest exposure to diverse climates, potentially leading to more variable responses.', cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 4) + 0.5, 'quantiles across presence records. Broader ranges suggest exposure to', cex = cex_desc, adj = 0)
 text(3.6, (10/10 * 4) + 0.25, 'diverse climates, potentially leading to more variable responses.', cex = cex_desc, adj = 0)
 
 
@@ -110,8 +110,11 @@ text(3.6, (10/10 * 7) + 0.25, 'indicating higher tolerance (Stevens 1989) and cl
 
 'Distribution area (km²). Larger ranges may show stronger climatic gradients (Yancovitch-Shalom et al. 2020) but may also reflect greater ecological tolerance and weaker climatic constraints (Davies et al. 2009).'
 
-text(3.6, (10/10 * 8) + 0.75, 'Distribution area (km²). Larger ranges may show stronger climatic', cex = cex_desc, adj = 0)
-text(3.6, (10/10 * 8) + 0.5, 'gradients (Yancovitch-Shalom et al. 2020) but may also reflect greater', cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 8) + 0.75, 'Distribution area (log10, km²). Larger ranges may show stronger climatic', cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 8) + 0.5, expression('gradients (Yancovitch-Shalom' ~italic('et al.') ~ '2020) but may also reflect greater'), cex = cex_desc, adj = 0)
 text(3.6, (10/10 * 8) + 0.25, expression('ecological tolerance and weaker climatic constraints (Davies' ~ italic('et al.') ~ '2009).'), cex = cex_desc, adj = 0)
 
 text(3.6, (10/10 * 9) + 0.5, 'Description', cex = cex_tit, adj = 0, font = 2)
+
+#save landscape 5 x 7.2 in
+

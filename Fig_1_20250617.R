@@ -481,39 +481,31 @@ n_ticks_y <- 2
 cex_axes <- 2
 cex_lables <- 2.5
 
-#Generate 33, 34, and 33 random values for distEdgeNormal
-distEdge_A <- runif(33, min = 00, max = 43) #1st segment
-distEdge_B <- runif(34, min = 44, max = 166) #2nd segment
-distEdge_C <- runif(33, min = 167, max = 250) #2nd segment
+set.seed(123)
+x <- seq(0, 250, length.out = 200)
+y <- 0.5 * exp(-x / 100) + rnorm(length(x), 0, 0.02)  # scaled for smaller range >0
+y[y < 0] <- 0  # ensure no negatives
 
-# Generate ydata with a non-linear relationship plus some noise
-ydata_A <-
-  ((-2.2 * distEdge_A + rnorm(33, mean = 120, sd = 50)) + 320)
+df <- data.frame(x = x, y = y)
 
-ydata_B <-
-  ((-1.4 * distEdge_B + rnorm(34, mean = 80, sd = 40)) + 250)
+# Fit GAM with k=3
+gam_fit <- gam(y ~ s(x, k = 3), data = df, method = "REML")
 
-ydata_C <-
-  ((-0.7 * distEdge_C + rnorm(33, mean = 40, sd = 15)) + 240)
+x_pred <- seq(0, 250, length.out = 250)
+pred <- predict(gam_fit, newdata = data.frame(x = x_pred))
+
+# Plot points with no axes and custom limits
+plot(df$x, df$y,
+     pch = 19, cex = 1, col = '#2c7bb600',
+     axes = FALSE, xaxs = "i", yaxs = "i",
+     xlab = '', ylab = '',
+     xlim = c(0, 250), ylim = c(0, 0.5))
+
+# Add GAM line on top, matching color and thicker width
+lines(x_pred, pred, col = '#2c7bb6', lwd = 7)
 
 
-#combine into a data frame
-data <- data.frame(distEdge = c(distEdge_A, distEdge_B, distEdge_C),
-                   ydata = c(ydata_A, ydata_B, ydata_C))
 
-plot(data$distEdge, data$ydata, # +  rnorm(100, mean = 0.1, sd = 0.1),
-       pch = 19, cex = 1, col = '#2c7bb650')
-
-
-
-#fit a gam model
-gam_1 <- gam(ydata ~ s(distEdge, k = 3),
-             data = data,
-             method="REML")
-
-#plot 
-plot(gam_1, select = 1, residuals = F, shade = F,
-     col = '#2c7bb6', se = F, lwd = 8, rug = F)
 
 
 
@@ -541,10 +533,6 @@ plot(gam_1, select = 1, residuals = F, shade = F,
          xlim = xlim) 
 
 
-#add points
-points(data$distEdge, data$ydata, # +  rnorm(100, mean = 0.1, sd = 0.1),
-       pch = 19, cex = 1, col = '#2c7bb650')
-
 
 #calculate distance between ticks
 dist_tick_x <- (xlim[2] - xlim[1]) / (n_ticks_x - 1)
@@ -558,9 +546,12 @@ ticks_y <- seq(ylim[1], ylim[2], dist_tick_y)
 axis(1, pos = ylim[1], at = ticks_x, cex.axis = cex_axes)
 axis(2, las = 1, at = ticks_y, cex.axis = cex_axes, labels = c(0, NA))
 
+#add labels
+mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
 
 #add arrows that Shahar suggested
 text(par("usr")[1] - 18.2, 0.46, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
+
 text(par("usr")[1] - 17.9, 0.46, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.45, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.44, expression("|"), xpd = TRUE, cex = 2) 
@@ -609,12 +600,114 @@ text(par("usr")[1] - 17.9, 0.06, expression("|"), xpd = TRUE, cex = 2)
 
 
 
-
-
-
-
-
 ###### PLOT GRAPH SHOWING EXPECTED DIFFERENCE BETWEEN EXTREMES AND MEANS ######
+
+
+#set parametres for plotting
+par(mar = c(2,2,2,2), pty="s", mfrow = c(1,1))
+
+#plot small box to inform the coordinates
+plot(box, border = NA)
+
+#plot the polygon
+plot(poly_sf, lwd = 3, border = '#707070', col = '#ffffbf80', add = T)
+
+#transform ydata values into something related to size
+cex_pts <- (ydata + abs(min(ydata)) + 1) ^ 3
+
+#plot the occurrence points (size is proportional to SHAP value)
+plot(st_geometry(points_sf),
+     add = T, pch = 19, cex = cex_pts,
+     col = '#2c7bb680')
+
+#save 1000
+
+
+
+########## LINE ###########. FIG 1-A-ii
+
+
+#fit the linear model
+lin_mod <- lm(ydata ~ relPol, data = data)
+
+#create a sequence of x-values within the range of the data
+x_vals <- seq(min(data$relPol),
+              max(data$relPol),
+              length.out = 100)
+
+#create a data frame for prediction (include 0 so that line starts from axis)
+new_data <- data.frame(relPol = c(0, x_vals)) 
+
+#predict y-values based on the model
+predicted <- predict(lin_mod, newdata = new_data)
+
+#set graph parametres
+par(mar = c(6,9,5,5), pty="m", mfrow = c(1,1))
+
+#determine xlim for this plot (keep ylim same as previous plot)
+xlim <- c(0,1)
+ylim <- c(floor(min(ydata) * 10) / 10, - floor(min(ydata) * 10) / 10)
+
+#plot the data points
+plot(data$relPol, data$ydata, 
+     pch = 19, cex = 1, col = '#2c7bb600',
+     axes = F, , xaxs = "i", yaxs = "i",
+     ylab = '', xlab = '',
+     ylim = ylim,
+     xlim = xlim)
+
+
+#calculate distance between ticks
+dist_tick_x <- (xlim[2] - xlim[1]) / (n_ticks_x - 1)
+dist_tick_y <- (ylim[2] - ylim[1]) / (n_ticks_y - 1)
+
+#calculate positions of ticks
+ticks_x <- seq(xlim[1], xlim[2], dist_tick_x)
+ticks_y <- seq(ylim[1], ylim[2], dist_tick_y)
+
+#add axes
+axis(1, pos = ylim[1], at = ticks_x, cex.axis = cex_axes)
+axis(2, las = 2, at = ticks_y, cex.axis = cex_axes, labels = c(NA, 0, NA))
+
+#add arrows that Shahar suggested
+text(par("usr")[1] - 0.07, 0.583, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
+text(par("usr")[1] - 0.0697, 0.525, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.475, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.45, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.4, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.35, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.3, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.25, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.2, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.174, expression("|"), xpd = TRUE, cex = 2) 
+
+
+text(par("usr")[1] - 0.07, -0.583, expression("\u2193"), xpd = TRUE, cex = 3)  # Down arrow
+text(par("usr")[1] - 0.0697, -0.525, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, -0.475, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, -0.45, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, -0.4, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, -0.35, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, -0.3, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, -0.25, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, -0.2, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, -0.174, expression("|"), xpd = TRUE, cex = 2) 
+
+#add labels
+mtext("Relative polewardness", side = 1, line = 3.8, cex = 2.5)  
+mtext("Variable contribution", side = 2, line = 6.5, cex = 2.5)
+
+#add the restricted regression line
+lines(c(0, x_vals), predicted, col = '#2c7bb6', lwd = 8)
+lines(c(0, x_vals), predicted / 3, col = '#ffc00c', lwd = 8)
+
+
+
+
+#save 800
+
+
+
 
 #generate ydata with a linear relationship plus some noise
 ydata <- ((relPol + rnorm(100, mean = 0, sd = 0.1)) - 0.45)
@@ -669,7 +762,7 @@ mtext("Variable contribution", side = 2, line = 6.5, cex = 2.5)
 
 #add the restricted regression line
 lines(c(0, x_vals), predicted, col = '#2c7bb6', lwd = 8)
-lines(c(0, x_vals), predicted / 3, col = '#ffc00c', lwd = 8)
+
 
 #save 800
 

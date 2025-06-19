@@ -63,35 +63,16 @@ mtext("Relative polewardness", side = 1, line = 3.8, cex = 2.5)
 
 #save 800
 
-#plot A.iv (meanPPT relative polewardness)
-plot.gam(models$meanPPT_relPol_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#dfc27d50',
-         xlab = "", ylab = "",
-         axes = F, xaxs = "i", yaxs = "i",
-         ylim = c(-0.06, 0.06), xlim = c(0, 1))
 
-#add axes
-axis(1, pos = -0.06, cex.axis = 2)
-axis(2, las=2, cex.axis = 2)
-
-#add labels
-mtext("Relative polewardness", side = 1, line = 3.8, cex = 2.5)  
-
-#save 800
-
-summary(models$meanPPT_relPol_GS)
-
-
-
-#plot B.i (minT centralness 250km limit)
-plot.gam(models$minT_distEdge_250_GS, select = 1, residuals = F, shade = T,
+#plot B.i (minT centralness)
+plot.gam(models$minT_distEdge_GS, select = 1, residuals = F, shade = T,
          shade.col = '#0000FF30', 
          xlab = "", ylab = "",
          axes = F, xaxs = "i", yaxs = "i",
-         ylim = c(-0.04, 0.02), xlim = c(0, 250)) 
+         ylim = c(-0.15, 0.05), xlim = c(0, 800)) 
 
 #add axes
-axis(1, pos = -0.04, cex.axis = 2)
+axis(1, pos = -0.15, cex.axis = 2)
 axis(2, las=2, cex.axis = 2)
 
 #add labels
@@ -100,62 +81,87 @@ mtext("SHAP value", side = 2, line = 6.5, cex = 2.5)
 
 #save 800
 
+#plot B.i (minT centralness 250km limit). Either this or the full dist model in final version
+plot.gam(models$minT_distEdge_250_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#0000FF30', 
+         xlab = "", ylab = "",
+         axes = F, xaxs = "i", yaxs = "i",
+         ylim = c(-0.15, 0.05), xlim = c(0, 250)) 
 
-#plot B.ii (meanT centralness 250km limit)
+#add axes
+axis(1, pos = -0.15, cex.axis = 2)
+axis(2, las=2, cex.axis = 2)
+
+#add labels
+mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
+mtext("SHAP value", side = 2, line = 6.5, cex = 2.5)
+
+#save 800
+
+#plot B.ii (meanT centralness)
+plot.gam(models$meanT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#80008030',
+         xlab = "", ylab = "",
+         axes = F, xaxs = "i", yaxs = "i",
+         ylim = c(-0.15, 0.05), xlim = c(0, 800))
+
+#add axes
+axis(1, pos = -0.15, cex.axis = 2)
+axis(2, las=2, cex.axis = 2)
+
+#add labels
+mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
+
+#save 800
+
+
+#plot B.ii (meanT centralness 250km limit). Either this or full dist model in final version
 plot.gam(models$meanT_distEdge_250_GS, select = 1, residuals = F, shade = T,
          shade.col = '#80008030',
          xlab = "", ylab = "",
          axes = F, xaxs = "i", yaxs = "i",
-         ylim = c(-0.04, 0.02), xlim = c(0, 250))
+         ylim = c(-0.15, 0.05), xlim = c(0, 250))
 
 #add axes
-axis(1, pos = -0.04, cex.axis = 2)
+axis(1, pos = -0.15, cex.axis = 2)
 axis(2, las=2, cex.axis = 2)
 
 #add labels
 mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
 
 
-#plot B.iii (maxT centralness 250km limit)
+#plot B.iii (maxT centralness)
+plot.gam(models$maxT_distEdge_GS, select = 1, residuals = F, shade = T,
+         shade.col = '#FF000030',
+         xlab = "", ylab = "",
+         axes = F, xaxs = "i", yaxs = "i",
+         ylim = c(-0.15, 0.05), xlim = c(0, 800))
+
+#add axes
+axis(1, pos = -0.15, cex.axis = 2)
+axis(2, las=2, cex.axis = 2)
+
+#add labels
+mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
+
+#save 800
+
+
+#plot B.iii (maxT centralness 250km limit). Either this or full dist model in final version
 plot.gam(models$maxT_distEdge_250_GS, select = 1, residuals = F, shade = T,
          shade.col = '#FF000030',
          xlab = "", ylab = "",
          axes = F, xaxs = "i", yaxs = "i",
-         ylim = c(-0.04, 0.02), xlim = c(0, 250))
+         ylim = c(-0.15, 0.05), xlim = c(0, 250))
 
 #add axes
-axis(1, pos = -0.04, cex.axis = 2)
+axis(1, pos = -0.15, cex.axis = 2)
 axis(2, las=2, cex.axis = 2)
 
 #add labels
 mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
 
 #save 800
-
-#plot B.iv (meanPPT centralness)
-plot.gam(models$meanPPT_distEdge_250_GS, select = 1, residuals = F, shade = T,
-         shade.col = '#dfc27d50',
-         xlab = "", ylab = "",
-         axes = F, xaxs = "i", yaxs = "i",
-         ylim = c(-0.04, 0.02), xlim = c(0, 250))
-
-#add axes
-axis(1, pos = -0.04, cex.axis = 2)
-axis(2, las=2, cex.axis = 2)
-
-#add labels
-mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
-
-#save 800
-
-summary(meanPPT_distEdge_250_GS)
-
-
-
-
-
-
-
 
 
 
@@ -209,6 +215,7 @@ axis(2, las=2, cex.axis = 2)
 mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
 
 #save 800
+
 
 
 #plot D.i (minPPT relative polewardness)
