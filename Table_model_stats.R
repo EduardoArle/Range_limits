@@ -2,7 +2,7 @@
 library(mgcv); library(itsadug)
 
 #list wds
-wd_models <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/20250118_GAMs/Models'
+wd_models <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/20250504_GAMs/Models'
 wd_result <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/SI/Tables'
 
 #load all models
@@ -25,13 +25,10 @@ models_gen <- unique(models_gen)
 
 #create a vector ordering the models as I want in the table
 names_models <- c('minT_distEdge', 'meanT_distEdge', 'maxT_distEdge',
+                  'minT_distEdge_250', 'meanT_distEdge_250', 'maxT_distEdge_250',
                   'minT_relPol', 'meanT_relPol', 'maxT_relPol',
                   'minT_absPol', 'meanT_absPol', 'maxT_absPol',
-                  'minT_elev', 'meanT_elev', 'maxT_elev',
-                  'minPPT_distEdge', 'meanPPT_distEdge', 'maxPPT_distEdge',
-                  'minPPT_relPol', 'meanPPT_relPol', 'maxPPT_relPol',
-                  'minPPT_absPol', 'meanPPT_absPol', 'maxPPT_absPol',
-                  'minPPT_elev', 'meanPPT_elev', 'maxPPT_elev')
+                  'minT_elev', 'meanT_elev', 'maxT_elev')
 
 
 #create empty vectors to populate with results
@@ -54,17 +51,21 @@ for(i in 1:length(names_models))
 #join table
 table <- data.frame(Models = names_models,
                     AIC_G = round(AIC_Model_G), AIC_GS = round(AIC_Model_GS),
-                    D_AIC = round(AIC_Model_G - AIC_Model_GS),
+                    Δ_AIC = round(AIC_Model_G - AIC_Model_GS),
                     DE_G = round(DE_Model_G, 2), DE_GS = round(DE_Model_GS, 2),
-                    D_DE = round(DE_Model_GS - DE_Model_G, 2))
+                    Δ_DE = round(DE_Model_GS - DE_Model_G, 2))
+
+#calculate diff in deviance explained between distEdge models using all vars and those using only points up to 250km from the margins
+
+diff_DE <- mean(table$DE_GS)
 
 #calculate mean and SD of differences between G and GS
 #(excluding elevation for now)
 
-table_noElev <- table[-c(10:12,22:24),]
+table_noElev <- table[-c(13:15),]
 
-mean_D_AIC <- mean(table_noElev$D_AIC)
-sd_D_AIC <- sd(table_noElev$D_AIC)
+mean_Δ_AIC <- mean(table_noElev$Δ_AIC)
+sd_Δ_AIC <- sd(table_noElev$Δ_AIC)
 
 mean_D_DE <- mean(table_noElev$D_DE)
 sd_D_DE <- sd(table_noElev$D_DE)
@@ -72,3 +73,5 @@ sd_D_DE <- sd(table_noElev$D_DE)
 #save table
 setwd(wd_result)
 write.csv(table, 'GLM_evaluation.csv', row.names = F)
+
+
