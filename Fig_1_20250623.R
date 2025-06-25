@@ -153,15 +153,18 @@ x_vals <- seq(min(data$relPol),
 #create a data frame for prediction (include 0 so that line starts from axis)
 new_data <- data.frame(relPol = c(0, x_vals)) 
 
-#predict y-values based on the model
-predicted <- predict(lin_mod, newdata = new_data)
+#predict y-values based on the model (sum min val + a bit for plotting's sake)
+predicted <- predict(lin_mod, newdata = new_data) + 0.49
+
+#make the same combina for the data$ydata
+data$ydata <- data$ydata + 0.49
 
 #set graph parametres
 par(mar = c(6,9,5,5), pty="m", mfrow = c(1,1))
 
 #determine xlim for this plot (keep ylim same as previous plot)
 xlim <- c(0,1)
-ylim <- c(floor(min(ydata) * 10) / 10, - floor(min(ydata) * 10) / 10)
+ylim <- c(0,1)
 
 #plot the data points
 plot(data$relPol, data$ydata, 
@@ -171,6 +174,9 @@ plot(data$relPol, data$ydata,
      ylim = ylim,
      xlim = xlim)
 
+#set number of ticks per axis
+n_ticks_x <- 3
+n_ticks_y <- 2
 
 #calculate distance between ticks
 dist_tick_x <- (xlim[2] - xlim[1]) / (n_ticks_x - 1)
@@ -182,45 +188,53 @@ ticks_y <- seq(ylim[1], ylim[2], dist_tick_y)
 
 #add axes
 axis(1, pos = ylim[1], at = ticks_x, cex.axis = cex_axes)
-axis(2, las = 2, at = ticks_y, cex.axis = cex_axes, labels = c(NA, 0, NA))
+axis(2, las = 2, at = ticks_y, cex.axis = cex_axes, labels = c(0, NA))
+
 
 #add arrows that Shahar suggested
-text(par("usr")[1] - 0.07, 0.583, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
-text(par("usr")[1] - 0.0697, 0.525, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, 0.475, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, 0.45, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, 0.4, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, 0.35, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 0.0697, 0.3, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.07, 0.94, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
+text(par("usr")[1] - 0.0697, 0.94, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.91, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.88, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.85, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.82, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.79, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.76, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.73, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.70, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.67, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.64, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.61, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.58, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.55, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.52, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.49, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.46, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.43, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.40, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.37, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.34, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.31, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.28, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 0.0697, 0.25, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, 0.2, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 0.0697, 0.174, expression("|"), xpd = TRUE, cex = 2) 
-
-
-text(par("usr")[1] - 0.07, -0.583, expression("\u2193"), xpd = TRUE, cex = 3)  # Down arrow
-text(par("usr")[1] - 0.0697, -0.525, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, -0.475, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, -0.45, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, -0.4, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, -0.35, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 0.0697, -0.3, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 0.0697, -0.25, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 0.0697, -0.2, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 0.0697, -0.174, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.22, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.19, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.16, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.13, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.10, expression("|"), xpd = TRUE, cex = 2)  
 
 #add labels
 mtext("Relative polewardness", side = 1, line = 3.8, cex = 2.5)  
 mtext("Variable contribution", side = 2, line = 6.5, cex = 2.5)
 
 #add the restricted regression line
-lines(c(0, x_vals), predicted, col = '#2c7bb6', lwd = 8)
+lines(c(0, x_vals), (predicted / 1.3) + 0.12, col = '#2c7bb6', lwd = 8)
 
 #save 800
 
 
 
 ########## CURVE ###########. FIG 1-A-iii
-
 
 
 # Generate 33, 34, and 33 random values for distEdgeNormal
@@ -282,6 +296,50 @@ ticks_y <- seq(ylim[1], ylim[2], dist_tick_y)
 axis(1, pos = ylim[1], at = ticks_x, cex.axis = cex_axes)
 axis(2, las = 2, at = ticks_y, cex.axis = cex_axes, labels = c(NA, 0, NA))
 
+
+#add arrows that Shahar suggested
+text(par("usr")[1] - 18.2, 0.46, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
+text(par("usr")[1] - 0.0697, 0.46, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.45, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.44, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.43, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.42, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.41, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.40, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.39, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.38, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.37, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.36, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.35, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.34, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.33, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.32, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.31, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.30, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.29, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.28, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.27, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.26, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.25, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.24, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.23, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.22, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.21, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.20, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.19, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.18, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.17, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.16, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.15, expression("|"), xpd = TRUE, cex = 2)
+text(par("usr")[1] - 0.0697, 0.14, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.13, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.12, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.11, expression("|"), xpd = TRUE, cex = 2)
+text(par("usr")[1] - 0.0697, 0.10, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.09, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 0.0697, 0.08, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.07, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 0.0697, 0.06, expression("|"), xpd = TRUE, cex = 2)  
 
 #add arrows that Shahar suggested
 text(par("usr")[1] - 0.07, 0.5, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
@@ -356,15 +414,14 @@ n_ticks_y <- 2
 cex_axes <- 2
 cex_lables <- 2.5
 
-
 #generate ydata with a linear relationship plus some noise
-ydata <- ((relPol + rnorm(100, mean = 0, sd = 0.1)) - 0.45)
+ydata <- ((relPol + rnorm(100, mean = 0, sd = 0.1)))
 
 #combine into a data frame
 data <- data.frame(relPol, ydata)
 
 #generate ydata with a linear relationship plus some noise
-ydata <- ((-0.002 * distEdge + rnorm(100, mean = 0, sd = 0.2)) + 0.6) / 1.5
+ydata <- ((-0.004 * distEdge + rnorm(100, mean = 0, sd = 0.2)) + 0.6) / 1.5
 
 #combine into a data frame
 data <- data.frame(distEdge, ydata)
@@ -382,11 +439,14 @@ x_vals <- x_vals[x_vals < 250]
 #create a data frame for prediction
 new_data <- data.frame(distEdge = x_vals)
 
-#predict y-values based on the model
-predicted <- predict(lin_mod, newdata = new_data)
+#predict y-values based on the model (sum min val + a bit for plotting's sake)
+predicted <- predict(lin_mod, newdata = new_data) + 0.49
+
+#make the same combina for the data$ydata
+data$ydata <- data$ydata + 0.49
 
 #set y and x lims
-ylim <- c(0, 0.5)
+ylim <- c(0, 1)
 xlim <- c(0, ceiling(max(distEdge) / 100) * 100)
 
 #set graph parametres
@@ -397,13 +457,13 @@ plot(data$distEdge, data$ydata,
      pch = 19, cex = 1, col = '#2c7bb600',
      axes = F, , xaxs = "i", yaxs = "i",
      ylab = '', xlab = '',
-     ylim = c(0, 0.5),
+     ylim = c(0, 1),
      xlim = c(0, 250))
 
 
 #calculate distance between ticks
 dist_tick_x <- (250 - 0) / (n_ticks_x - 1)
-dist_tick_y <- (0.5 - 0) / (n_ticks_y - 1)
+dist_tick_y <- (1 - 0) / (n_ticks_y - 1)
 
 #calculate positions of ticks
 ticks_x <- seq(xlim[1], xlim[2], dist_tick_x)
@@ -413,6 +473,7 @@ ticks_y <- seq(ylim[1], ylim[2], dist_tick_y)
 axis(1, pos = 0, at = ticks_x, cex.axis = cex_axes)
 axis(2, las = 2, at = ticks_y, cex.axis = cex_axes, labels = c(0, NA))
 
+
 #add labels
 mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
 mtext("Variable contribution", side = 2, line = 6.5, cex = 2.5)
@@ -421,49 +482,36 @@ mtext("Variable contribution", side = 2, line = 6.5, cex = 2.5)
 lines(x_vals, predicted, col = '#2c7bb6', lwd = 8)
 
 #add arrows that Shahar suggested
-text(par("usr")[1] - 18.2, 0.46, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
+text(par("usr")[1] - 18.2, 0.94, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
+text(par("usr")[1] - 17.9, 0.94, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.91, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.88, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.85, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.82, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.79, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.76, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.73, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.70, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.67, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.64, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.61, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.58, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.55, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.52, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.49, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.46, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.45, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.44, expression("|"), xpd = TRUE, cex = 2) 
 text(par("usr")[1] - 17.9, 0.43, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.42, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.41, expression("|"), xpd = TRUE, cex = 2) 
 text(par("usr")[1] - 17.9, 0.40, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.39, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.38, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.37, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.36, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.35, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.37, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.34, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.33, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.32, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.31, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.30, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.29, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.31, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.28, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.27, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.26, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.25, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.24, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.23, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.25, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.22, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.21, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.20, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.19, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.18, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.17, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.16, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.15, expression("|"), xpd = TRUE, cex = 2)
-text(par("usr")[1] - 17.9, 0.14, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.13, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.12, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.11, expression("|"), xpd = TRUE, cex = 2)
+text(par("usr")[1] - 17.9, 0.16, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.13, expression("|"), xpd = TRUE, cex = 2) 
 text(par("usr")[1] - 17.9, 0.10, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.09, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.08, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.07, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.06, expression("|"), xpd = TRUE, cex = 2)  
-
 
 #save 800
 
@@ -492,45 +540,25 @@ df <- data.frame(x = x, y = y)
 gam_fit <- gam(y ~ s(x, k = 3), data = df, method = "REML")
 
 x_pred <- seq(0, 250, length.out = 250)
-pred <- predict(gam_fit, newdata = data.frame(x = x_pred))
+
+#adjusted prediction
+pred <- predict(gam_fit, newdata = data.frame(x = x_pred)) * 2
 
 # Plot points with no axes and custom limits
 plot(df$x, df$y,
      pch = 19, cex = 1, col = '#2c7bb600',
      axes = FALSE, xaxs = "i", yaxs = "i",
      xlab = '', ylab = '',
-     xlim = c(0, 250), ylim = c(0, 0.5))
+     xlim = c(0, 250), ylim = c(0, 1))
 
 # Add GAM line on top, matching color and thicker width
 lines(x_pred, pred, col = '#2c7bb6', lwd = 7)
 
 
 
-
-
-
 #set y and x lims for this plot 
 xlim <- c(0, 250)
 ylim <- c(0, max(data$ydata))
-
-#ylim <- c(floor(min(data$ydata) * 10) / 10, - floor(min(data$ydata) * 10) / 10)
-
-#set parametres for plotting
-par(mar = c(6,9,5,5), pty="m", mfrow = c(1,1))
-
-plot.gam(gam_1, select = 1)
-
-#add points
-points(data$distEdge, data$ydata, # +  rnorm(100, mean = 0.1, sd = 0.1),
-       pch = 19, cex = 1, col = '#2c7bb650')
-
-#plot 
-plot(gam_1, select = 1, residuals = F, shade = F,
-         col = '#2c7bb6', se = F, lwd = 8, rug = F,
-         axes = F, , xaxs = "i", yaxs = "i",
-         ylab = '', xlab = '',
-         ylim = ylim,
-         xlim = xlim) 
 
 
 
@@ -550,50 +578,36 @@ axis(2, las = 1, at = ticks_y, cex.axis = cex_axes, labels = c(0, NA))
 mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
 
 #add arrows that Shahar suggested
-text(par("usr")[1] - 18.2, 0.46, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
-
+text(par("usr")[1] - 18.2, 0.94, expression("\u2191"), xpd = TRUE, cex = 3)  # Up arrow
+text(par("usr")[1] - 17.9, 0.94, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.91, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.88, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.85, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.82, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.79, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.76, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.73, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.70, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.67, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.64, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.61, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.58, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.55, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.52, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.49, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.46, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.45, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.44, expression("|"), xpd = TRUE, cex = 2) 
 text(par("usr")[1] - 17.9, 0.43, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.42, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.41, expression("|"), xpd = TRUE, cex = 2) 
 text(par("usr")[1] - 17.9, 0.40, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.39, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.38, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.37, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.36, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.35, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.37, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.34, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.33, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.32, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.31, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.30, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.29, expression("|"), xpd = TRUE, cex = 2)  
+text(par("usr")[1] - 17.9, 0.31, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.28, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.27, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.26, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.25, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.24, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.23, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.25, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.22, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.21, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.20, expression("|"), xpd = TRUE, cex = 2)  
 text(par("usr")[1] - 17.9, 0.19, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.18, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.17, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.16, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.15, expression("|"), xpd = TRUE, cex = 2)
-text(par("usr")[1] - 17.9, 0.14, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.13, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.12, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.11, expression("|"), xpd = TRUE, cex = 2)
+text(par("usr")[1] - 17.9, 0.16, expression("|"), xpd = TRUE, cex = 2) 
+text(par("usr")[1] - 17.9, 0.13, expression("|"), xpd = TRUE, cex = 2) 
 text(par("usr")[1] - 17.9, 0.10, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.09, expression("|"), xpd = TRUE, cex = 2) 
-text(par("usr")[1] - 17.9, 0.08, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.07, expression("|"), xpd = TRUE, cex = 2)  
-text(par("usr")[1] - 17.9, 0.06, expression("|"), xpd = TRUE, cex = 2)  
-
 
 #save 800
 
