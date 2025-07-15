@@ -1,9 +1,10 @@
 #load libraries
-library(mgcv); library(itsadug)
+library(mgcv); library(itsadug); library(gratia)
 
 #list wds
 wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250504_All_species_analysis'
 wd_models <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/20250504_GAMs/Models'
+wd_sig <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Significance_GAMs'
 
 #read results table
 setwd(wd_tables)
@@ -16,11 +17,9 @@ names(results)[c(10,12)] <- c("absPolewardness","relPolewardness" )
 results$species <- as.factor(results$species)
 
 
-
 ########################
 ########## T ###########
 ########################
-
 
 #select only species that had lower correl between vars
 results_minT <- results[abs(results$Cor_vars_minT) <= 0.7,]
@@ -59,10 +58,6 @@ n_sps_maxT_mod <- length(unique(results_maxT_abs_250$species))
 
 
 # SHAP values X distance from edge (GAM)
-
-#set par for plotting
-par(mar = c(6,6,6,6), pty='m')
-
 
 
 ### minT
@@ -163,6 +158,25 @@ plot.gam(minT_distEdge_250_GS, select = 1, residuals = F, shade = T,
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
+#calculate derivatives
+deriv <- derivatives(minT_distEdge_250_GS,
+                     select = "s(distEdge)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'minT_distEdge_250_GS.csv', row.names = F)
+
+
+
 ### meanT
 
 #model G
@@ -261,7 +275,22 @@ plot.gam(meanT_distEdge_250_GS, select = 1, residuals = F, shade = T,
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
+#calculate derivatives
+deriv <- derivatives(meanT_distEdge_250_GS,
+                     select = "s(distEdge)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
 
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'meanT_distEdge_250_GS.csv', row.names = F)
 
 
 ### maxT
@@ -361,11 +390,26 @@ plot.gam(maxT_distEdge_250_GS, select = 1, residuals = F, shade = T,
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
+#calculate derivatives
+deriv <- derivatives(maxT_distEdge_250_GS,
+                     select = "s(distEdge)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'maxT_distEdge_250_GS.csv', row.names = F)
+
+
 
 # SHAP values X relative polewardness (GAM)
-
-#set par for plotting
-par(mar = c(6,6,6,6))
 
 ### minT
 
@@ -416,6 +460,25 @@ plot.gam(minT_relPol_GS, select = 1, residuals = F, shade = T,
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
+#test stats for significant change points from First Derivative of GAM smooth
+
+#calculate derivatives
+deriv <- derivatives(minT_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'minT_relPol_GS.csv', row.names = F)
+
 ### meanT
 
 #model G
@@ -464,6 +527,22 @@ plot.gam(meanT_relPol_GS, select = 1, residuals = F, shade = T,
          ylim = c(-0.06, 0.06),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
+#calculate derivatives
+deriv <- derivatives(meanT_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'meanT_relPol_GS.csv', row.names = F)
 
 
 ### maxT
@@ -515,7 +594,22 @@ plot.gam(maxT_relPol_GS, select = 1, residuals = F, shade = T,
          ylim = c(-0.1, 0.1),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
+#calculate derivatives
+deriv <- derivatives(maxT_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
 
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'maxT_relPol_GS.csv', row.names = F)
 
 
 # SHAP values X absolute polewardness (GAM)
@@ -1637,4 +1731,114 @@ plot.gam(maxPPT_elev_GS, select = 1, residuals = F, shade = T,
          shade.col = '#00FF0030', ylab = 'SHAP value',
          ylim = c(-0.1, 0.2),
          cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+
+
+
+
+##############. meanT_relPol
+
+
+meanT_relPol_GS <- readRDS('meanT_relPol_GS')
+
+#estimate first derivatives
+
+smooths(meanT_relPol_GS)
+
+
+deriv <- derivatives(meanT_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 200)  # number of points to evaluate
+
+draw(deriv)
+
+names(deriv)
+head(deriv)
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+# Add significance to the derivatives data frame
+deriv$sig <- sig_points
+
+df <- deriv
+
+str(deriv)
+
+# Plot the derivative with its confidence interval
+plot(deriv$relPolewardness, deriv$.derivative, type = "l",
+     ylim = range(c(deriv$.lower_ci, deriv$.upper_ci), na.rm = TRUE),
+     xlab = "Relative Polewardness", ylab = "First derivative",
+     col = "blue", lwd = 2)
+
+# Add confidence interval ribbon
+polygon(c(deriv$relPolewardness, rev(deriv$relPolewardness)),
+        c(deriv$.upper_ci, rev(deriv$.lower_ci)),
+        col = rgb(0, 0, 1, 0.2), border = NA)
+
+# Re-draw the derivative line (so it’s on top)
+lines(deriv$relPolewardness, deriv$.derivative, col = "blue", lwd = 2)
+
+# Add significant points in red
+points(deriv$relPolewardness[deriv$sig],
+       deriv$.derivative[deriv$sig],
+       col = "red", pch = 19)
+
+
+
+
+##############. maxT_relPol
+
+
+maxT_relPol_GS <- readRDS('maxT_relPol_GS')
+
+#estimate first derivatives
+
+smooths(maxT_relPol_GS)
+
+
+deriv <- derivatives(maxT_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 200)  # number of points to evaluate
+
+draw(deriv)
+
+names(deriv)
+head(deriv)
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+# Add significance to the derivatives data frame
+deriv$sig <- sig_points
+
+df <- deriv
+
+str(deriv)
+
+# Plot the derivative with its confidence interval
+plot(deriv$relPolewardness, deriv$.derivative, type = "l",
+     ylim = range(c(deriv$.lower_ci, deriv$.upper_ci), na.rm = TRUE),
+     xlab = "Relative Polewardness", ylab = "First derivative",
+     col = "blue", lwd = 2)
+
+# Add confidence interval ribbon
+polygon(c(deriv$relPolewardness, rev(deriv$relPolewardness)),
+        c(deriv$.upper_ci, rev(deriv$.lower_ci)),
+        col = rgb(0, 0, 1, 0.2), border = NA)
+
+# Re-draw the derivative line (so it’s on top)
+lines(deriv$relPolewardness, deriv$.derivative, col = "blue", lwd = 2)
+
+# Add significant points in red
+points(deriv$relPolewardness[deriv$sig],
+       deriv$.derivative[deriv$sig],
+       col = "red", pch = 19)
+
+
+
 
