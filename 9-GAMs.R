@@ -666,6 +666,26 @@ plot.gam(minT_absPol_GS, select = 1, residuals = F, shade = T,
          cex.lab = 2, cex.axis = 1.5) #save 800
 
 
+#calculate derivatives
+deriv <- derivatives(minT_absPol_GS,
+                     select = "s(absPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'minT_absPol_GS.csv', row.names = F)
+
+
+
+
 ### meanT
 
 #model G
@@ -713,6 +733,23 @@ plot.gam(meanT_absPol_GS, select = 1, residuals = F, shade = T,
          shade.col = '#80008030', ylab = 'SHAP value',
          ylim = c(-0.5, 0.1),
          cex.lab = 2, cex.axis = 1.5) #save 800
+
+#calculate derivatives
+deriv <- derivatives(meanT_absPol_GS,
+                     select = "s(absPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'meanT_absPol_GS.csv', row.names = F)
 
 
 
@@ -764,6 +801,24 @@ plot.gam(maxT_absPol_GS, select = 1, residuals = F, shade = T,
          shade.col = '#FF000030', ylab = 'SHAP value',
          ylim = c(-0.1, 0.1),
          cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#calculate derivatives
+deriv <- derivatives(maxT_absPol_GS,
+                     select = "s(absPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'maxT_absPol_GS.csv', row.names = F)
 
 
 

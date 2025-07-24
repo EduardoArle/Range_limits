@@ -194,7 +194,7 @@ axis(2, las=2, cex.axis = 2)
 
 #add labels
 mtext("Distance to range edge", side = 1, line = 3.8, cex = 2.5)  
-mtext("SHAP value", side = 2, line = 6.5, cex = 2.5)
+mtext("| SHAP value |", side = 2, line = 6.5, cex = 2.5)
 
 #add significant portions
 
