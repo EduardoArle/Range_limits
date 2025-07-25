@@ -3,7 +3,7 @@ wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Resul
 wd_table <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Figures/Fig 3'
 
 ############################################################################# 
-################################# Panel A ###################################
+################################# Panel E ###################################
 ############################################################################# 
 
 #read table with boruta results
@@ -14,21 +14,9 @@ tab <- read.csv('Covariable_importance.csv')
 row.names(tab) <- tab[,1]
 tab <- tab[,-1]
 
-#create table with colours (option 1)
-tab_col <- tab
-tab_col[tab_col > -5 & tab_col < 5] <- '#ffc00c'
-tab_col[tab_col == -5] <- '#990050'
-tab_col[tab_col == 5] <- '#008050'
-
-#create table with colours (option 2)
+#create table with colours
 tab_col <- tab
 tab_col[tab_col > -5 & tab_col < 5] <- '#00805070'
-tab_col[tab_col == -5] <- '#ffffff'
-tab_col[tab_col == 5] <- '#008050'
-
-#create table with colours (option 3)
-tab_col <- tab
-tab_col[tab_col > -5 & tab_col < 5] <- '#ffc00c'
 tab_col[tab_col == -5] <- '#ffffff'
 tab_col[tab_col == 5] <- '#008050'
 
@@ -135,7 +123,7 @@ s_minT_relPol$nOcc_log <- log(s_minT_relPol$nOcc)
 
 
 ############################################################################# 
-################################# Panel B ###################################
+################################# Panel A ###################################
 ############################################################################# 
 
 ## Range size ##
@@ -150,7 +138,7 @@ y_lim <- c(-0.05, 0.2)
 plot(s_minT_relPol$rangeSize_log10, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
      xlab = "", ylab = "", cex = 1.5,
-     pch = 19, col = '#50305020',
+     pch = 19, col = '#90909020',
      ylim = y_lim, xlim = x_lim)
 
 # Define original values and their log-transformed positions
@@ -190,12 +178,12 @@ y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
                   interval = "confidence")
 
 #add regression line from the y-axis onwards
-lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
+lines(x_seq, y_pred[, "fit"], col = '#909090', lwd = 8)
 
 #dd shaded confidence interval
 polygon(c(x_seq, rev(x_seq)),
         c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
-        col = '#50305030',
+        col = '#90909030',
         border = NA)
 
 #save 800
@@ -220,7 +208,7 @@ x_lim[1] <- 0
 plot(s_minT_relPol$latAmplitude, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
      xlab = "", ylab = "", cex = 1.5,
-     pch = 19, col = '#50305020',
+     pch = 19, col = '#90909020',
      ylim = y_lim, xlim = x_lim)
 
 #add axes
@@ -248,12 +236,12 @@ y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
                   interval = "confidence")
 
 #add regression line from the y-axis onwards
-lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
+lines(x_seq, y_pred[, "fit"], col = '#909090', lwd = 8)
 
 #dd shaded confidence interval
 polygon(c(x_seq, rev(x_seq)),
         c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
-        col = '#50305030',
+        col = '#90909030',
         border = NA)
 
 #save 800
@@ -280,7 +268,7 @@ x_lim[1] <- 0
 plot(s_minT_relPol$elevMedian, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
      xlab = "", ylab = "", cex = 1.5,
-     pch = 19, col = '#50305020',
+     pch = 19, col = '#90909020',
      ylim = y_lim, xlim = x_lim)
 
 #add axes
@@ -289,7 +277,7 @@ axis(2, pos = x_lim[1], las=2, cex.axis = 2)
 
 
 #add axes lables 
-mtext('Elevation median', side = 1, line = 3.8, cex = 2.5)  
+mtext('Median elevation', side = 1, line = 3.8, cex = 2.5)  
 mtext('Slope', side = 2, line = 6.5, cex = 2.5)
 
 #define x range explicitly
@@ -308,12 +296,12 @@ y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
                   interval = "confidence")
 
 #add regression line from the y-axis onwards
-lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
+lines(x_seq, y_pred[, "fit"], col = '#909090', lwd = 8)
 
 #add shaded confidence interval
 polygon(c(x_seq, rev(x_seq)),
         c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
-        col = '#50305030',
+        col = '#90909030',
         border = NA)
 
 #save 800
@@ -338,7 +326,7 @@ x_lim[1] <- 0
 plot(s_minT_relPol$elevAmplitude, s_minT_relPol$slope_minT_relPol,
      axes = F, xaxs = "i", yaxs = "i",
      xlab = "", ylab = "", cex = 1.5,
-     pch = 19, col = '#50305020',
+     pch = 19, col = '#90909020',
      ylim = y_lim, xlim = x_lim)
 
 #add axes
@@ -365,12 +353,12 @@ y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
                   interval = "confidence")
 
 #add regression line from the y-axis onwards
-lines(x_seq, y_pred[, "fit"], col = '#503050', lwd = 8)
+lines(x_seq, y_pred[, "fit"], col = '#909090', lwd = 8)
 
 #add shaded confidence interval
 polygon(c(x_seq, rev(x_seq)),
         c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
-        col = '#50305030',
+        col = '#90909030',
         border = NA)
 
 

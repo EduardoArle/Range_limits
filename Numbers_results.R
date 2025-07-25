@@ -6,6 +6,7 @@ wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manus
 wd_all_sps_res <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_All_species_analysis'
 wd_biomes <- '/Users/carloseduardoaribeiro/Documents/General data/Biomes/official'
 wd_map_stuff <- '/Users/carloseduardoaribeiro/Documents/Collaborations/Rachel/Fogo'
+wd_tab_SI <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/SI/Tables'
 
 
 #load file with all results
@@ -42,8 +43,13 @@ n_species_model
 #get info on biomes represented
 length(unique(all_res_cor$biome))
 
-#get number of species for which each model was made 
+#make a table containing species used and number of records
+used_species_nOcc <- unique(as.data.table(all_res_cor),
+                            by = c('species', 'nOcc'))
 
+#save
+setwd(wd_tab_SI)
+write.csv(used_species_nOcc, 'Used_sps_nOcc.csv', row.names = F)
 
 #################. FIIXXXXX ##############
 
