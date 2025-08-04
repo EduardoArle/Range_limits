@@ -161,6 +161,7 @@ plot.gam(minT_distEdge_250_GS, select = 1, residuals = F, shade = T,
          ylim = c(-0.15, 0.1),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
+library(gratia)
 
 #calculate derivatives
 deriv <- derivatives(minT_distEdge_250_GS,
@@ -449,6 +450,9 @@ plot.gam(minT_relPol_G, select = 1, residuals = F, shade = T,
 
 
 #model GS
+
+library(mgcv)
+
 minT_relPol_GS <- gam(avg_Min_T_SHAP ~
                           s(relPolewardness, k=4, m=2) 
                         + s(relPolewardness, species, k=4, bs="fs", m=2),
@@ -541,13 +545,18 @@ plot.gam(meanT_relPol_GS, select = 1, residuals = F, shade = T,
          ylim = c(-0.06, 0.06),
          cex.lab = 2, cex.axis = 1.5) #save 800
 
+
+
+
+library(gratia)
+
 #calculate derivatives
 deriv <- derivatives(meanT_relPol_GS,
                      select = "s(relPolewardness)",
                      type = "central",
                      n = 500)  # number of points to evaluate
 
-
+#identify points where derivative is significantly different from zero
 sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
 
 #add significance to the derivatives data frame

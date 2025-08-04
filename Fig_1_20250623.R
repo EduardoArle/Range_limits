@@ -668,7 +668,7 @@ mtext("Variable contribution", side = 2, line = 6.5, cex = 2.5)
 
 #add the restricted regression line
 lines(c(0, x_vals), (predicted / 1.3) + 0.12, col = '#2c7bb6', lwd = 8)
-lines(c(0, x_vals), (predicted / 3) + 0.36, col = '#ffc00c', lwd = 8)
+lines(c(0, x_vals), (predicted / 3) + 0.12, col = '#ffc00c', lwd = 8)
 
 
 #save 800
@@ -764,7 +764,7 @@ text(par("usr")[1] + 17.9, 0.10, expression("|"), xpd = TRUE, cex = 2)
 
 # Add GAM line on top, matching color and thicker width
 lines(x_pred, pred, col = '#2c7bb6', lwd = 7)
-lines(x_pred, (pred / 2) + 0.2, col = '#ffc00c', lwd = 8)
+lines(x_pred, (pred / 2) + 0.03, col = '#ffc00c', lwd = 8)
 
 
 #save 800
