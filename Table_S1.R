@@ -45,7 +45,7 @@ used_species_nOcc <- unique(as.data.table(all_res_cor),
                             by = c('species', 'nOcc'))
 
 #select columns
-species_info <- used_species_nOcc[,c(1,6,7)]
+species_info <- used_species_nOcc[,c(1,6,7,18)]
 
 #save
 setwd(wd_tab_SI)

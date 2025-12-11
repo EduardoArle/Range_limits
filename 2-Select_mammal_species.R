@@ -1,9 +1,140 @@
 #load packages
 library(sf); library(rworldmap)
 
+#tells sf to use the old GEOS planar engine to avoid edge crossing error
+sf_use_s2(FALSE)
+
 #list wds
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_lists <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
+
+#install functions to be used in this script
+
+crop_world_to_range <- function(range, world, margin_deg = 1) {
+  # range: sf species range in lon/lat (WGS84)
+  # world: sf world land polygons in lon/lat
+  # margin_deg: degrees to expand bounding box (~1 degree ≈ 100 km)
+  
+  # 1. Bounding box of the species, in local metres
+  bb <- st_bbox(range)
+  
+  # 2. Expand the longitude of bbox by the margin
+  bb["xmin"] <- bb["xmin"] - margin_deg
+  bb["xmax"] <- bb["xmax"] + margin_deg
+  
+  # 3. Expand the latitude of bbox by the margin (needs clamping)
+  bb["ymin"] <- max(bb["ymin"] - margin_deg, -90)
+  bb["ymax"] <- min(bb["ymax"] + margin_deg,  90)
+  
+  # 4. Turn expanded bbox into an sf geometry (polygon)
+  bb_sfc <- st_as_sfc(bb)
+  st_crs(bb_sfc) <- st_crs(world)
+  
+  # 5. Crop world to this expanded bbox
+  world_crop <- suppressWarnings(st_intersection(world, bb_sfc))
+  
+  return(world_crop)
+}
+
+get_local_laea_crs <- function(range) {
+# range: sf object (one species), in WGS84 (lon/lat)
+
+# 1. Get geometry and union (in case it is MULTIPOLYGON)
+range_geom   <- st_geometry(range)
+range_union  <- st_union(range_geom)
+
+# 2. Centroid of the range
+range_centroid <- st_centroid(range_union)
+
+# 3. Coordinates of centroid (lon, lat in degrees)
+cent_coords <- st_coordinates(range_centroid)
+lon0 <- cent_coords[1]   # longitude of range centre
+lat0 <- cent_coords[2]   # latitude of range centre
+
+# 4. Build local LAEA CRS string (in metres)
+crs_laea <- paste0(
+  "+proj=laea +lat_0=", lat0,
+  " +lon_0=", lon0,
+  " +datum=WGS84 +units=m +no_defs"
+)
+
+return(crs_laea)
+}
+
+compute_frag_dir <- function(part_geom, world_land, touches_water,
+                             dfMaxLength = 2000, coast_buffer = 5000) {
+  # part_geom: single POLYGON (here: range_parts[j,])
+  # world_land: merged land polygon for the local area
+  # touches_water: logical, T if fragment touches water (here: touch_vec[j])
+  # dfMaxLength: max segment length (m) when densifying boundary
+  # coast_buffer: dist (m) to define the "coastal band" around the fragment
+  
+  #if fragment does not touch water → 0% in all directions
+  if (isFALSE(touches_water)) {
+    return(c(N = 0, S = 0, E = 0, W = 0))
+  }
+  
+  #densify boundary to get many points
+  boundary <- st_boundary(part_geom)
+  boundary_dense <- st_segmentize(boundary, dfMaxLength = dfMaxLength)
+  boundary_pts <- st_cast(boundary_dense, "POINT")
+  
+  #coastal band around the fragment, then "ocean side" = band minus land
+  band <- st_buffer(part_geom, dist = coast_buffer)
+  
+  #make sure band and world_land are valid
+  band <- st_make_valid(band)
+  world_land <- st_make_valid(world_land)
+  
+  #part of the band that is not land (i.e. towards the ocean)
+  ocean_ring <- suppressWarnings(st_difference(band, world_land))
+  coastal_logical <- lengths(st_intersects(boundary_pts, ocean_ring)) > 0
+  coastal_pts <- boundary_pts[coastal_logical,]
+  
+  #coordinates of coastal points
+  coords <- st_coordinates(coastal_pts)
+  
+  # Bounding box of the fragment
+  bbox <- st_bbox(part_geom)
+  xmin <- bbox["xmin"]
+  xmax <- bbox["xmax"]
+  ymin <- bbox["ymin"]
+  ymax <- bbox["ymax"]
+  
+  #### visualise bbox ####
+  # bbox_sfc <- sf::st_as_sfc(bbox)
+  # bbox_sfc <- sf::st_set_crs(bbox_sfc, sf::st_crs(part_geom))
+  # bbox_sf <- sf::st_sf(geometry = bbox_sfc)
+  # plot(bbox_sf, add = T, col = NA, border = 'orange')
+  #### visualise bbox ####
+  
+  #calc distances to each side of the bbox
+  dN <- ymax - coords[, "Y"]
+  dS <- coords[, "Y"] - ymin
+  dE <- xmax - coords[, "X"]
+  dW <- coords[, "X"] - xmin
+  
+  dist_mat <- cbind(dN, dS, dE, dW)
+  
+  #assign each coastal point to the nearest edge (1 = N, 2 = S, 3 = E, 4 = W)
+  nearest_edge <- apply(dist_mat, 1, which.min)
+  
+  nN <- sum(nearest_edge == 1L)
+  nS <- sum(nearest_edge == 2L)
+  nE <- sum(nearest_edge == 3L)
+  nW <- sum(nearest_edge == 4L)
+  
+  total <- length(nearest_edge)
+  
+  #get percentage
+  result <- c(N = 100 * nN / total,
+              S = 100 * nS / total,
+              E = 100 * nE / total,
+              W = 100 * nW / total)
+  
+  return(result)
+}
+
 
 #list species
 setwd(wd_ranges)
@@ -12,202 +143,181 @@ sps_list <- gsub('.shp', '', list.files(pattern = '.shp'))
 #load world map
 world <- getMap()
 
-#visualise species distributions and choose the ones that are continuous and do not border the oceans (manually)
+#change world to sf
+world <- st_as_sf(world)
 
-i = 5620
+#create vactors to store info about ranges
+contiguous <- character() # "yes"/"no"
+fragments <- numeric() # number of fragments
+border_ocean <- character() # "yes"/"no" 
+touch_frags <- numeric()  # number of fragments touching water
+water_geoms <- character()  # list of water geometries per species (per part)
+range_frag_km2 <- character() # area in km2 of each fragment
+N_ocean <- character() # percentage of range limited by ocean to the North
+S_ocean <- character() # percentage of range limited by ocean to the South
+E_ocean <- character() # percentage of range limited by ocean to the East
+W_ocean <- character() # percentage of range limited by ocean to the West
 
-range <- st_read(dsn = wd_ranges, layer = sps_list[i])
+#loop through ranges
+for(i in 1:length(sps_list))
+{
+  #load species range
+  range <- st_read(dsn = wd_ranges, layer = sps_list[i])
+  
+  #make sure the object has only one feature
+  if(nrow(range) > 1){
+    stop('More than one feature')
+  }
+  
+  #extract the geometry for the first (and only) feature
+  g <- st_geometry(range)[[1]]
+  
+  #number of polygon parts in this MULTIPOLYGON
+  n_parts <- length(g)
+  
+  #crop world by the extent of the range plus a 1 degree buffer
+  world_crop <- crop_world_to_range(range, world)
+  
+  #define the best CRS for the species (in metres based on location)
+  crs_sps <- get_local_laea_crs(range)
+  
+  #transform shp range and world to the specific crs
+  range_loc <- st_transform(range, crs_sps)
+  world_loc <- st_transform(world_crop, crs_sps)
+  
+  #clean land polygons locally
+  world_loc  <- suppressWarnings(st_make_valid(world_loc))
+  
+  #merge all land polygons into a single geometry (ignore country borders)
+  world_land <- suppressWarnings(st_union(world_loc))
+  
+  #nsure the merged landmass is also valid
+  world_land <- suppressWarnings(st_make_valid(world_land))
+  
+  #split range into individual polygon parts (fragments)
+  range_parts <- st_cast(range_loc, "POLYGON")
+  n_parts_loc <- nrow(range_parts)  # should match n_parts, but we use this here
+  
+  #create temporary vectors to loop through the fragments
+  touch_vec <- rep(NA, n_parts_loc)
+  frag_areas_km2 <- numeric()
+  
+  #loop through each range portion to check whether they are limited by ocean
+  for(j in 1:n_parts_loc)
+  {
+    #get each part of the range
+    this_part <- range_parts[j,]
+    
+    #total area of this fragment (m^2 -> km^2)
+    area_part <- as.numeric(st_area(this_part))
+    frag_areas_km2[j] <- area_part / 1e6
+    
+    #5 km buffer around this fragment
+    buf5 <- suppressWarnings(st_buffer(this_part, dist = 5000))
+    
+    # intersection of buffer with landmass
+    land_buf <- suppressWarnings(st_intersection(buf5, world_land))
+    
+    # area of the buffer itself (this is NOT the fragment area)
+    area_buf <- as.numeric(st_area(buf5))
 
-plot(st_geometry(range), add = F, col = 'red')
-plot(world, border = NA, col = 'darkgreen')
-plot(st_geometry(range), add = T, col = 'orange', border = NA)
+    if(nrow(land_buf) == 0) {
+      
+      # 5 km neighbourhood has no land at all -> clearly near water
+      touch_vec[j] <- TRUE
+      
+    } else {
+      #calculate percentage of the fragment that is safely inland
+      area_land_buf <- sum(as.numeric(st_area(land_buf)), na.rm = TRUE)
+      
+      #just a fix for tiny differences in calculations
+      diff <- abs(area_buf - area_land_buf) #difference 
+      tol <- 1 #tolerance: tiny area (1 m2)
+      
+      # That means the fragment "touches water", unless the diff is within tol
+      
+      if(diff > tol) {
+        touch_vec[j] <- TRUE
+      } else {
+        touch_vec[j] <- FALSE
+      }
+    }
+  }
+  
+  #minimum fragment size to keep (in km^2)
+  min_frag_km2 <- 1
+  
+  #which fragments to keep
+  keep <- frag_areas_km2 >= min_frag_km2
+  
+  #number of fragments to keep
+  n_keep <- sum(keep)
+  
+  #check which fragments touch water
+  idx_touch <- which(touch_vec[keep])
+  
+  if(length(idx_touch) == 0) {
+    water_str <- "none"
+  } else if(length(idx_touch) == n_parts_loc) {
+    water_str <- "all"
+  } else {
+    water_str <- paste(idx_touch, collapse = ",")
+  }
+  
+  #check whether any portions of the range are limited by ocean
+  idx_keep <- which(keep)  
+  idx_touch_keep <- idx_keep[idx_touch]
+  
+  #update objects eliminating what we do not wanna keep
+  range_parts <- range_parts[keep,]   # keep only valid polygons
+  frag_areas_km2 <- frag_areas_km2[keep]
+  touch_vec <- touch_vec[keep]
+  
+  #loop through each range portion to check whether they are limited by ocean
+  
+  
+  #populate vectors
+  contiguous[i] <- ifelse(n_keep == 1, 'yes', 'no')
+  fragments[i] <- n_keep
+  border_ocean[i] <- ifelse(any(touch_vec), "yes", "no")
+  touch_frags[i] <- sum(touch_vec)
+  water_geoms[i] <- water_str
+  range_frag_km2[i] <- paste(round(frag_areas_km2, 2), collapse = ";")
+  
+  
+  N_ocean[i] <- 
+  S_ocean[i] <- 
+  E_ocean[i] <- 
+  W_ocean[i] <- 
+  
+}
 
-sps_list[i]
+##### visualise #####
 
+#see region on world
+plot(st_geometry(world), col = 'grey90')
+plot(st_geometry(world_crop), col = 'red', add = T)
 
+#see range on region
+plot(st_geometry(world_land), col = 'red')
+plot(st_geometry(range_loc), col = 'green', add = T)
 
-#list species that may be interesting to look at
+#see each part
+plot(st_geometry(buf5), col = 'magenta', border = 'purple', add = T)
 
-interesting_sps <- c(3, 8, 13, 14, 38, 41, 43, 44, 45, 59, 68, 69, 70, 71,
-                     72, 83, 85, 87, 89, 91, 92, 93, 98, 100, 102, 107, 108, 112,
-                     113, 114, 123, 129, 130, 132, 138, 144, 147, 148, 152, 155,
-                     156, 159, 166, 167, 168, 180, 186, 187, 188, 195, 225, 228,
-                     230, 231, 232, 233, 237, 240, 246, 248, 308, 311, 326, 330,
-                     332, 337, 338, 339, 395, 401, 409, 412, 420, 460, 465, 466,
-                     475, 480, 487, 499, 502, 504, 506, 507, 510, 513, 515, 516,
-                     517, 518, 519, 520, 521, 531, 542, 555, 558, 565, 568, 576,
-                     577, 579, 580, 589, 590, 592, 597, 601, 604, 605, 656, 658,
-                     659, 660, 662, 669, 692, 699, 713, 729, 731, 732, 733, 737,
-                     739, 749, 757, 761, 765, 766, 778, 811, 819, 827, 848, 850,
-                     870, 881, 882, 911, 934, 939, 950, 965, 970, 974, 1018,
-                     1035, 1041, 1043, 1067, 1078, 1096, 1097, 1099, 1149, 1151,
-                     1152, 1155, 1156, 1157, 1161, 1162, 1163, 1164, 1169, 1175,
-                     1176, 1178, 1179, 1180, 1184, 1185, 1186, 1187, 1188, 1190,
-                     1192, 1194, 1197, 1202, 1204, 1218, 1219, 1220, 1221, 1232, 
-                     1233, 1243, 1244, 1248, 1262, 1266, 1269, 1315, 1337, 1354, 
-                     1371, 1372, 1374, 1375, 1377, 1399, 1409, 1427, 1428, 1443, 
-                     1445, 1447, 1448, 1449, 1455, 1456, 1457, 1476, 1490, 1495, 
-                     1496, 1498, 1499, 1501, 1502, 1505, 1531, 1534, 1553, 1569, 
-                     1573, 1606, 1614, 1621, 1622, 1623, 1625, 1636, 1642, 1647, 
-                     1654, 1655, 1665, 1666, 1673, 1682, 1683, 1687, 1724, 1725, 
-                     1734, 1752, 1753, 1757, 1763, 1770, 1785, 1789, 1792, 1804,
-                     1810, 1821, 1848, 1849, 1853, 1866, 1885, 1886, 1887, 1912, 
-                     1917, 1963, 2005, 2028, 2050, 2064, 2065, 2069, 2091, 2095, 
-                     2116, 2117, 2153, 2164, 2165, 2166, 2167, 2174, 2178, 2207, 
-                     2214, 2220, 2221, 2238, 2256, 2265, 2271, 2272, 2274, 2275, 
-                     2280, 2284, 2285, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 
-                     2294, 2297, 2339, 2357, 2361, 2369, 2378, 2380, 2382, 2408, 
-                     2409, 2410, 2411, 2429, 2431, 2432, 2443, 2445, 2454, 2462, 
-                     2476, 2490, 2520, 2543, 2549, 2553, 2556, 2562, 2566, 2567, 
-                     2568, 2575, 2578, 2580, 2601, 2604, 2626, 2687, 2688, 2702, 
-                     2703, 2704, 2718, 2722, 2724, 2725, 2726, 2727, 2728, 2729, 
-                     2730, 2732, 2733, 2734, 2735, 2736, 2737, 2738, 2741, 2742, 
-                     2816, 2818, 2827, 2833, 2838, 2861, 2875, 2935, 2950, 2952, 
-                     2963, 2964, 2971, 2989, 2990, 2991, 2992, 3044, 3049, 3050, 
-                     3061, 3070, 3072, 3100, 3120, 3121, 3122, 3131, 3172, 3179,
-                     3184, 3186, 3240, 3262, 3286, 3313, 3314, 3317, 3321, 3327, 
-                     3328, 3332, 3335, 3336, 3343, 3354, 3363, 3365, 3366, 3367, 
-                     3377, 3378, 3379, 3395, 3397, 3398, 3400, 3406, 3414, 3415, 
-                     3430, 3432, 3436, 3449, 3478, 3479, 3509, 3565, 3567, 3568, 
-                     3569, 3574, 3575, 3576, 3577, 3578, 3581, 3582, 3584, 3587, 
-                     3588, 3594, 3595, 3601, 3605, 3606, 3608, 3611, 3614, 3618, 
-                     3620, 3621, 3623, 3628, 3631, 3632, 3634, 3635, 3639, 3643, 
-                     3678, 3684, 3688, 3694, 3697, 3716, 3721, 3724, 3727, 3729, 
-                     3753, 3805, 3844, 3850, 3851, 3876, 3888, 3893, 3921, 3922, 
-                     3926, 3962, 3963, 3968, 3997, 4000, 4039, 4042, 4048, 4050,
-                     4051, 4059, 4060, 4061, 4062, 4066, 4068, 4085, 4107, 4108, 
-                     4109, 4110, 4111, 4112, 4113, 4114, 4115, 4116, 4117, 4118, 
-                     4119, 4121, 4122, 4124, 4128, 4132, 4142, 4143, 4145, 4152, 
-                     4157, 4159, 4164, 4168, 4169, 4171, 4172, 4173, 4175, 4176, 
-                     4177, 4178, 4179, 4180, 4181, 4182, 4184, 4187, 4188, 4189,
-                     4190, 4191, 4192, 4193, 4194, 4211, 4231, 4266, 4272, 4277, 
-                     4278, 4282, 4283, 4284, 4286, 4287, 4288, 4291, 4292, 4362,
-                     4364, 4384, 4450, 4470, 4528, 4569, 4577, 4580, 4594, 4603, 
-                     4606, 4616, 4621, 4635, 4656, 4659, 4561, 4683, 4695, 4697, 
-                     4701, 4702, 4706, 4709, 4711, 4712, 4715, 4722, 4775, 4776, 
-                     4778, 4779, 4780, 4782, 4787, 4788, 4792, 4795, 4797, 4803, 
-                     4813, 4819, 4821, 4833, 4840, 4844, 4847, 4849, 4850, 4851, 
-                     4853, 4854, 4859, 4860, 4861, 4877, 4895, 4901, 4905, 4919,
-                     4933, 4951, 4969, 4970, 4974, 4977, 4980, 4988, 5001, 5002, 
-                     5007, 5008, 5016, 5029, 5030, 5040, 5050, 5058, 5067, 5068, 
-                     5084, 5089, 5095, 5112, 5116, 5124, 5142, 5193, 5196, 5199, 
-                     5211, 5292, 5295, 5296, 5298, 5304, 5307, 5308, 5319, 5320, 
-                     5321, 5322, 5323, 5324, 5325, 5326, 5327, 5328, 5329, 5330, 
-                     5331, 5333, 5335, 5337, 5339, 5340, 5343, 5344, 5345, 5347, 
-                     5348, 5349, 5350, 5351, 5352, 5354, 5355, 5356, 5361, 5371,
-                     5373, 5375, 5376, 5379, 5380, 5382, 5383, 5385, 5386, 5403, 
-                     5404, 5410, 5431, 5499, 5502, 5504, 5505, 5508, 5511, 5514, 
-                     5518, 5536, 5585, 5600, 5616, 5617, 5620)
-
-
-## list some chosen species (for now)
-#########
-
-sel_sps_indices <- c(13, 69, 85, 87, 92, 93, 98, 107, 108, 112, 113, 147, 167,
-                     180, 195, 228, 233, 237, 248, 326, 337, 338, 339, 409, 487, 
-                     504, 506, 513, 515, 516, 518, 519, 520, 590, 605, 656, 713,
-                     870, 881, 950, 965, 970, 974, 1175, 1176, 1179, 1202, 1204,
-                     1218, 1219)
-
-sel_species <- c('Abrothrix andinus', 'Aethomys nyikae', 'Akodon dayi', 'Akodon fumeus', 'Akodon lutescens', 'Akodon mimus', 'Akodon orophilus', 'Akodon simulator', 'Akodon spegazzinii', 'Akodon toba', 'Akodon torques', 'Alouatta caraya', 'Alticola semicanus', 'Ammospermophilus interpres', 'Anoura aequatoris', 'Aotus lemurinus', 'Aotus vociferans', 'Apodemus alpicola', 'Apodemus pallipes', 'Ateles chamek', 'Auliscomys boliviensis', 'Auliscomys pictus', 'Auliscomys sublimis', 'Blarina hylophaga', 'Callithrix penicillata', 'Callospermophilus madrensis', 'Calomys boliviae', 'Calomys lepidus', 'Calomys sorellus', 'Calomys tener', 'Calomys venustus', 'Calomyscus bailwardi', 'Calomyscus baluchi', 'Cebuella pygmaea', 'Cebus versicolor', 'Cercopithecus wolfi', 'Chalinolobus picatus', 'Cratogeomys goldmani', 'Cricetulus longicaudatus', 'Crocidura hildegardeae', 'Crocidura latona', 'Crocidura littoralis', 'Crocidura luna', 'Ctenomys maulinus', 'Ctenomys mendocinus', 'Ctenomys opimus', 'Ctenomys yolandae', 'Cuniculus taczanowskii', 'Cynomys gunnisoni', 'Cynomys leucurus')
-
-
-sel_sps_indices <- c(1220, 1221, 1232, 1233, 1243, 1244, 1248, 1262, 1266, 1269,
-                     1315, 1337, 1354, 1371, 1372, 1375, 1377, 1399, 1409, 1427,
-                     1428, 1443, 1445, 1447, 1448, 1449, 1455, 1456, 1457, 1476,
-                     1490, 1495, 1496, 1498, 1499, 1501, 1502, 1505, 1531, 1534,
-                     1553, 1569, 1573, 1606, 1614, 1621, 1622, 1623, 1625, 1636)
-
-sel_species <- c("Cynomys ludovicianus", "Cynomys mexicanus", "Dactylomys boliviensis","Dactylomys dactylinus", "Dasycercus blythi", "Dasycercus cristicauda", "Dasymys nudipes", "Dasyprocta variegata", "Dasypus pilosus", "Dasypus yepesi", "Dermanura anderseni", "Diclidurus isabella","Dinomys branickii", "Dipodomys microps", "Dipodomys nelsoni","Dipodomys ornatus", "Dipodomys phillipsii", "Dolichotis salinicola","Dremomys gularis", "Echimys saturnus", "Echimys vieirai", "Elephantulus brachyrhynchus", "Elephantulus fuscipes","Elephantulus intufi", "Elephantulus myurus", "Elephantulus pilicaudus", "Eligmodontia moreni", "Eligmodontia morgani", "Eligmodontia puerulus", "Ellobius lutescens", "Eolagurus przewalskii", "Eospalax rothschildi", "Eospalax smithii", "Eothenomys chinensis", "Eothenomys custos", "Eothenomys miletus", "Eothenomys olitor", "Eozapus setchuanus", "Eptesicus floweri", "Eptesicus gobiensis", "Equus kiang", "Euchoreutes naso", "Eudorcas albonotata", "Euneomys mordax", "Euroscaptor grandis", "Euryoryzomys emmonsae", "Euryoryzomys lamia", "Euryoryzomys legatus", "Euryoryzomys nitidus", "Felis bieti")
-
-
-
-sel_sps_indices <- c(1642, 1647, 1654, 1655, 1665, 1666, 1673, 1682, 1683, 1687,
-                     1724, 1725, 1734, 1752, 1753, 1757, 1763, 1770, 1785, 1789,
-                     1792, 1804, 1810, 1821, 1848, 1849, 1853, 1866, 1885, 1886,
-                     1887, 1912, 1917, 2005, 2028, 2050, 2064, 2065, 2069, 2091, 
-                     2095, 2116, 2117, 2153, 2164, 2165, 2166, 2167, 2174, 2178)
-
-sel_species <- c("Felovia vae", "Fukomys damarensis", "Fukomys mechowii", "Fukomys ochraceocinereus", "Funisciurus bayonii", "Funisciurus carruthersi", "Funisciurus substriatus", "Galea comes", "Galea flavidens", "Galenomys garleppi", "Geomys bursarius", "Geomys knoxjonesi", "Gerbilliscus boehmi", "Gerbillus aquilus", "Gerbillus bottai", "Gerbillus cosensis", "Gerbillus gleadowi", "Gerbillus juliani", "Gerbillus pulvinatus", "Gerbillus rupicola", "Gerbillus stigmonyx", "Glauconycteris humeralis", "Glironia venusta", "Glyphonycteris behnii", "Graomys chacoensis", "Graomys domorum", "Graphiurus christyi", "Graphiurus walterverheyeni", "Handleyomys chapmani", "Handleyomys fuscatus", "Handleyomys intectus", "Heliosciurus ruwenzorii", "Hemicentetes nigriceps", "Hipposideros khasiana", "Hipposideros rotalis", "Hoolock leuconedys", "Hyladelphys kalinowskii", "Hylaeamys acritus", "Hylaeamys perenensis", "Hylomyscus denniae", "Hylomyscus kerbispeterhansi", "Hyperacrius fertilis", "Hyperacrius wynnei", "Idionycteris phyllotis", "Isothrix bistriata", "Isothrix negrensis", "Isothrix orinoci", "Isothrix pagurus", "Jaculus thaleri", "Juscelinomys huanchacae")
-
-
-
-sel_sps_indices <- c(2207, 2214, 2220, 2221, 2238, 2256, 2265, 2271, 2272, 2274,
-                     2275, 2280, 2284, 2285, 2287, 2288, 2289, 2290, 2291, 2292,
-                     2293, 2294, 2297, 2339, 2357, 2361, 2369, 2378, 2380, 2382,
-                     2408, 2409, 2410, 2411, 2429, 2431, 2432, 2443, 2445, 2454,
-                     2462, 2476, 2490, 2520, 2543, 2549, 2553, 2556, 2562, 2566)
-
-sel_species <- c("Kerodon acrobata", "Kunsia tomentosus", "Lagidium viscacia", "Lagidium wolffsohni", "Lasiopodomys brandtii", "Lasiurus salinae", "Lemmiscus curtatus", "Lemniscomys bellieri", "Lemniscomys griselda", "Lemniscomys linulus", "Lemniscomys macculus", "Lemniscomys zebra", "Lenoxus apicalis", "Leontocebus cruzlimai", "Leontocebus fuscus", "Leontocebus illigeri", "Leontocebus lagonotus", "Leontocebus leucogenys", "Leontocebus nigricollis", "Leontocebus nigrifrons", "Leontocebus tripartitus", "Leontocebus weddelli", "Leontopithecus chrysopygus", "Leporillus apicalis", "Lepus comus", "Lepus fagani", "Lepus oiostolus", "Lepus townsendii", "Lepus yarkandensis", "Lestoros inca", "Lonchorhina inusitata", "Lonchorhina marinkellei", "Lonchorhina orinocensis", "Lonchothrix emiliae", "Lophuromys huttereri", "Lophuromys luteogaster", "Lophuromys machangui", "Lophuromys simensis", "Lophuromys woosnami", "Lutreolina massoia", "Lyncodon patagonicus", "Macaca leucogenys", "Macaca thibetana", "Makalata macrura", "Marmosa constantiae", "Marmosa phaea", "Marmosa rubra", "Marmosops bishopi", "Marmosops impavidus", "Marmosops neblina")
-
-
-sel_sps_indices <- c(2567, 2568, 2575, 2578, 2580, 2601, 2604, 2626, 2687, 2688,
-                     2702, 2703, 2704, 2718, 2722, 2724, 2725, 2726, 2727, 2728,
-                     2729, 2730, 2732, 2733, 2734, 2735, 2736, 2737, 2738, 2741,
-                     2742, 2816, 2818, 2827, 2833, 2838, 2861, 2875, 2935, 2950,
-                     2952, 2963, 2964, 2971, 2989, 2990, 2991, 2992, 3044, 3049)
-
-sel_species <- c("Marmosops noctivagus", "Marmosops ocellatus", "Marmota broweri", "Marmota caudata", "Marmota himalayana", "Mastomys kollmannspergeri", "Mastomys shortridgei", "Mazama chunyi", "Meriones arimalius", "Meriones chengi", "Meriones vinogradovi", "Meriones zarudnyi", "Mesechinus dauuricus", "Mesomys occultus", "Micaelamys granti", "Mico acariensis", "Mico argentatus", "Mico chrysoleucos", "Mico emiliae", "Mico humeralifer", "Mico intermedius", "Mico leucippe", "Mico mauesi", "Mico melanurus", "Mico munduruku", "Mico nigriceps", "Mico rondoni", "Mico saterei", "Mico schneideri", "Microcavia niata", "Microcavia shiptoni", "Microsciurus flaviventer", "Microsciurus santanderensis", "Microtus bucharensis", "Microtus dogramacii", "Microtus guatemalensis", "Microtus qazvinensis", "Millardia kathleenae", "Molossus currentium", "Monodelphis osgoodi", "Monodelphis peruviana", "Mops congicus", "Mops demonstrator", "Mops niveiventer", "Moschus chrysogaster", "Moschus cupreus", "Moschus fuscus", "Moschus leucogaster", "Murina tubinaris", "Mus bufo")
-
-sel_sps_indices <- c(3050, 3061, 3070, 3072, 3100, 3120, 3121, 3122, 3131, 3172,
-                     3179, 3184, 3186, 3240, 3262, 3286, 3313, 3314, 3317, 3321,
-                     3327, 3328, 3332, 3335, 3336, 3343, 3354, 3363, 3365, 3366,
-                     3367, 3377, 3378, 3379, 3395, 3397, 3398, 3400, 3406, 3414,
-                     3415, 3430, 3432, 3436, 3449, 3478, 3479, 3509, 3565, 3567)
-
-sel_species <- c("Mus callewaerti", "Mus indutus", "Mus oubanguii", "Mus phillipsi", "Mustela nigripes", "Myomimus setzeri", "Myomyscus angolensis", "Myomyscus brockmani", "Myopterus daubentonii", "Myotis badius", "Myotis bucharensis", "Myotis ciliolabrum", "Myotis csorbai", "Myotis occultus", "Myotis sicarius", "Naemorhedus baileyi", "Neacomys minutus", "Neacomys musseri", "Neacomys spinosus", "Necromys amoenus", "Necromys punctulatus", "Necromys temchuki", "Nelsonia neotomodon", "Neodon fuscus", "Neodon irene", "Neomicroxus latebricola", "Neoromicia matroka", "Neotamias alpinus", "Neotamias bulleri", "Neotamias canipes", "Neotamias cinereicollis", "Neotamias quadrivittatus", "Neotamias ruficaudus", "Neotamias rufus", "Neotoma goldmani", "Neotoma lepida", "Neotoma leucodon", "Neotoma magister", "Neotoma stephensi", "Nephelomys keaysi", "Nephelomys levipes", "Neusticomys ferreirai", "Ningaui ridei", "Niviventer brahma", "Niviventer niviventer", "Notomys cervinus", "Notomys fuscus", "Nycteris woodi", "Ochotona curzoniae", "Ochotona erythrotis")
-
-sel_sps_indices <- c(3568, 3569, 3574, 3575, 3576, 3577, 3578, 3581, 3582, 3584,
-                     3587, 3588, 3594, 3595, 3601, 3605, 3606, 3608, 3611, 3614,
-                     3618, 3620, 3621, 3623, 3628, 3631, 3632, 3634, 3635, 3639,
-                     3643, 3678, 3684, 3688, 3694, 3697, 3716, 3721, 3724, 3727,
-                     3729, 3753, 3805, 3844, 3850, 3851, 3876, 3888, 3893, 3921)
-
-sel_species <- c("Ochotona forresti", "Ochotona gloveri", "Ochotona ladacensis", "Ochotona macrotis", "Ochotona mantchurica", "Ochotona nubrica", "Ochotona opaca", "Ochotona pusilla", "Ochotona roylei", "Ochotona rutila", "Ochotona thomasi", "Ochotona turuchanensis", "Octodontomys gliroides", "Octomys mimax", "Oecomys cleberi", "Oecomys paricola", "Oecomys phaeotis", "Oecomys phaeotis", "Oecomys superans", "Oenomys ornatus", "Oligoryzomys andinus", "Oligoryzomys brendae", "Oligoryzomys chacoensis", "Oligoryzomys destructor", "Oligoryzomys griseolus", "Oligoryzomys microtis", "Oligoryzomys moojeni", "Oligoryzomys rupestris", "Oligoryzomys stramineus", "Onychomys arenicola", "Oreoryzomys balneator", "Otomys anchietae", "Otomys cuanzensis", "Otomys helleri", "Otomys sloggetti", "Otomys typus", "Oxymycterus amazonicus", "Oxymycterus hiska", "Oxymycterus inca", "Oxymycterus paramensis", "Oxymycterus roberti", "Pantholops hodgsonii", "Paraxerus lucifer", "Perognathus fasciatus", "Perognathus parvus", "Peromyscus attwateri", "Peromyscus levipes", "Peromyscus nasutus", "Peromyscus polius", "Petaurista mechukaensis")
-
-
-sel_sps_indices <- c(3922, 3926, 3962, 3963, 3968, 3997, 4000, 4039, 4042, 4048,
-                     4050, 4051, 4059, 4060, 4061, 4062, 4066, 4068, 4085, 4107,
-                     4108, 4109, 4110, 4111, 4112, 4113, 4114, 4115, 4116, 4117,
-                     4118, 4119, 4121, 4122, 4124, 4128, 4132, 4142, 4143, 4145,
-                     4152, 4157, 4159, 4164, 4168, 4169, 4171, 4172, 4173, 4175)
-
-sel_species <- c("Petaurista mishmiensis", "Petaurista xanthotis", "Petromyscus monticularis", "Petromyscus shortridgei", "Phaiomys leucurus", "Philander andersoni", "Philander mcilhennyi", "Phyllotis andium", "Phyllotis caprinus", "Phyllotis magister", "Phyllotis osilae", "Phyllotis wolffsohni", "Piliocolobus langi", "Piliocolobus lulindicus", "Piliocolobus oustaleti", "Piliocolobus parmentieri", "Piliocolobus semlikiensis", "Piliocolobus tholloni", "Pipistrellus inexspectatus", "Pithecia aequatorialis", "Pithecia albicans", "Pithecia cazuzai", "Pithecia chrysocephala", "Pithecia hirsuta", "Pithecia inusta", "Pithecia irrorata", "Pithecia isabela", "Pithecia milleri", "Pithecia mittermeieri", "Pithecia monachus", "Pithecia napensis", "Pithecia pissinattii", "Pithecia rylandsi", "Pithecia vanzolinii", "Planigale gilesi", "Planigale tenuirostris", "Platyrrhinus albericoi", "Platyrrhinus infuscus", "Platyrrhinus ismaeli", "Platyrrhinus masu", "Plecotus ariel", "Plecotus homochrous", "Plecotus kozlovi", "Plecotus strelkovi", "Plecotus wardi", "Plecturocebus aureipalatii", "Plecturocebus bernhardi", "Plecturocebus brunneus", "Plecturocebus caligatus", "Plecturocebus cinerascens")
-
-sel_sps_indices <- c(4176, 4177, 4178, 4179, 4180, 4181, 4182, 4184, 4187, 4188,
-                     4189, 4190, 4191, 4192, 4193, 4194, 4211, 4231, 4266, 4272,
-                     4277, 4278, 4282, 4283, 4284, 4286, 4287, 4288, 4291, 4292,
-                     4364, 4384, 4450, 4470, 4528, 4569, 4577, 4580, 4594, 4603,
-                     4606, 4616, 4621, 4635, 4656, 4659, 4561, 4683, 4695, 4697)
-
-sel_species <- c("Plecturocebus cupreus", "Plecturocebus discolor", "Plecturocebus donacophilus", "Plecturocebus dubius", "Plecturocebus grovesi", "Plecturocebus hoffmannsi", "Plecturocebus miltoni", "Plecturocebus moloch", "Plecturocebus ornatus", "Plecturocebus pallescens", "Plecturocebus parecis", "Plecturocebus stephennashi", "Plecturocebus toppini", "Plecturocebus urubambensis", "Plecturocebus vieirai", "Plerotes anchietae", "Poliocitellus franklinii", "Praomys misonnei", "Procapra picticaudata", "Proechimys brevicauda", "Proechimys echinothrix", "Proechimys gardneri", "Proechimys hoplomyoides", "Proechimys kulinae", "Proechimys longicaudatus", "Proechimys oconnelli", "Proechimys pattoni", "Proechimys quadruplicatus", "Proechimys simonsi", "Proechimys steerei", "Pseudomys australis", "Pseudoryzomys simplex", "Pteropus rufus", "Punomys lemminus", "Rattus pyctoris", "Reithrodontomys montanus", "Reithrodontomys zacatecae", "Rhabdomys intermedius", "Rhinolophus bocharicus", "Rhinolophus cohenae", "Rhinolophus damarensis", "Rhinolophus guineensis", "Rhinolophus huananus", "Rhinolophus mcintyrei", "Rhinolophus schnitzleri", "Rhinolophus shortridgei", "Rhinolophus silvestris", "Rhinopithecus bieti", "Rhipidomys austrinus", "Rhipidomys caucensis")
-
-sel_sps_indices <- c(4701, 4702, 4706, 4709, 4711, 4712, 4715, 4722, 4775, 4776, 
-                     4778, 4779, 4780, 4782, 4787, 4788, 4792, 4795, 4797, 4803, 
-                     4813, 4819, 4821, 4833, 4840, 4844, 4847, 4849, 4850, 4851, 
-                     4853, 4854, 4859, 4860, 4861, 4877, 4895, 4901, 4905, 4919,
-                     4933, 4951, 4969, 4970, 4974, 4977, 4980, 4988, 5001, 5002)
-
-sel_species <- c("Rhipidomys gardneri", "Rhipidomys ipukensis", "Rhipidomys macconnelli", "Rhipidomys modicus", "Rhipidomys ochrogaster", "Rhipidomys tribei", "Rhipidomys wetzeli", "Rhogeessa hussoni", "Saguinus imperator", "Saguinus inustus", "Saguinus leucopus", "Saguinus martinsi", "Saguinus melanoleucus", "Saguinus mystax", "Saimiri boliviensis", "Saimiri cassiquiarensis", "Saimiri ustus", "Salinomys delicatus", "Salpingotus crassicauda", "Sapajus cay", "Scapanulus oweni", "Scaptonyx fusicaudus", "Scarturus euphratica", "Sciurus alleni", "Sciurus flammifer", "Sciurus ignitus", "Sciurus nayaritensis", "Sciurus oculatus", "Sciurus pucheranii", "Sciurus pyrrhinus", "Sciurus sanborni", "Sciurus spadiceus", "Scleronycteris ega", "Scolomys melanops", "Scolomys ucayalensis", "Scotophilus ejetai", "Scutisorex somereni", "Semnopithecus hector", "Semnopithecus schistaceus", "Sicista pseudonapaea", "Sigmodon ochrognathus", "Sminthopsis ooldea", "Sorex arizonae", "Sorex asper", "Sorex buchariensis", "Sorex cansulus", "Sorex cylindricauda", "Sorex haydeni", "Sorex merriami", "Sorex milleri")
-
-sel_sps_indices <- c(5007, 5008, 5016, 5029, 5030, 5040, 5050, 5058, 5067, 5068, 
-                     5084, 5089, 5095, 5112, 5116, 5124, 5142, 5193, 5196, 5199, 
-                     5211, 5292, 5295, 5296, 5298, 5304, 5307, 5308, 5319, 5320, 
-                     5321, 5322, 5323, 5324, 5325, 5326, 5327, 5328, 5329, 5330, 
-                     5331, 5333, 5335, 5337, 5339, 5340, 5343, 5344, 5345, 5347)
-
-sel_species <- c("Sorex nanus", "Sorex neomexicanus", "Sorex preblei", "Sorex tenellus", "Sorex thibetanus", "Sorex yukonicus", "Spalax graecus", "Spermophilus brevicauda", "Spermophilus ralli", "Spermophilus relictus", "Steatomys bocagei", "Steatomys opimus", "Stenocephalemys ruppi", "Sturnira magna", "Sturnira oporaphilum", "Stylodipus andrewsi", "Suncus remyi", "Sylvilagus nuttallii", "Sylvilagus robustus", "Sylvilagus varynaensis", "Sylvisorex oriundus", "Taterillus congicus", "Taterillus lacustris", "Taterillus petteri", "Taterillus tranieri", "Thallomys loringi", "Thallomys shortridgei", "Thalpomys cerradensis", "Thomasomys australis", "Thomasomys baeops", "Thomasomys bombycinus", "Thomasomys caudivarius", "Thomasomys cinereiventer", "Thomasomys cinereus", "Thomasomys cinnameus", "Thomasomys contradictus", "Thomasomys daphne", "Thomasomys dispar", "Thomasomys eleusis", "Thomasomys emeritus", "Thomasomys erro", "Thomasomys gracilis", "Thomasomys hylophilus", "Thomasomys ischyrus", "Thomasomys ladewi", "Thomasomys laniger", "Thomasomys nicefori", "Thomasomys niveipes", "Thomasomys notatus", "Thomasomys oreas")
-
-#############
+plot(st_geometry(buf50), col = 'yellow', border = 'purple', add = T)
 
 
-sel_sps_indices <- c(5348, 5349, 5350, 5351, 5352, 5354, 5355, 5356, 5361, 5371,
-                     5373, 5375, 5376, 5379, 5380, 5382, 5383, 5385, 5386, 5403, 
-                     5404, 5410, 5431, 5499, 5502, 5504, 5505, 5508, 5511, 5514, 
-                     5518, 5536, 5585, 5600, 5616, 5617, 5620)
+# #borders that do not disappear in the polygon merging
+# plot(st_geometry(world_loc), col = 'grey')
+# plot(st_geometry(world_land), col = NA, border = 'green', add = T)
 
-sel_species <- c("Thomasomys paramorum", "Thomasomys popayanus", "Thomasomys praetor", "Thomasomys princeps", "Thomasomys pyrrhonotus", "Thomasomys silvestris", "Thomasomys taczanowskii", "Thomasomys ucucha", "Thomomys clusius", "Thrichomys inermis", "Thrichomys pachyurus", "Thylamys cinderella", "Thylamys citellus", "Thylamys karimii", "Thylamys macrurus", "Thylamys pulchellus", "Thylamys pusillus", "Thylamys velutinus", "Thylamys venustus", "Tolypeutes matacus", "Tolypeutes tricinctus", "Toromys rhipidurus", "Trachypithecus shortridgei", "Tympanoctomys barrerae", "Typhlomys cinereus", "Urocitellus armatus", "Urocitellus beldingi", "Urocitellus columbianus", "Urocitellus mollis", "Urocitellus richardsonii", "Urocricetus alticola", "Uropsilus gracilis", "Vulpes ferrilata", "Xeronycteris vieirai", "Zelotomys hildegardeae", "Zelotomys woosnami", "Zygodontomys brunneus")
 
-#save list of selected species
-setwd(wd_lists)
-saveRDS(sel_species, 'Selected_mammal_species_12')
+
+
+
+##############
+
+
+#create a data frame for all species
+res <- data.frame()
