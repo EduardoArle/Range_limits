@@ -11,27 +11,42 @@ wd_tables <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manus
 
 #install functions to be used in this script
 
-crop_world_to_range <- function(range, world, margin_deg = 1){
+crop_world_to_range <- function(range, world,
+                                margin_deg = 1, tol_km = 5, extra_km = 50){
   # range: sf species range in lon/lat (WGS84)
   # world: sf world land polygons in lon/lat
   # margin_deg: degrees to expand bounding box (~1 degree ≈ 100 km)
+  # tol_km: dist defining the coastal neighbourhood around the range
+  # extra_km: extra padding beyond tol_km to avoid edge effects from cropping
   
-  # 1. Bounding box of the species, in local metres
+  # 1. Bounding box of the species
   bb <- st_bbox(range)
   
-  # 2. Expand the longitude of bbox by the margin
-  bb["xmin"] <- bb["xmin"] - margin_deg
-  bb["xmax"] <- bb["xmax"] + margin_deg
+  # 2. Latitude of range centre (used for degree conversion)
+  lat0 <- (bb["ymin"] + bb["ymax"]) / 2
   
-  # 3. Expand the latitude of bbox by the margin (needs clamping)
-  bb["ymin"] <- max(bb["ymin"] - margin_deg, -90)
-  bb["ymax"] <- min(bb["ymax"] + margin_deg,  90)
+  # 3. Convert buffer distance (km) to degrees
+  pad_km  <- tol_km + extra_km
+  pad_lat <- pad_km / 111
+  pad_lon <- pad_km / (111 * cos(lat0 * pi / 180))
   
-  # 4. Turn expanded bbox into an sf geometry (polygon)
+  # 4. Ensure padding is at least as large as margin_deg
+  pad_lon <- max(pad_lon, margin_deg)
+  pad_lat <- max(pad_lat, margin_deg)
+  
+  # 5. Expand the longitude of bbox
+  bb["xmin"] <- bb["xmin"] - pad_lon
+  bb["xmax"] <- bb["xmax"] + pad_lon
+  
+  # 6. Expand the latitude of bbox (needs clamping)
+  bb["ymin"] <- max(bb["ymin"] - pad_lat, -90)
+  bb["ymax"] <- min(bb["ymax"] + pad_lat,  90)
+  
+  # 7. Turn expanded bbox into an sf geometry (polygon)
   bb_sfc <- st_as_sfc(bb)
   st_crs(bb_sfc) <- st_crs(world)
-  
-  # 5. Crop world to this expanded bbox
+
+  # 8. Crop world to this expanded bbox
   world_crop <- suppressWarnings(st_intersection(world, bb_sfc))
   
   return(world_crop)
@@ -71,7 +86,7 @@ compute_frag_dir <- function(part_geom, world_land, touches_water,
   # coast_buffer: dist (m) to define the "coastal band" around the fragment
   
   #if fragment does not touch water → 0% in all directions
-  if (isFALSE(touches_water)) {
+  if(isFALSE(touches_water)){
     return(c(N = 0, S = 0, E = 0, W = 0))
   }
   
@@ -173,7 +188,7 @@ E_ocean <- character() # percentage of frag limited by ocean to the East
 W_ocean <- character() # percentage of frag limited by ocean to the West
 
 #loop through ranges
-for(i in 1:543)#length(sps_list))
+for(i in 1:5657:length(sps_list))
 {
   #load species range
   setwd(wd_ranges)
@@ -345,11 +360,11 @@ for(i in 1:543)#length(sps_list))
     }
     
     #round values and append "%" to match final output format
-    P_chr <- paste0(round(frag_P), "%")
-    N_chr <- paste0(round(frag_N), "%")
-    S_chr <- paste0(round(frag_S), "%")
-    E_chr <- paste0(round(frag_E), "%")
-    W_chr <- paste0(round(frag_W), "%")
+    P_chr <- paste0(round(frag_P, 2), "%")
+    N_chr <- paste0(round(frag_N, 2), "%")
+    S_chr <- paste0(round(frag_S, 2), "%")
+    E_chr <- paste0(round(frag_E, 2), "%")
+    W_chr <- paste0(round(frag_W, 2), "%")
     
     #collapse per-fragment values into single semicolon-separated strings
     P_str <- paste(P_chr, collapse = ";")
@@ -419,9 +434,9 @@ for(i in 1:543)#length(sps_list))
   print(i)
 }
 
-
 #make data.frame with results
-res <- data.frame(contiguous = contiguous,
+res <- data.frame(species = sps_list,
+                  contiguous = contiguous,
                   fragments = fragments,
                   range_frag_km2 = range_frag_km2,
                   border_ocean = border_ocean,
@@ -435,35 +450,4 @@ res <- data.frame(contiguous = contiguous,
 
 
 setwd(wd_tables)
-write.csv(res, 'Partial_results_1_543.csv', row.names = F)
-
-##### visualise #####
-
-#see region on world
-plot(st_geometry(world), col = 'grey90')
-plot(st_geometry(world_crop), col = 'red', add = T)
-
-#see range on region
-plot(st_geometry(world_land), col = 'red')
-plot(st_geometry(range_loc), col = 'green', add = T)
-
-
-#see each part
-plot(st_geometry(buf5), col = 'magenta', border = 'purple', add = T)
-
-plot(st_geometry(buf50), col = 'yellow', border = 'purple', add = T)
-
-
-# #borders that do not disappear in the polygon merging
-# plot(st_geometry(world_loc), col = 'grey')
-# plot(st_geometry(world_land), col = NA, border = 'green', add = T)
-
-
-
-
-
-##############
-
-
-#create a data frame for all species
-res <- data.frame()
+write.csv(res, 'Range_details.csv', row.names = F)
