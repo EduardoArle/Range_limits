@@ -9,16 +9,10 @@ wd_variables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/
 wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250421_Comparison'
 wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
 
-### new thinning per order (saves time and useful for presence and PA
-wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Thinned Occ'
-
-### this has to be fixed
-wd_lists <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
-
 
 #list species 
-setwd(wd_lists)
-sps_list <- read.csv('Species_order.csv')
+setwd(wd_thinned_occ)
+sps_list <- gsub('_thinned.csv', '', list.files())
 
 #load all six BioCLim variables being used
 setwd(wd_variables)
@@ -44,27 +38,29 @@ preds_max_PPT <- c('wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_13')
 
 ######## Run SHAP for all species ######
 
-for(i in 1:length(sps_list))
+for(i in 501:length(sps_list))
 {
   #select species
-  sps <- sps_list$species[i]
+  sps <- sps_list[i]
   
-  #get species order
-  order <- sps_list$order[i]
-  
-  #load order thinned occurrences
+  #load species occurrences
   setwd(wd_thinned_occ)
-  ord_occ <- read.csv(paste0(order, '_thin.csv'))
+  sps_occ <- read.csv(paste0(sps, '_thinned.csv'))
   
-  #select only points representing the species
-  sps_occ <- ord_occ[ord_occ$species == sps,]
+  #select only presence occurrences
+  pr_sps <- sps_occ[which(sps_occ$occurrenceStatus == 'PRESENT'),]
   
+  #check if there are absence data
+  abs_sps <- sps_occ[which(sps_occ$occurrenceStatus == 'ABSENT'),]
+  if(nrow(abs_sps) != 0){
+    warning(paste0('THERE IS ABSENT DATA FOR ', sps_list[i]))
+  }
   
-  ## Select only points whithin the species range
+  ## Create pseudo absences (half the number of presences)
   
   #load species range map
   setwd(wd_ranges)
-  range <- st_read(dsn = wd_ranges, layer = sps_list$species[i])
+  range <- st_read(dsn = wd_ranges, layer = sps_list[i])
   
   #select the range representing only the native range of the species
   range <- range[range$legend == 'Extant (resident)',]
@@ -72,29 +68,15 @@ for(i in 1:length(sps_list))
   #unify all features
   sps_range2 <- st_union(range)
   
-  #create spatial object with sps presences
-  sps_occ_sf <- st_as_sf(sps_occ, 
-                         coords = c('decimalLongitude', 'decimalLatitude'),
-                         crs = st_crs(range))
-  
-  #select only the points within the species range
-  pts_range <- st_intersects(sps_occ_sf, range, sparse = F)[, 1]
-  sps_occ_range <- sps_occ[pts_range,] #table
-  sps_occ_range_sf <- sps_occ_sf[pts_range,] #spatial object
-  
-  
-  ## Select pseudo-absences (same number of presences)
-  
   #make a 50km buffer around the sps range
   sps_range_buf <- st_buffer(sps_range2, 50000)  
- 
+  
   #make spatial object
-  pr_sps_sf <- st_as_sf(sps_occ_range_sf,
-                        coords = c('decimalLongitude', 'decimalLatitude'),
+  pr_sps_sp <- st_as_sf(pr_sps, coords = c('decimalLongitude', 'decimalLatitude'),
                         crs = crs(sps_range2))
   
-  #make 50km buffer around points to delimit area where I don't want PA
-  small_buffer <- st_buffer(pr_sps_sf, 50000)  
+  #make a 50km buffer around the points to delimit the area where I don't want pseudo abs
+  small_buffer <- st_buffer(pr_sps_sp, 50000)  
   
   #make a spatial polygon object with only one feature
   no_pa_area <- st_union(small_buffer)
@@ -105,56 +87,11 @@ for(i in 1:length(sps_list))
   #make holes in the species range by the small buffer around points
   pa_area <- st_difference(sps_range_buf, no_pa_area)
   
-  #select only points representing other species in the same order
-  pa_pts <- ord_occ[ord_occ$species != sps,]
+  #define number of pseudo abs to be created (same as presences)
+  n_pa <- nrow(pr_sps)
   
-  #limit coords to reduce computational time
-  bb <- st_bbox(pa_area)
-  pa_pts_lim <- pa_pts[pa_pts$decimalLongitude <= bb$xmax &
-                       pa_pts$decimalLongitude >= bb$xmin &
-                       pa_pts$decimalLatitude <= bb$ymax &
-                       pa_pts$decimalLatitude >= bb$ymin,]
-  
-  #drop missing coords
-  pa_pts_lim <- pa_pts_lim[!is.na(pa_pts_lim$decimalLongitude) &
-                             !is.na(pa_pts_lim$decimalLatitude), ]
-  
-  #select only entries with species names
-  pa_pts_lim <- pa_pts_lim[pa_pts_lim$species != "",]
-  
-  
-  
-  ###### all of this in new script ######
-  
-  
-  #select a template raster to build bias surface
-  raster_var <- AnnualMeanTemperature
-  
-  
-  
-  #create spatial object with other species in the order presences
-  pa_pts_sf <- st_as_sf(pa_pts_lim, 
-                        coords = c('decimalLongitude', 'decimalLatitude'),
-                        crs = st_crs(range))
-  
-  #select only the points of other species within the pseudo-absence area
-  pa_range <- st_intersects(pa_pts_sf, pa_area, sparse = F)[, 1]
-  sps_pa_range <- pa_pts_lim[pa_range,] #table
-  sps_pa_sf <- st_as_sf(sps_pa_range,
-                        coords = c('decimalLongitude', 'decimalLatitude'),
-                        crs = crs(range))
-  
-
-  
-
-  
-  
-  # 
-  # #define number of pseudo abs to be created (same as presences)
-  # n_pa <- nrow(sps_occ)
-  # 
-  # #select PA from presents of other species in same order
-  # pa <- sps_pa_sf[sample(nrow(sps_pa_sf), n_pa),]
+  #generate pseudo absences
+  pa <- st_sample(pa_area, size = n_pa, type = "random")
   
   #get coords of pa
   pa_coords <- as.data.frame(st_coordinates(pa))
@@ -163,7 +100,7 @@ for(i in 1:length(sps_list))
   pa_coords$Type <- 'Pseudo-absence'
   
   #get coords of pr
-  pr_coords <- as.data.frame(st_coordinates(sps_occ_range_sf))
+  pr_coords <- as.data.frame(st_coordinates(pr_sps_sp))
   names(pr_coords) <- c('decimalLongitude', 'decimalLatitude')
   pr_coords$Occurrence <- 1 #include column informing occ status
   pr_coords$Type <- 'Presence'
@@ -177,9 +114,9 @@ for(i in 1:length(sps_list))
                          crs = crs(sps_range2))
   
   #select variables we will use
-  preds <- stack(AnnualMeanTemperature, AnnualPrecipitation,
-                 MinTemperatureOfColdestMonth, PrecipitationOfDriestMonth,
-                 MaxTemperatureOfWarmestMonth, PrecipitationOfWettestMonth)
+  preds <- stack(AnnualMeanTemperature, AnnualPrecipitation, #means
+                 MinTemperatureOfColdestMonth, PrecipitationOfDriestMonth, #mins
+                 MaxTemperatureOfWarmestMonth, PrecipitationOfWettestMonth) #maxs
   
   #extract values from each location from all variables
   vals_pts <- extract(preds, species_sp)
@@ -190,10 +127,6 @@ for(i in 1:length(sps_list))
   #make 10 replicates of the process
   for(j in 1:10)
   {
-    
-    ##### Include the geographical blocks
-    
-    
     ## Split the data in 10 folds for training and testing
     
     #randomly shuffle the data separate presence from pseudo-absence
