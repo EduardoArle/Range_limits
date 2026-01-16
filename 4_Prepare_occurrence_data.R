@@ -794,3 +794,63 @@ order_occ_thin <- unique(as.data.table(order_occ_sf),
 #save just in case it crashes
 setwd(wd_PA_thinned)
 write.csv(no_reps, 'Macroscelidea_thin.csv', row.names = F) 
+
+
+
+##########################
+#    PAUCITUBERCULATA    #
+##########################
+
+
+
+#inspect the headers of the table
+setwd(wd_raw)
+cols <- names(read.delim("Paucituberculata.csv", sep = "\t", nrows = 1))
+cols
+
+#define columns to keep
+keep <- c("gbifID", "scientificName", "species", "order", "decimalLatitude",  
+          "decimalLongitude", "basisOfRecord")
+
+#build colClasses
+colClasses <- rep("NULL", length(cols))
+
+colClasses[match("gbifID", cols)]           <- "character"
+colClasses[match("scientificName", cols)]   <- "character"
+colClasses[match("species", cols)]          <- "character"
+colClasses[match("order", cols)]            <- "character"
+colClasses[match("decimalLatitude", cols)]  <- "numeric"
+colClasses[match("decimalLongitude", cols)] <- "numeric"
+colClasses[match("basisOfRecord", cols)]    <- "character"
+
+#load full table
+setwd(wd_raw)
+
+all_ord <- read.delim("Paucituberculata.csv", header = TRUE, sep = "\t",
+                      stringsAsFactors = FALSE, quote = "", comment.char = "",
+                      colClasses = colClasses)
+
+
+#eliminate rows with same "species", "decimalLatitude", and "decimalLongitude"
+no_reps <- unique(as.data.table(all_ord),
+                  by = c('species', 'decimalLatitude', 'decimalLongitude'))
+
+#create spatial object
+order_occ_sf <- st_as_sf(no_reps, 
+                         coords = c('decimalLongitude', 'decimalLatitude'),
+                         crs = st_crs(var))
+
+#get cellID value to thin the records to max one per sps per grid cel
+cellIDs <- extract(ID_raster, order_occ_sf)
+
+#include cell value and coordinates into species data
+no_reps$cellID <- cellIDs
+
+#keep only one entry per cell
+order_occ_thin <- unique(as.data.table(no_reps),
+                         by = c('cellID', 'species'))
+
+
+#save just in case it crashes
+setwd(wd_PA_thinned)
+write.csv(no_reps, 'Paucituberculata_thin.csv', row.names = F) 

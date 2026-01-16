@@ -1,16 +1,16 @@
-#load packages 
-library(raster); library(sf)
+#load packages
+library(raster); library(sf); library(data.table)
 
 #list wds
-wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
+# wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_variables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/BioClim_layers'
-wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Thinned_occurrrences'
-wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Variable_correlation'
-wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
+wd_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Species_occ'
+wd_res <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables/Variable_correlation'
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables'
 
 #list species 
-setwd(wd_thinned_occ)
-sps_list <- gsub('_thinned.csv', '', list.files())
+setwd(wd_occ)
+sps_list <- gsub('_occ.csv', '', list.files())
 
 #load all six BioCLim variables being used
 setwd(wd_variables)
@@ -42,20 +42,14 @@ for(i in 1:length(sps_list))
   sps_name[i] <- sps
   
   #load species occurrences
-  setwd(wd_thinned_occ)
-  sps_occ <- read.csv(paste0(sps, '_thinned.csv'))
+  setwd(wd_occ)
+  sps_occ <- read.csv(paste0(sps, '_occ.csv'))
   
   #select only presence occurrences
-  pr_sps <- sps_occ[which(sps_occ$occurrenceStatus == 'PRESENT'),]
+  pr_sps <- sps_occ[which(sps_occ$Type == 'Presence'),]
   
   #save n_occ in list
   n_occ[i] <- nrow(pr_sps)
-  
-  #check if there are absence data
-  abs_sps <- sps_occ[which(sps_occ$occurrenceStatus == 'ABSENT'),]
-  if(nrow(abs_sps) != 0){
-    warning(paste0('THERE IS ABSENT DATA FOR ', sps_list[i]))
-  }
   
   #create sf object of the species occurrences
   pr_sps_sp <- st_as_sf(pr_sps,
@@ -68,7 +62,7 @@ for(i in 1:length(sps_list))
   correl <- cor(values)
   
   #save results per species
-  setwd(wd_res_species)
+  setwd(wd_res)
   write.csv(correl, paste0(sps,'.csv'), row.names = T)
   
   print(i)
@@ -89,7 +83,7 @@ preds_mean_PPT <- numeric()
 preds_max_PPT <- numeric()
 
 #for loop through results getting correlation of pairs of variable of interest
-setwd(wd_res_species)
+setwd(wd_res)
 
 for(i in 1:length(list.files())){
   
@@ -113,6 +107,7 @@ for(i in 1:length(list.files())){
   print(i)
 }
 
+
 #create data.frame with results
 results_correl <- data.frame(Species = species_name,
                              n_occ = n_occ,
@@ -126,3 +121,21 @@ results_correl <- data.frame(Species = species_name,
 #save dataframe with results
 setwd(wd_tables)
 write.csv(results_correl, 'Correlation_variables.csv', row.names = F)
+
+
+#include correlation analysis in final table 
+
+#load dataframe with SHAP results
+setwd(wd_tables)
+info_species <- read.csv('Info_species.csv', stringsAsFactors = FALSE)
+
+#fix names in info_species
+names(info_species)[c(1,2)] <- c('Species', 'Order')
+
+#join correlation analysis (including n_occ) to species info table
+mistress_file <- merge(info_species, results_correl, by = 'Species',
+                       all.x = TRUE)
+
+#save mistress file
+setwd(wd_tables)
+write.csv(mistress_file, 'Mistress_file.csv', row.names = F)

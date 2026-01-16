@@ -1,16 +1,21 @@
 #load packages 
-library(raster);library(data.table);library(rworldmap)
-library(dplyr);library(sf);library(shapviz);library(kernelshap)
-library(xgboost);library(caret);library(pROC);library(PresenceAbsence)
+library(sf); library(raster); library(xgboost); library(PresenceAbsence)
+library(dismo); library(data.table); library(plyr)
+
+# library(data.table);library(rworldmap)
+# ;library(sf);library(shapviz);library(kernelshap)
+# ;library(caret);library(pROC)
 
 #list wds
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_variables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/BioClim_layers'
-wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250421_Comparison'
-wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
-
-### new thinning per order (saves time and useful for presence and PA
+wd_bias <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Biases'
+wd_harmo <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review'
+wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/SHAP_results'
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables'
 wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Thinned Occ'
+wd_sps_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Species_occ'
+
 
 ### this has to be fixed
 wd_lists <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
@@ -19,6 +24,10 @@ wd_lists <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Specie
 #list species 
 setwd(wd_lists)
 sps_list <- read.csv('Species_order.csv')
+
+#load lookup table for name harmonisation according to GBIF backbone
+setwd(wd_harmo)
+harmo <- read.csv('Harmonised_table.csv')
 
 #load all six BioCLim variables being used
 setwd(wd_variables)
@@ -41,13 +50,72 @@ preds_min_PPT <- c('wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_14')
 preds_mean_PPT <- c('wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_12')
 preds_max_PPT <- c('wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_13')
 
+# number of spatial folds for cross validation
+k_folds <- 5           
+
+#define parameters for xgboost
+params <- list(objective = "binary:logistic", eval_metric = "auc", eta = 0.1,
+               max_depth = 3, subsample = 0.7, colsample_bytree = 0.7,
+               min_child_weight = 0, gamma = 0)
+
+#install modified randomPoints function
+safeRandomPoints <- function(mask, n, prob = TRUE, min_n = 1,
+                             verbose = FALSE){
+  # mask: RasterLayer/SpatRaster
+  # n: requested number of points
+  # prob: pass-through to randomPoints()
+  # min_n: smallest acceptable n before giving up
+  # verbose: message when n is reduced
+  
+  # count sampleable cells (for prob=TRUE, zeros are effectively not sampleable)
+  vals <- raster::getValues(mask)
+  if (prob) {
+    n_avail <- sum(!is.na(vals) & vals > 0)
+  } else {
+    n_avail <- sum(!is.na(vals))
+  }
+  
+  if (n_avail < min_n) {
+    if (verbose) message("safeRandomPoints: no available cells to sample.")
+    return(NULL)
+  }
+  
+  n_use <- min(n, n_avail)
+  if (verbose && n_use < n) message("safeRandomPoints: reducing n from ", n, " to ", n_use)
+  
+  # attempt, and if something still goes wrong, reduce gradually until it works
+  repeat {
+    out <- try(
+      dismo::randomPoints(mask = mask, n = n_use, prob = prob),
+      silent = TRUE
+    )
+    if (!inherits(out, "try-error")) return(out)
+    
+    n_use <- floor(n_use * 0.9)  # reduce by 10% each attempt
+    if (verbose) message("safeRandomPoints: retry with n = ", n_use)
+    
+    if (n_use < min_n) {
+      if (verbose) message("safeRandomPoints: reached min_n without success.")
+      return(NULL)
+    }
+  }
+}
 
 ######## Run SHAP for all species ######
 
-for(i in 1:length(sps_list))
+for(i in 1:length(sps_list$species))
 {
   #select species
   sps <- sps_list$species[i]
+  
+  ## Harmonise species according to GBIF backbone
+  
+  #find GBIF name from crosswalk
+  idx <- match(sps, harmo$iucn_name)
+  gbif_name <- harmo$gbif_name[idx]
+  
+  #if no GBIF name, skip species
+  if(is.na(gbif_name) || !nzchar(gbif_name)) next
   
   #get species order
   order <- sps_list$order[i]
@@ -57,8 +125,7 @@ for(i in 1:length(sps_list))
   ord_occ <- read.csv(paste0(order, '_thin.csv'))
   
   #select only points representing the species
-  sps_occ <- ord_occ[ord_occ$species == sps,]
-  
+  sps_occ <- ord_occ[which(ord_occ$species == gbif_name),]
   
   ## Select only points whithin the species range
   
@@ -82,19 +149,17 @@ for(i in 1:length(sps_list))
   sps_occ_range <- sps_occ[pts_range,] #table
   sps_occ_range_sf <- sps_occ_sf[pts_range,] #spatial object
   
+  #check whether there are at least 10 records
+  if(nrow(sps_occ_range_sf) < 11){
+    next
+  }
   
   ## Select pseudo-absences (same number of presences)
   
-  #make a 50km buffer around the sps range
   sps_range_buf <- st_buffer(sps_range2, 50000)  
- 
-  #make spatial object
-  pr_sps_sf <- st_as_sf(sps_occ_range_sf,
-                        coords = c('decimalLongitude', 'decimalLatitude'),
-                        crs = crs(sps_range2))
   
   #make 50km buffer around points to delimit area where I don't want PA
-  small_buffer <- st_buffer(pr_sps_sf, 50000)  
+  small_buffer <- st_buffer(sps_occ_range_sf, 50000)  
   
   #make a spatial polygon object with only one feature
   no_pa_area <- st_union(small_buffer)
@@ -105,59 +170,33 @@ for(i in 1:length(sps_list))
   #make holes in the species range by the small buffer around points
   pa_area <- st_difference(sps_range_buf, no_pa_area)
   
-  #select only points representing other species in the same order
-  pa_pts <- ord_occ[ord_occ$species != sps,]
+  #load bias raster for this order
+  setwd(wd_bias)
+  bias_r <- raster(paste0(order, "_bias_0.5deg.tif"))
   
-  #limit coords to reduce computational time
-  bb <- st_bbox(pa_area)
-  pa_pts_lim <- pa_pts[pa_pts$decimalLongitude <= bb$xmax &
-                       pa_pts$decimalLongitude >= bb$xmin &
-                       pa_pts$decimalLatitude <= bb$ymax &
-                       pa_pts$decimalLatitude >= bb$ymin,]
+  #restrict bias raster to PA area
+  bias_pa <- mask(bias_r, as(pa_area, "Spatial"))
+  bias_pa <- crop(bias_pa, as(pa_area, "Spatial"))
   
-  #drop missing coords
-  pa_pts_lim <- pa_pts_lim[!is.na(pa_pts_lim$decimalLongitude) &
-                             !is.na(pa_pts_lim$decimalLatitude), ]
+  #crop the fine-resolution template to the same extent
+  pred1_pa <- crop(AnnualMeanTemperature, extent(bias_pa))
   
-  #select only entries with species names
-  pa_pts_lim <- pa_pts_lim[pa_pts_lim$species != "",]
+  #resample bias layer to the resolution of variables
+  bias_pa_fine <- resample(bias_pa, pred1_pa, method = "ngb")
   
+  # number of pseudo-absences = presences inside range
+  n_pa <- nrow(sps_occ_range)
   
+  # sample pseudo-absences
+  pa_xy <- safeRandomPoints(bias_pa_fine, n_pa, prob = T,
+                            min_n = 10, verbose = TRUE)
   
-  ###### all of this in new script ######
-  
-  
-  #select a template raster to build bias surface
-  raster_var <- AnnualMeanTemperature
-  
-  
-  
-  #create spatial object with other species in the order presences
-  pa_pts_sf <- st_as_sf(pa_pts_lim, 
-                        coords = c('decimalLongitude', 'decimalLatitude'),
-                        crs = st_crs(range))
-  
-  #select only the points of other species within the pseudo-absence area
-  pa_range <- st_intersects(pa_pts_sf, pa_area, sparse = F)[, 1]
-  sps_pa_range <- pa_pts_lim[pa_range,] #table
-  sps_pa_sf <- st_as_sf(sps_pa_range,
-                        coords = c('decimalLongitude', 'decimalLatitude'),
-                        crs = crs(range))
-  
-
-  
-
-  
-  
-  # 
-  # #define number of pseudo abs to be created (same as presences)
-  # n_pa <- nrow(sps_occ)
-  # 
-  # #select PA from presents of other species in same order
-  # pa <- sps_pa_sf[sample(nrow(sps_pa_sf), n_pa),]
+  # convert to sf
+  pa_sf <- st_as_sf(as.data.frame(pa_xy), coords = c(1, 2),
+                    crs = st_crs(range))
   
   #get coords of pa
-  pa_coords <- as.data.frame(st_coordinates(pa))
+  pa_coords <- as.data.frame(st_coordinates(pa_sf))
   names(pa_coords) <- c('decimalLongitude', 'decimalLatitude')
   pa_coords$Occurrence <- 0 #include column informing occ status
   pa_coords$Type <- 'Pseudo-absence'
@@ -171,8 +210,18 @@ for(i in 1:length(sps_list))
   #combine pseudo absences and presences
   species <- rbind(pr_coords, pa_coords)
   
+  #include species name
+  species <- cbind(sps, species)
+  
+  #save table with species occ
+  setwd(wd_sps_occ)
+  write.csv(species, paste0(sps, '_occ.csv'), row.names = F)
+  
+  #create ID for points
+  species$ID <- seq_len(nrow(species))
+  
   #make spatial obj again
-  species_sp <- st_as_sf(species, 
+  species_sf <- st_as_sf(species, 
                          coords = c('decimalLongitude', 'decimalLatitude'),
                          crs = crs(sps_range2))
   
@@ -182,707 +231,703 @@ for(i in 1:length(sps_list))
                  MaxTemperatureOfWarmestMonth, PrecipitationOfWettestMonth)
   
   #extract values from each location from all variables
-  vals_pts <- extract(preds, species_sp)
+  vals_pts <- extract(preds, species_sf)
   
   #make a table creating an ID for each point
-  tab_occ_vars <- cbind(ID = c(1:nrow(species)), species, vals_pts)
+  tab_occ_vars <- cbind(species, vals_pts)
   
-  #make 10 replicates of the process
-  for(j in 1:10)
+  
+  ## Build the spatial blocks for species
+  
+  #local projected CRS (metres) centred on this species PA area
+  cen <- st_coordinates(st_centroid(st_union(sps_range_buf)))[1, ]
+  crs_laea <- paste0("+proj=laea +lat_0=", cen[2], " +lon_0=", cen[1],
+                     " +datum=WGS84 +units=m +no_defs")
+  
+  #project domain + points
+  dom_m <- st_transform(sps_range_buf, crs_laea)
+  pts_m <- st_transform(species_sf, crs_laea)
+  
+  #make a single polygon for the domain (avoid edge issues)
+  dom_u <- st_union(dom_m)
+  
+  #define the block size to split the data geographically (in metres - 200 km)
+  block_size <- 200000 
+  
+  #grid blocks (200 km squares) over the full domain extent
+  grid <- st_make_grid(dom_u, cellsize = block_size, square = TRUE)
+  grid <- st_sf(block_id = seq_along(grid), geometry = grid)
+  
+  #keep only blocks whose centroid is within the domain
+  grid <- grid[st_intersects(grid, dom_u, sparse = FALSE)[, 1], ]
+  
+  #reduce block_size until grid has at least 5 cells
+  while(nrow(grid) < 5){
+    
+    #divide block_size per 2
+    block_size <- block_size/2
+    
+    #grid blocks (200 km squares) over the full domain extent
+    grid <- st_make_grid(dom_u, cellsize = block_size, square = TRUE)
+    grid <- st_sf(block_id = seq_along(grid), geometry = grid)
+    
+    #keep only blocks whose centroid is within the domain
+    grid <- grid[st_within(st_centroid(grid), dom_u, sparse = FALSE)[, 1], ]
+  }
+  
+  #assign each point (presence + PA) to a block
+  pts_blk <- st_join(pts_m, grid["block_id"], left = T)
+  
+  #attach block_id to table
+  blk_tbl <- st_drop_geometry(pts_blk)[, c("ID", "block_id")]
+  pts_tbl <- merge(tab_occ_vars, blk_tbl, by = "ID", all.x = T)
+  
+  #remove points not assigned to any spatial block (edge cases)
+  pts_tbl <- pts_tbl[!is.na(pts_tbl$block_id), ]
+  
+  #set seed for reproducibility
+  set.seed(1)
+  
+  #get unique blocks
+  blk_ids <- unique(pts_tbl$block_id)
+  
+  #assign each block to a fold
+  blk_fold <- sample(rep(1:k_folds, length.out = length(blk_ids)))
+  
+  #attach fold to each point (by block)
+  pts_tbl$fold <- blk_fold[match(pts_tbl$block_id, blk_ids)]
+  
+  #include block_size in the table
+  pts_tbl$block_size <- block_size
+  
+  #make 3 replicates of the process
+  for(j in 1:3)
   {
+    #set seed to make block-to-fold assignment reproducible across repetitions
+    set.seed(1000 + j)
     
-    ##### Include the geographical blocks
+    #get unique spatial blocks containing data
+    u_blocks <- unique(pts_tbl$block_id)
     
+    #randomly assign blocks to k folds
+    fold_map <- data.frame(block_id = u_blocks,
+                           fold = sample(rep(1:k_folds,
+                                             length.out = length(u_blocks))))
     
-    ## Split the data in 10 folds for training and testing
+    #attach fold ID to each point via its block ID
+    pts_tbl$fold <- fold_map$fold[match(pts_tbl$block_id, fold_map$block_id)]
     
-    #randomly shuffle the data separate presence from pseudo-absence
-    shuffle_pr <- tab_occ_vars[tab_occ_vars$Type == 'Presence',]
-    shuffled_pr <- shuffle_pr[sample(nrow(shuffle_pr)),]
+    #create directory to save each repetition for the species
+    dir_species <- paste0(wd_res_species, '/', sps_list$species[i])
+    dir.create(dir_species)
     
-    shuffle_pa <- tab_occ_vars[tab_occ_vars$Type == 'Pseudo-absence',]
-    shuffled_pa <- shuffle_pa[sample(nrow(shuffle_pa)),]
-    
-    #create 10 equally size folds
-    folds <- cut(seq(1, nrow(shuffled_pr)), breaks=10, labels=FALSE)
-    
-    #perform 10 fold cross validation for each model
-    for(k in 1:10)
+    #perform 5 fold cross validation for each model
+    for(k in 1:k_folds)
     {
-      if(TRUE %in% unique(folds == k)){
-        #select test data
-        testIndexes <- which(folds == k)
-        testData_pr <- shuffled_pr[testIndexes,]
-        testData_pa <- shuffled_pa[testIndexes,]
-        testData <- rbind(testData_pr, testData_pa)
-        
-        #select train data
-        trainData_pr <- shuffled_pr[-testIndexes, ]
-        trainData_pa <- shuffled_pa[-testIndexes, ]
-        trainData <- rbind(trainData_pr, trainData_pa)
-        
-        ## Fit XGBoost models
-        
-        ## Mean PPT to compare T variables importance
-        
-        ##############################################
-        ############## mean PPT + min T ##############
-        ##############################################
-        
-        #prepare train data
-        shap_T_min <- xgb.DMatrix(data.matrix(trainData[preds_min_temp]),
-                                  label = trainData$Occurrence)
-        
-        #prepare test data
-        shap_T_min_test <- xgb.DMatrix(data.matrix(testData[preds_min_temp]),
-                                       label = testData$Occurrence)
-        
-        #fit the model with train data
-        fit <- xgb.train(
-          params = list(learning_rate = 0.1, objective = "reg:squarederror"), 
-          data =   shap_T_min,
-          nrounds = 65L
-        )
-        
-        #predict values for train
-        pred_train <- predict(fit, shap_T_min) 
-        
-        #predict values for test
-        pred_test <- predict(fit, shap_T_min_test) 
-        
-        #get evaluation metrics
-        
-        #AUC
-        AUC_train <- as.numeric(pROC::auc(trainData$Occurrence, pred_train))
-        AUC_test <- as.numeric(pROC::auc(testData$Occurrence, pred_test))
-        
-        #sens, spec, TSS, th = max(sens+spec)
-        
-        #make tables with observed and predicted values
-        obs_pred_train <- data.frame(plotID = c(1:length(trainData$Occurrence)),
-                                     Observed = as.integer(trainData$Occurrence),
-                                     Predicted = pred_train)
-        
-        obs_pred_test <- data.frame(plotID = c(1:length(testData$Occurrence)),
-                                    Observed = as.integer(testData$Occurrence),
-                                    Predicted = pred_test)
-        
-        #calculate th = max(sens+spec)
-        th <- optimal.thresholds(obs_pred_train)[3,2]
-        
-        #create confusion matrix based on th = max(sens+spec)
-        confusion_train <- cmx(obs_pred_train, threshold = th)
-        confusion_test <- cmx(obs_pred_test, threshold = th)
-        
-        #calculate sensitivity
-        sens_train <- sensitivity(confusion_train, st.dev = F)
-        sens_test <- sensitivity(confusion_test, st.dev = F)
-        
-        #calculate specificity
-        spec_train <- specificity(confusion_train, st.dev = F)
-        spec_test <- specificity(confusion_test, st.dev = F)
-        
-        #calculate TSS
-        TSS_train <- sens_train + spec_train - 1
-        TSS_test <- sens_test + spec_test - 1
-        
-        # We also pass feature data X with originally encoded values
-        shp <- shapviz(fit, X_pred = data.matrix(trainData[preds_min_temp]),
-                       X = trainData)
-        
-        # get the SHAP values for each variable in each prediction 
-        MEAN_prec_SHAP <- character()  #bio12
-        MIN_temp_SHAP <- character()  #bio6
-        
-        for(l in 1:nrow(trainData))
-        {
-          obj <- sv_waterfall(shp, row_id = l) +
-            theme(axis.text = element_text(size = 11))
-          
-          MEAN_prec_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_12']
-          MIN_temp_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_6']
-          
-          print(l)
-        }
-        
-        #make a data.frame with SHAP results and model evaluations
-        meanPPT_minT <- cbind(Species = sps_list[i],
-                              trainData[,c('ID',
-                                           'decimalLongitude', 'decimalLatitude',
-                                           'Occurrence', 'Type',
-                                           'wc2.1_2.5m_bio_12', 'wc2.1_2.5m_bio_6')],
-                              data.frame(Mean_PPT_SHAP = MEAN_prec_SHAP,
-                                         Min_T_SHAP = MIN_temp_SHAP,
-                                         iteration = j,
-                                         AUC_test = AUC_test,
-                                         TSS_test = TSS_test,
-                                         sens_test = sens_test,
-                                         spec_test = spec_test,
-                                         AUC_train = AUC_train,
-                                         TSS_train = TSS_train,
-                                         sens_train = sens_train,
-                                         spec_train = spec_train))
-        
-        #save results per species
-        
-        #create directory to save each repetition for the species
-        dir_species <- paste0(wd_res_species, '/', sps_list[i])
-        dir.create(dir_species)
-        
-        #save results
-        setwd(dir_species)
-        write.csv(meanPPT_minT, paste0(sps, '_minT_run_', j, '_rep_', k, '.csv'),
-                  row.names = F)
-        
-        
-        ###############################################
-        ############## mean PPT + mean T ##############
-        ###############################################
-        
-        #prepare train data
-        shap_T_mean <- xgb.DMatrix(data.matrix(trainData[preds_mean_temp]),
-                                   label = trainData$Occurrence)
-        
-        #prepare test data
-        shap_T_mean_test <- xgb.DMatrix(data.matrix(testData[preds_mean_temp]),
-                                        label = testData$Occurrence)
-        
-        #fit the model with train data
-        fit <- xgb.train(
-          params = list(learning_rate = 0.1, objective = "reg:squarederror"), 
-          data =   shap_T_mean,
-          nrounds = 65L
-        )
-        
-        #predict values for train
-        pred_train <- predict(fit, shap_T_mean) 
-        
-        #predict values for test
-        pred_test <- predict(fit, shap_T_mean_test) 
-        
-        #get evaluation metrics
-        
-        #AUC
-        AUC_train <- as.numeric(pROC::auc(trainData$Occurrence, pred_train))
-        AUC_test <- as.numeric(pROC::auc(testData$Occurrence, pred_test))
-        
-        #sens, spec, TSS, th = max(sens+spec)
-        
-        #make tables with observed and predicted values
-        obs_pred_train <- data.frame(plotID = c(1:length(trainData$Occurrence)),
-                                     Observed = as.integer(trainData$Occurrence),
-                                     Predicted = pred_train)
-        
-        obs_pred_test <- data.frame(plotID = c(1:length(testData$Occurrence)),
-                                    Observed = as.integer(testData$Occurrence),
-                                    Predicted = pred_test)
-        
-        #calculate th = max(sens+spec)
-        th <- optimal.thresholds(obs_pred_train)[3,2]
-        
-        #create confusion matrix based on th = max(sens+spec)
-        confusion_train <- cmx(obs_pred_train, threshold = th)
-        confusion_test <- cmx(obs_pred_test, threshold = th)
-        
-        #calculate sensitivity
-        sens_train <- sensitivity(confusion_train, st.dev = F)
-        sens_test <- sensitivity(confusion_test, st.dev = F)
-        
-        #calculate specificity
-        spec_train <- specificity(confusion_train, st.dev = F)
-        spec_test <- specificity(confusion_test, st.dev = F)
-        
-        #calculate TSS
-        TSS_train <- sens_train + spec_train - 1
-        TSS_test <- sens_test + spec_test - 1
-        
-        # We also pass feature data X with originally encoded values
-        shp <- shapviz(fit, X_pred = data.matrix(trainData[preds_mean_temp]),
-                       X = trainData)
-        
-        # get the SHAP values for each variable in each prediction 
-        MEAN_prec_SHAP <- character()  #bio12
-        MEAN_temp_SHAP <- character()  #bio1
-        
-        for(l in 1:nrow(trainData))
-        {
-          obj <- sv_waterfall(shp, row_id = l) +
-            theme(axis.text = element_text(size = 11))
-          
-          MEAN_prec_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_12']
-          MEAN_temp_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_1']
-          
-          print(l)
-        }
-        
-        #make a data.frame with SHAP results and model evaluations
-        meanPPT_meanT <- cbind(Species = sps_list[i],
-                               trainData[,c('ID',
-                                            'decimalLongitude', 'decimalLatitude',
-                                            'Occurrence', 'Type',
-                                            'wc2.1_2.5m_bio_12', 'wc2.1_2.5m_bio_1')],
-                               data.frame(Mean_PPT_SHAP = MEAN_prec_SHAP,
-                                          Mean_T_SHAP = MEAN_temp_SHAP,
-                                          iteration = j,
-                                          AUC_test = AUC_test,
-                                          TSS_test = TSS_test,
-                                          sens_test = sens_test,
-                                          spec_test = spec_test,
-                                          AUC_train = AUC_train,
-                                          TSS_train = TSS_train,
-                                          sens_train = sens_train,
-                                          spec_train = spec_train))
-        
-        
-        #save results
-        setwd(dir_species)
-        write.csv(meanPPT_meanT, paste0(sps, '_meanT_run_', j, '_rep_', k, '.csv'),
-                  row.names = F)
-        
-        
-        ##############################################
-        ############## mean PPT + max T ##############
-        ##############################################
-        
-        #prepare train data
-        shap_T_max <- xgb.DMatrix(data.matrix(trainData[preds_max_temp]),
-                                  label = trainData$Occurrence)
-        
-        #prepare test data
-        shap_T_max_test <- xgb.DMatrix(data.matrix(testData[preds_max_temp]),
-                                       label = testData$Occurrence)
-        
-        #fit the model with train data
-        fit <- xgb.train(
-          params = list(learning_rate = 0.1, objective = "reg:squarederror"), 
-          data =   shap_T_max,
-          nrounds = 65L
-        )
-        
-        #predict values for train
-        pred_train <- predict(fit, shap_T_max) 
-        
-        #predict values for test
-        pred_test <- predict(fit, shap_T_max_test) 
-        
-        #get evaluation metrics
-        
-        #AUC
-        AUC_train <- as.numeric(pROC::auc(trainData$Occurrence, pred_train))
-        AUC_test <- as.numeric(pROC::auc(testData$Occurrence, pred_test))
-        
-        #sens, spec, TSS, th = max(sens+spec)
-        
-        #make tables with observed and predicted values
-        obs_pred_train <- data.frame(plotID = c(1:length(trainData$Occurrence)),
-                                     Observed = as.integer(trainData$Occurrence),
-                                     Predicted = pred_train)
-        
-        obs_pred_test <- data.frame(plotID = c(1:length(testData$Occurrence)),
-                                    Observed = as.integer(testData$Occurrence),
-                                    Predicted = pred_test)
-        
-        #calculate th = max(sens+spec)
-        th <- optimal.thresholds(obs_pred_train)[3,2]
-        
-        #create confusion matrix based on th = max(sens+spec)
-        confusion_train <- cmx(obs_pred_train, threshold = th)
-        confusion_test <- cmx(obs_pred_test, threshold = th)
-        
-        #calculate sensitivity
-        sens_train <- sensitivity(confusion_train, st.dev = F)
-        sens_test <- sensitivity(confusion_test, st.dev = F)
-        
-        #calculate specificity
-        spec_train <- specificity(confusion_train, st.dev = F)
-        spec_test <- specificity(confusion_test, st.dev = F)
-        
-        #calculate TSS
-        TSS_train <- sens_train + spec_train - 1
-        TSS_test <- sens_test + spec_test - 1
-        
-        # We also pass feature data X with originally encoded values
-        shp <- shapviz(fit, X_pred = data.matrix(trainData[preds_max_temp]),
-                       X = trainData)
-        
-        # get the SHAP values for each variable in each prediction 
-        MEAN_prec_SHAP <- character()  #bio12
-        MAX_temp_SHAP <- character()  #bio1
-        
-        for(l in 1:nrow(trainData))
-        {
-          obj <- sv_waterfall(shp, row_id = l) +
-            theme(axis.text = element_text(size = 11))
-          
-          MEAN_prec_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_12']
-          MAX_temp_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_5']
-          
-          print(l)
-        }
-        
-        #make a data.frame with SHAP results and model evaluations
-        meanPPT_maxT <- cbind(Species = sps_list[i],
-                              trainData[,c('ID',
-                                           'decimalLongitude', 'decimalLatitude',
-                                           'Occurrence', 'Type',
-                                           'wc2.1_2.5m_bio_12', 'wc2.1_2.5m_bio_5')],
-                              data.frame(Mean_PPT_SHAP = MEAN_prec_SHAP,
-                                         Max_T_SHAP = MAX_temp_SHAP,
-                                         iteration = j,
-                                         AUC_test = AUC_test,
-                                         TSS_test = TSS_test,
-                                         sens_test = sens_test,
-                                         spec_test = spec_test,
-                                         AUC_train = AUC_train,
-                                         TSS_train = TSS_train,
-                                         sens_train = sens_train,
-                                         spec_train = spec_train))
-        
-        #save results
-        setwd(dir_species)
-        write.csv(meanPPT_maxT, paste0(sps, '_maxT_run_', j, '_rep_', k, '.csv'),
-                  row.names = F)
-        
-        
-        
-        
-        ## mean T to compare PPT variables importance
-        
-        
-        
-        
-        ##############################################
-        ############## mean T + min PPT ##############
-        ##############################################
-        
-        
-        
-        
-        #prepare train data
-        shap_PPT_min <- xgb.DMatrix(data.matrix(trainData[preds_min_PPT]),
-                                    label = trainData$Occurrence)
-        
-        #prepare test data
-        shap_PPT_min_test <- xgb.DMatrix(data.matrix(testData[preds_min_PPT]),
-                                         label = testData$Occurrence)
-        
-        #fit the model with train data
-        fit <- xgb.train(
-          params = list(learning_rate = 0.1, objective = "reg:squarederror"), 
-          data =   shap_PPT_min,
-          nrounds = 65L
-        )
-        
-        #predict values for train
-        pred_train <- predict(fit, shap_PPT_min) 
-        
-        #predict values for test
-        pred_test <- predict(fit, shap_PPT_min_test) 
-        
-        #get evaluation metrics
-        
-        #AUC
-        AUC_train <- as.numeric(pROC::auc(trainData$Occurrence, pred_train))
-        AUC_test <- as.numeric(pROC::auc(testData$Occurrence, pred_test))
-        
-        #sens, spec, TSS, th = max(sens+spec)
-        
-        #make tables with observed and predicted values
-        obs_pred_train <- data.frame(plotID = c(1:length(trainData$Occurrence)),
-                                     Observed = as.integer(trainData$Occurrence),
-                                     Predicted = pred_train)
-        
-        obs_pred_test <- data.frame(plotID = c(1:length(testData$Occurrence)),
-                                    Observed = as.integer(testData$Occurrence),
-                                    Predicted = pred_test)
-        
-        #calculate th = max(sens+spec)
-        th <- optimal.thresholds(obs_pred_train)[3,2]
-        
-        #create confusion matrix based on th = max(sens+spec)
-        confusion_train <- cmx(obs_pred_train, threshold = th)
-        confusion_test <- cmx(obs_pred_test, threshold = th)
-        
-        #calculate sensitivity
-        sens_train <- sensitivity(confusion_train, st.dev = F)
-        sens_test <- sensitivity(confusion_test, st.dev = F)
-        
-        #calculate specificity
-        spec_train <- specificity(confusion_train, st.dev = F)
-        spec_test <- specificity(confusion_test, st.dev = F)
-        
-        #calculate TSS
-        TSS_train <- sens_train + spec_train - 1
-        TSS_test <- sens_test + spec_test - 1
-        
-        # We also pass feature data X with originally encoded values
-        shp <- shapviz(fit, X_pred = data.matrix(trainData[preds_min_PPT]),
-                       X = trainData)
-        
-        # get the SHAP values for each variable in each prediction 
-        MEAN_temp_SHAP <- character()  #bio1
-        MIN_prec_SHAP <- character()  #bio14
-        
-        for(l in 1:nrow(trainData))
-        {
-          obj <- sv_waterfall(shp, row_id = l) +
-            theme(axis.text = element_text(size = 11))
-          
-          MEAN_temp_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_1']
-          MIN_prec_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_14']
-          
-          print(l)
-        }
-        
-        
-        #make a data.frame with SHAP results and model evaluations
-        meanT_minPPT <- cbind(Species = sps_list[i],
-                              trainData[,c('ID',
-                                           'decimalLongitude', 'decimalLatitude',
-                                           'Occurrence', 'Type',
-                                           'wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_14')],
-                              data.frame(Mean_T_SHAP = MEAN_temp_SHAP,
-                                         Min_PPT_SHAP = MIN_prec_SHAP,
-                                         iteration = j,
-                                         AUC_test = AUC_test,
-                                         TSS_test = TSS_test,
-                                         sens_test = sens_test,
-                                         spec_test = spec_test,
-                                         AUC_train = AUC_train,
-                                         TSS_train = TSS_train,
-                                         sens_train = sens_train,
-                                         spec_train = spec_train))
-        
-        #save results per species
-        
-        #save results
-        setwd(dir_species)
-        write.csv(meanT_minPPT, paste0(sps, '_minPPT_run_', j, '_rep_', k, '.csv'),
-                  row.names = F)
-        
-        
-        
-        
-        ###############################################
-        ############## mean T + mean PPT ##############
-        ###############################################
-        
-        
-        
-        
-        #prepare train data
-        shap_PPT_mean <- xgb.DMatrix(data.matrix(trainData[preds_mean_PPT]),
-                                     label = trainData$Occurrence)
-        
-        #prepare test data
-        shap_PPT_mean_test <- xgb.DMatrix(data.matrix(testData[preds_mean_PPT]),
-                                          label = testData$Occurrence)
-        
-        #fit the model with train data
-        fit <- xgb.train(
-          params = list(learning_rate = 0.1, objective = "reg:squarederror"), 
-          data =   shap_PPT_mean,
-          nrounds = 65L
-        )
-        
-        #predict values for train
-        pred_train <- predict(fit, shap_PPT_mean) 
-        
-        #predict values for test
-        pred_test <- predict(fit, shap_PPT_mean_test) 
-        
-        #get evaluation metrics
-        
-        #AUC
-        AUC_train <- as.numeric(pROC::auc(trainData$Occurrence, pred_train))
-        AUC_test <- as.numeric(pROC::auc(testData$Occurrence, pred_test))
-        
-        #sens, spec, TSS, th = max(sens+spec)
-        
-        #make tables with observed and predicted values
-        obs_pred_train <- data.frame(plotID = c(1:length(trainData$Occurrence)),
-                                     Observed = as.integer(trainData$Occurrence),
-                                     Predicted = pred_train)
-        
-        obs_pred_test <- data.frame(plotID = c(1:length(testData$Occurrence)),
-                                    Observed = as.integer(testData$Occurrence),
-                                    Predicted = pred_test)
-        
-        #calculate th = max(sens+spec)
-        th <- optimal.thresholds(obs_pred_train)[3,2]
-        
-        #create confusion matrix based on th = max(sens+spec)
-        confusion_train <- cmx(obs_pred_train, threshold = th)
-        confusion_test <- cmx(obs_pred_test, threshold = th)
-        
-        #calculate sensitivity
-        sens_train <- sensitivity(confusion_train, st.dev = F)
-        sens_test <- sensitivity(confusion_test, st.dev = F)
-        
-        #calculate specificity
-        spec_train <- specificity(confusion_train, st.dev = F)
-        spec_test <- specificity(confusion_test, st.dev = F)
-        
-        #calculate TSS
-        TSS_train <- sens_train + spec_train - 1
-        TSS_test <- sens_test + spec_test - 1
-        
-        # We also pass feature data X with originally encoded values
-        shp <- shapviz(fit, X_pred = data.matrix(trainData[preds_mean_PPT]),
-                       X = trainData)
-        
-        # get the SHAP values for each variable in each prediction 
-        MEAN_temp_SHAP <- character()  #bio1
-        MEAN_prec_SHAP <- character()  #bio12
-        
-        for(l in 1:nrow(trainData))
-        {
-          obj <- sv_waterfall(shp, row_id = l) +
-            theme(axis.text = element_text(size = 11))
-          
-          MEAN_prec_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_1']
-          MEAN_temp_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_12']
-          
-          print(l)
-        }
-        
-        #make a data.frame with SHAP results and model evaluations
-        meanT_meanPPT <- cbind(Species = sps_list[i],
-                               trainData[,c('ID',
-                                            'decimalLongitude', 'decimalLatitude',
-                                            'Occurrence', 'Type',
-                                            'wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_12')],
-                               data.frame(Mean_T_SHAP = MEAN_temp_SHAP,
-                                          Mean_PPT_SHAP = MEAN_prec_SHAP,
-                                          iteration = j,
-                                          AUC_test = AUC_test,
-                                          TSS_test = TSS_test,
-                                          sens_test = sens_test,
-                                          spec_test = spec_test,
-                                          AUC_train = AUC_train,
-                                          TSS_train = TSS_train,
-                                          sens_train = sens_train,
-                                          spec_train = spec_train))
-        
-        #save results per species
-        
-        #save results
-        setwd(dir_species)
-        write.csv(meanT_meanPPT, paste0(sps, '_meanPPT_run_', j, '_rep_', k, '.csv'),
-                  row.names = F)
-        
-        
-        
-        
-        ##############################################
-        ############## mean T + max PPT ##############
-        ##############################################
-        
-        
-        
-        
-        #prepare train data
-        shap_PPT_max <- xgb.DMatrix(data.matrix(trainData[preds_max_PPT]),
-                                    label = trainData$Occurrence)
-        
-        #prepare test data
-        shap_PPT_max_test <- xgb.DMatrix(data.matrix(testData[preds_max_PPT]),
-                                         label = testData$Occurrence)
-        
-        #fit the model with train data
-        fit <- xgb.train(
-          params = list(learning_rate = 0.1, objective = "reg:squarederror"), 
-          data =   shap_PPT_max,
-          nrounds = 65L
-        )
-        
-        #predict values for train
-        pred_train <- predict(fit, shap_PPT_max) 
-        
-        #predict values for test
-        pred_test <- predict(fit, shap_PPT_max_test) 
-        
-        #get evaluation metrics
-        
-        #AUC
-        AUC_train <- as.numeric(pROC::auc(trainData$Occurrence, pred_train))
-        AUC_test <- as.numeric(pROC::auc(testData$Occurrence, pred_test))
-        
-        #sens, spec, TSS, th = max(sens+spec)
-        
-        #make tables with observed and predicted values
-        obs_pred_train <- data.frame(plotID = c(1:length(trainData$Occurrence)),
-                                     Observed = as.integer(trainData$Occurrence),
-                                     Predicted = pred_train)
-        
-        obs_pred_test <- data.frame(plotID = c(1:length(testData$Occurrence)),
-                                    Observed = as.integer(testData$Occurrence),
-                                    Predicted = pred_test)
-        
-        #calculate th = max(sens+spec)
-        th <- optimal.thresholds(obs_pred_train)[3,2]
-        
-        #create confusion matrix based on th = max(sens+spec)
-        confusion_train <- cmx(obs_pred_train, threshold = th)
-        confusion_test <- cmx(obs_pred_test, threshold = th)
-        
-        #calculate sensitivity
-        sens_train <- sensitivity(confusion_train, st.dev = F)
-        sens_test <- sensitivity(confusion_test, st.dev = F)
-        
-        #calculate specificity
-        spec_train <- specificity(confusion_train, st.dev = F)
-        spec_test <- specificity(confusion_test, st.dev = F)
-        
-        #calculate TSS
-        TSS_train <- sens_train + spec_train - 1
-        TSS_test <- sens_test + spec_test - 1
-        
-        # We also pass feature data X with originally encoded values
-        shp <- shapviz(fit, X_pred = data.matrix(trainData[preds_max_PPT]),
-                       X = trainData)
-        
-        # get the SHAP values for each variable in each prediction 
-        MEAN_temp_SHAP <- character()  #bio1
-        MAX_prec_SHAP <- character()  #bio13
-        
-        for(l in 1:nrow(trainData))
-        {
-          obj <- sv_waterfall(shp, row_id = l) +
-            theme(axis.text = element_text(size = 11))
-          
-          MEAN_temp_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_1']
-          MAX_prec_SHAP[l] <- obj$data$S[row.names(obj$data) == 'wc2.1_2.5m_bio_13']
-          
-          print(l)
-        }
-        
-        
-        #make a data.frame with SHAP results and model evaluations
-        meanT_maxPPT <- cbind(Species = sps_list[i],
-                              trainData[,c('ID',
-                                           'decimalLongitude', 'decimalLatitude',
-                                           'Occurrence', 'Type',
-                                           'wc2.1_2.5m_bio_1', 'wc2.1_2.5m_bio_13')],
-                              data.frame(Mean_T_SHAP = MEAN_temp_SHAP,
-                                         Max_PPT_SHAP = MAX_prec_SHAP,
-                                         iteration = j,
-                                         AUC_test = AUC_test,
-                                         TSS_test = TSS_test,
-                                         sens_test = sens_test,
-                                         spec_test = spec_test,
-                                         AUC_train = AUC_train,
-                                         TSS_train = TSS_train,
-                                         sens_train = sens_train,
-                                         spec_train = spec_train))
-        
-        #save results per species
-        
-        #save results
-        setwd(dir_species)
-        write.csv(meanT_maxPPT, paste0(sps, '_maxPPT_run_', j, '_rep_', k, '.csv'),
-                  row.names = F)
+      #subset training and testing data based on spatial folds
+      train_dat <- pts_tbl[pts_tbl$fold != k, ]
+      test_dat <- pts_tbl[pts_tbl$fold == k, ]
+      
+      #skip bad folds
+      if(nrow(test_dat) == 0 ||
+         length(unique(test_dat$Occurrence)) < 2 ||
+         length(unique(train_dat$Occurrence)) < 2) {
+        next
       }
+      
+      ## Fit XGBoost models
+      
+      ## Mean PPT to compare T variables importance
+      
+      
+      ##############################################
+      ############## mean PPT + min T ##############
+      ##############################################
+      
+      #prepare train data
+      dtrain <- xgb.DMatrix(as.matrix(train_dat[, preds_min_temp]),
+                            label = train_dat$Occurrence)
+      
+      #prepare test data
+      dtest  <- xgb.DMatrix(as.matrix(test_dat[, preds_min_temp]),
+                            label = test_dat$Occurrence)
+      
+      #fit the model with train data
+      fit <- xgb.train(params = params, data = dtrain, nrounds = 100,
+                       watchlist = list(train = dtrain, test = dtest),
+                       verbose = 0)
+      
+      
+      ## Get evaluation metrics
+      
+      #predictions
+      pred_train <- predict(fit, dtrain)
+      pred_test <- predict(fit, dtest)
+      
+      #AUC (from xgboost)
+      AUC_train <- tail(fit$evaluation_log$train_auc, 1)
+      AUC_test <- tail(fit$evaluation_log$test_auc, 1)
+      
+      #tables with observed and predicted values
+      obs_pred_train <- data.frame(id = train_dat$ID,
+                        observed = as.integer(train_dat$Occurrence),
+                        predicted = pred_train)
+      
+      obs_pred_test <- data.frame(id = test_dat$ID,
+                       observed = as.integer(test_dat$Occurrence),
+                       predicted = pred_test)
+      
+      #threshold that maximises sensitivity + specificity
+      th <- optimal.thresholds(obs_pred_train,
+                               opt.methods = "MaxSens+Spec")$predicted
+      
+      #confusion matrices
+      confusion_train <- cmx(obs_pred_train, threshold = th)
+      confusion_test <- cmx(obs_pred_test,  threshold = th)
+      
+      #sensitivity
+      sens_train <- sensitivity(confusion_train, st.dev = FALSE)
+      sens_test <- sensitivity(confusion_test,  st.dev = FALSE)
+      
+      #specificity
+      spec_train <- specificity(confusion_train, st.dev = FALSE)
+      spec_test <- specificity(confusion_test,  st.dev = FALSE)
+      
+      #TSS
+      TSS_train <- sens_train + spec_train - 1
+      TSS_test <- sens_test  + spec_test  - 1
+      
+      #get SHAP values for training data
+      shap_train <- predict(fit, as.matrix(train_dat[, preds_min_temp]),
+                            predcontrib = TRUE)
+      
+      #drop BIAS column (keep only predictors)
+      shap_train <- shap_train[,colnames(as.matrix(
+                         train_dat[,preds_min_temp])), drop = FALSE]
+      
+      #convert SHAP matrix to data.frame
+      shap_df <- as.data.frame(shap_train)
+      
+      #build results table (one row per training point)
+      meanPPT_minT <- cbind(
+        Species = sps,
+        train_dat[, c("ID",
+                      "decimalLongitude", "decimalLatitude",
+                      "Occurrence", "Type",
+                      "wc2.1_2.5m_bio_12", "wc2.1_2.5m_bio_6")],
+        data.frame(
+          Mean_PPT_SHAP = shap_df$wc2.1_2.5m_bio_12,
+          Min_T_SHAP = shap_df$wc2.1_2.5m_bio_6,
+          iteration = j,
+          fold = k,
+          block_size = block_size,
+          AUC_test = AUC_test,
+          TSS_test = TSS_test,
+          sens_test = sens_test,
+          spec_test = spec_test,
+          AUC_train = AUC_train,
+          TSS_train = TSS_train,
+          sens_train = sens_train,
+          spec_train = spec_train))
+      
+      #save results
+      setwd(dir_species)
+      write.csv(meanPPT_minT,
+                paste0(sps, '_minT_run_', j, '_rep_', k, '.csv'),
+                row.names = F)
+      
+      
+      ###############################################
+      ############## mean PPT + mean T ##############
+      ###############################################
+      
+      #prepare train data
+      dtrain <- xgb.DMatrix(as.matrix(train_dat[, preds_mean_temp]),
+                            label = train_dat$Occurrence)
+      
+      #prepare test data
+      dtest <- xgb.DMatrix(as.matrix(test_dat[, preds_mean_temp]),
+                            label = test_dat$Occurrence)
+      
+     
+      #fit the model with train data
+      fit <- xgb.train(params = params, data = dtrain, nrounds = 100,
+                       watchlist = list(train = dtrain, test = dtest),
+                       verbose = 0)
+      
+      
+      ## Get evaluation metrics
+      
+      #predictions
+      pred_train <- predict(fit, dtrain)
+      pred_test <- predict(fit, dtest)
+      
+      #AUC (from xgboost)
+      AUC_train <- tail(fit$evaluation_log$train_auc, 1)
+      AUC_test <- tail(fit$evaluation_log$test_auc, 1)
+      
+      #tables with observed and predicted values
+      obs_pred_train <- data.frame(id = train_dat$ID,
+                              observed = as.integer(train_dat$Occurrence),
+                              predicted = pred_train)
+      
+      obs_pred_test <- data.frame(id = test_dat$ID,
+                                  observed = as.integer(test_dat$Occurrence),
+                                  predicted = pred_test)
+      
+      #threshold that maximises sensitivity + specificity
+      th <- optimal.thresholds(obs_pred_train,
+                               opt.methods = "MaxSens+Spec")$predicted
+      
+      #confusion matrices
+      confusion_train <- cmx(obs_pred_train, threshold = th)
+      confusion_test <- cmx(obs_pred_test,  threshold = th)
+      
+      #sensitivity
+      sens_train <- sensitivity(confusion_train, st.dev = FALSE)
+      sens_test <- sensitivity(confusion_test,  st.dev = FALSE)
+      
+      #specificity
+      spec_train <- specificity(confusion_train, st.dev = FALSE)
+      spec_test <- specificity(confusion_test,  st.dev = FALSE)
+      
+      #TSS
+      TSS_train <- sens_train + spec_train - 1
+      TSS_test <- sens_test  + spec_test  - 1
+      
+      #get SHAP values for training data
+      shap_train <- predict(fit, as.matrix(train_dat[, preds_mean_temp]),
+                            predcontrib = TRUE)
+      
+      #drop BIAS column (keep only predictors)
+      shap_train <- shap_train[,colnames(as.matrix(
+        train_dat[,preds_mean_temp])), drop = FALSE]
+      
+      #convert SHAP matrix to data.frame
+      shap_df <- as.data.frame(shap_train)
+      
+      #build results table (one row per training point)
+      meanPPT_meanT <- cbind(
+        Species = sps,
+        train_dat[, c("ID",
+                      "decimalLongitude", "decimalLatitude",
+                      "Occurrence", "Type",
+                      "wc2.1_2.5m_bio_12", "wc2.1_2.5m_bio_1")],
+        data.frame(
+          Mean_PPT_SHAP = shap_df$wc2.1_2.5m_bio_12,
+          Mean_T_SHAP = shap_df$wc2.1_2.5m_bio_1,
+          iteration = j,
+          fold = k,
+          block_size = block_size,
+          AUC_test = AUC_test,
+          TSS_test = TSS_test,
+          sens_test = sens_test,
+          spec_test = spec_test,
+          AUC_train = AUC_train,
+          TSS_train = TSS_train,
+          sens_train = sens_train,
+          spec_train = spec_train))
+      
+      #save results
+      setwd(dir_species)
+      write.csv(meanPPT_meanT,
+                paste0(sps, '_meanT_run_', j, '_rep_', k, '.csv'),
+                row.names = F)
+      
+
+      ##############################################
+      ############## mean PPT + max T ##############
+      ##############################################
+    
+      #prepare train data
+      dtrain <- xgb.DMatrix(as.matrix(train_dat[, preds_max_temp]),
+                            label = train_dat$Occurrence)
+      
+      #prepare test data
+      dtest  <- xgb.DMatrix(as.matrix(test_dat[, preds_max_temp]),
+                            label = test_dat$Occurrence)
+      
+      
+      #fit the model with train data
+      fit <- xgb.train(params = params, data = dtrain, nrounds = 100,
+                       watchlist = list(train = dtrain, test = dtest),
+                       verbose = 0)
+      
+      
+      ## Get evaluation metrics
+      
+      #predictions
+      pred_train <- predict(fit, dtrain)
+      pred_test <- predict(fit, dtest)
+      
+      #AUC (from xgboost)
+      AUC_train <- tail(fit$evaluation_log$train_auc, 1)
+      AUC_test  <- tail(fit$evaluation_log$test_auc, 1)
+      
+      #tables with observed and predicted values
+      obs_pred_train <- data.frame(id = train_dat$ID,
+                                   observed = as.integer(train_dat$Occurrence),
+                                   predicted = pred_train)
+      
+      obs_pred_test <- data.frame(id = test_dat$ID,
+                                  observed = as.integer(test_dat$Occurrence),
+                                  predicted = pred_test)
+      
+      #threshold that maximises sensitivity + specificity
+      th <- optimal.thresholds(obs_pred_train,
+                               opt.methods = "MaxSens+Spec")$predicted
+      
+      #confusion matrices
+      confusion_train <- cmx(obs_pred_train, threshold = th)
+      confusion_test <- cmx(obs_pred_test,  threshold = th)
+      
+      #sensitivity
+      sens_train <- sensitivity(confusion_train, st.dev = FALSE)
+      sens_test <- sensitivity(confusion_test,  st.dev = FALSE)
+      
+      #specificity
+      spec_train <- specificity(confusion_train, st.dev = FALSE)
+      spec_test <- specificity(confusion_test,  st.dev = FALSE)
+      
+      #TSS
+      TSS_train <- sens_train + spec_train - 1
+      TSS_test <- sens_test  + spec_test  - 1
+      
+      #get SHAP values for training data
+      shap_train <- predict(fit, as.matrix(train_dat[, preds_max_temp]),
+                            predcontrib = TRUE)
+      
+      #drop BIAS column (keep only predictors)
+      shap_train <- shap_train[,colnames(as.matrix(
+        train_dat[,preds_max_temp])), drop = FALSE]
+      
+      #convert SHAP matrix to data.frame
+      shap_df <- as.data.frame(shap_train)
+      
+      #build results table (one row per training point)
+      meanPPT_maxT <- cbind(
+        Species = sps,
+        train_dat[, c("ID",
+                      "decimalLongitude", "decimalLatitude",
+                      "Occurrence", "Type",
+                      "wc2.1_2.5m_bio_12", "wc2.1_2.5m_bio_5")],
+        data.frame(
+          Mean_PPT_SHAP = shap_df$wc2.1_2.5m_bio_12,
+          Max_T_SHAP = shap_df$wc2.1_2.5m_bio_5,
+          iteration = j,
+          fold = k,
+          block_size = block_size,
+          AUC_test = AUC_test,
+          TSS_test = TSS_test,
+          sens_test = sens_test,
+          spec_test = spec_test,
+          AUC_train = AUC_train,
+          TSS_train = TSS_train,
+          sens_train = sens_train,
+          spec_train = spec_train))
+      
+      #save results
+      setwd(dir_species)
+      write.csv(meanPPT_maxT,
+                paste0(sps, '_maxT_run_', j, '_rep_', k, '.csv'),
+                row.names = F)
+      
+      
+      ## Mean PPT to compare T variables importance
+      
+      
+      ##############################################
+      ############## mean T + min PPT ##############
+      ##############################################
+      
+      
+      #prepare train data
+      dtrain <- xgb.DMatrix(as.matrix(train_dat[, preds_min_PPT]),
+                            label = train_dat$Occurrence)
+      
+      #prepare test data
+      dtest  <- xgb.DMatrix(as.matrix(test_dat[, preds_min_PPT]),
+                            label = test_dat$Occurrence)
+      
+      #fit the model with train data
+      fit <- xgb.train(params = params, data = dtrain, nrounds = 100,
+                       watchlist = list(train = dtrain, test = dtest),
+                       verbose = 0)
+      
+      
+      ## Get evaluation metrics
+      
+      #predictions
+      pred_train <- predict(fit, dtrain)
+      pred_test <- predict(fit, dtest)
+      
+      #AUC (from xgboost)
+      AUC_train <- tail(fit$evaluation_log$train_auc, 1)
+      AUC_test <- tail(fit$evaluation_log$test_auc, 1)
+      
+      #tables with observed and predicted values
+      obs_pred_train <- data.frame(id = train_dat$ID,
+                                   observed = as.integer(train_dat$Occurrence),
+                                   predicted = pred_train)
+      
+      obs_pred_test <- data.frame(id = test_dat$ID,
+                                  observed = as.integer(test_dat$Occurrence),
+                                  predicted = pred_test)
+      
+      #threshold that maximises sensitivity + specificity
+      th <- optimal.thresholds(obs_pred_train,
+                               opt.methods = "MaxSens+Spec")$predicted
+      
+      #confusion matrices
+      confusion_train <- cmx(obs_pred_train, threshold = th)
+      confusion_test <- cmx(obs_pred_test,  threshold = th)
+      
+      #sensitivity
+      sens_train <- sensitivity(confusion_train, st.dev = FALSE)
+      sens_test <- sensitivity(confusion_test,  st.dev = FALSE)
+      
+      #specificity
+      spec_train <- specificity(confusion_train, st.dev = FALSE)
+      spec_test <- specificity(confusion_test,  st.dev = FALSE)
+      
+      #TSS
+      TSS_train <- sens_train + spec_train - 1
+      TSS_test <- sens_test  + spec_test  - 1
+      
+      #get SHAP values for training data
+      shap_train <- predict(fit, as.matrix(train_dat[, preds_min_PPT]),
+                            predcontrib = TRUE)
+      
+      #drop BIAS column (keep only predictors)
+      shap_train <- shap_train[,colnames(as.matrix(
+        train_dat[,preds_min_PPT])), drop = FALSE]
+      
+      #convert SHAP matrix to data.frame
+      shap_df <- as.data.frame(shap_train)
+      
+      #build results table (one row per training point)
+      meanT_minPPT <- cbind(
+        Species = sps,
+        train_dat[, c("ID",
+                      "decimalLongitude", "decimalLatitude",
+                      "Occurrence", "Type",
+                      "wc2.1_2.5m_bio_1", "wc2.1_2.5m_bio_14")],
+        data.frame(
+          Mean_T_SHAP = shap_df$wc2.1_2.5m_bio_1,
+          Min_PPT_SHAP = shap_df$wc2.1_2.5m_bio_14,
+          iteration = j,
+          fold = k,
+          block_size = block_size,
+          AUC_test = AUC_test,
+          TSS_test = TSS_test,
+          sens_test = sens_test,
+          spec_test = spec_test,
+          AUC_train = AUC_train,
+          TSS_train = TSS_train,
+          sens_train = sens_train,
+          spec_train = spec_train))
+      
+      #save results
+      setwd(dir_species)
+      write.csv(meanT_minPPT,
+                paste0(sps, '_minPPT_run_', j, '_rep_', k, '.csv'),
+                row.names = F)
+      
+      
+      ###############################################
+      ############## mean T + mean PPT ##############
+      ###############################################
+      
+      
+      #prepare train data
+      dtrain <- xgb.DMatrix(as.matrix(train_dat[, preds_mean_PPT]),
+                            label = train_dat$Occurrence)
+      
+      #prepare test data
+      dtest  <- xgb.DMatrix(as.matrix(test_dat[, preds_mean_PPT]),
+                            label = test_dat$Occurrence)
+      
+      #fit the model with train data
+      fit <- xgb.train(params = params, data = dtrain, nrounds = 100,
+                       watchlist = list(train = dtrain, test = dtest),
+                       verbose = 0)
+      
+      
+      ## Get evaluation metrics
+      
+      #predictions
+      pred_train <- predict(fit, dtrain)
+      pred_test <- predict(fit, dtest)
+      
+      #AUC (from xgboost)
+      AUC_train <- tail(fit$evaluation_log$train_auc, 1)
+      AUC_test <- tail(fit$evaluation_log$test_auc, 1)
+      
+      #tables with observed and predicted values
+      obs_pred_train <- data.frame(id = train_dat$ID,
+                                   observed = as.integer(train_dat$Occurrence),
+                                   predicted = pred_train)
+      
+      obs_pred_test <- data.frame(id = test_dat$ID,
+                                  observed = as.integer(test_dat$Occurrence),
+                                  predicted = pred_test)
+      
+      #threshold that maximises sensitivity + specificity
+      th <- optimal.thresholds(obs_pred_train,
+                               opt.methods = "MaxSens+Spec")$predicted
+      
+      #confusion matrices
+      confusion_train <- cmx(obs_pred_train, threshold = th)
+      confusion_test <- cmx(obs_pred_test, threshold = th)
+      
+      #sensitivity
+      sens_train <- sensitivity(confusion_train, st.dev = FALSE)
+      sens_test <- sensitivity(confusion_test,  st.dev = FALSE)
+      
+      #specificity
+      spec_train <- specificity(confusion_train, st.dev = FALSE)
+      spec_test <- specificity(confusion_test,  st.dev = FALSE)
+      
+      #TSS
+      TSS_train <- sens_train + spec_train - 1
+      TSS_test <- sens_test  + spec_test - 1
+      
+      #get SHAP values for training data
+      shap_train <- predict(fit, as.matrix(train_dat[, preds_mean_PPT]),
+                            predcontrib = TRUE)
+      
+      #drop BIAS column (keep only predictors)
+      shap_train <- shap_train[,colnames(as.matrix(
+        train_dat[,preds_mean_PPT])), drop = FALSE]
+      
+      #convert SHAP matrix to data.frame
+      shap_df <- as.data.frame(shap_train)
+      
+      #build results table (one row per training point)
+      meanT_meanPPT <- cbind(
+        Species = sps,
+        train_dat[, c("ID",
+                      "decimalLongitude", "decimalLatitude",
+                      "Occurrence", "Type",
+                      "wc2.1_2.5m_bio_1", "wc2.1_2.5m_bio_12")],
+        data.frame(
+          Mean_T_SHAP = shap_df$wc2.1_2.5m_bio_1,
+          Mean_PPT_SHAP = shap_df$wc2.1_2.5m_bio_12,
+          iteration = j,
+          fold = k,
+          block_size = block_size,
+          AUC_test = AUC_test,
+          TSS_test = TSS_test,
+          sens_test = sens_test,
+          spec_test = spec_test,
+          AUC_train = AUC_train,
+          TSS_train = TSS_train,
+          sens_train = sens_train,
+          spec_train = spec_train))
+      
+      #save results
+      setwd(dir_species)
+      write.csv(meanT_meanPPT,
+                paste0(sps, '_meanPPT_run_', j, '_rep_', k, '.csv'),
+                row.names = F)
+      
+      
+      ##############################################
+      ############## mean T + max PPT ##############
+      ##############################################
+      
+      
+      #prepare train data
+      dtrain <- xgb.DMatrix(as.matrix(train_dat[, preds_max_PPT]),
+                            label = train_dat$Occurrence)
+      
+      #prepare test data
+      dtest  <- xgb.DMatrix(as.matrix(test_dat[, preds_max_PPT]),
+                            label = test_dat$Occurrence)
+      
+      #fit the model with train data
+      fit <- xgb.train(params = params, data = dtrain, nrounds = 100,
+                       watchlist = list(train = dtrain, test = dtest),
+                       verbose = 0)
+      
+      
+      ## Get evaluation metrics
+      
+      #predictions
+      pred_train <- predict(fit, dtrain)
+      pred_test <- predict(fit, dtest)
+      
+      #AUC (from xgboost)
+      AUC_train <- tail(fit$evaluation_log$train_auc, 1)
+      AUC_test <- tail(fit$evaluation_log$test_auc, 1)
+      
+      #tables with observed and predicted values
+      obs_pred_train <- data.frame(id = train_dat$ID,
+                                   observed = as.integer(train_dat$Occurrence),
+                                   predicted = pred_train)
+      
+      obs_pred_test <- data.frame(id = test_dat$ID,
+                                  observed = as.integer(test_dat$Occurrence),
+                                  predicted = pred_test)
+      
+      #threshold that maximises sensitivity + specificity
+      th <- optimal.thresholds(obs_pred_train,
+                               opt.methods = "MaxSens+Spec")$predicted
+      
+      #confusion matrices
+      confusion_train <- cmx(obs_pred_train, threshold = th)
+      confusion_test <- cmx(obs_pred_test, threshold = th)
+      
+      #sensitivity
+      sens_train <- sensitivity(confusion_train, st.dev = FALSE)
+      sens_test <- sensitivity(confusion_test, st.dev = FALSE)
+      
+      #specificity
+      spec_train <- specificity(confusion_train, st.dev = FALSE)
+      spec_test <- specificity(confusion_test,  st.dev = FALSE)
+      
+      #TSS
+      TSS_train <- sens_train + spec_train - 1
+      TSS_test <- sens_test  + spec_test - 1
+      
+      #get SHAP values for training data
+      shap_train <- predict(fit, as.matrix(train_dat[, preds_max_PPT]),
+                            predcontrib = TRUE)
+      
+      #drop BIAS column (keep only predictors)
+      shap_train <- shap_train[,colnames(as.matrix(
+        train_dat[,preds_max_PPT])), drop = FALSE]
+      
+      #convert SHAP matrix to data.frame
+      shap_df <- as.data.frame(shap_train)
+      
+      #build results table (one row per training point)
+      meanT_maxPPT <- cbind(
+        Species = sps,
+        train_dat[, c("ID",
+                      "decimalLongitude", "decimalLatitude",
+                      "Occurrence", "Type",
+                      "wc2.1_2.5m_bio_1", "wc2.1_2.5m_bio_13")],
+        data.frame(
+          Mean_T_SHAP = shap_df$wc2.1_2.5m_bio_1,
+          Max_PPT_SHAP = shap_df$wc2.1_2.5m_bio_13,
+          iteration = j,
+          fold = k,
+          block_size = block_size,
+          AUC_test = AUC_test,
+          TSS_test = TSS_test,
+          sens_test = sens_test,
+          spec_test = spec_test,
+          AUC_train = AUC_train,
+          TSS_train = TSS_train,
+          sens_train = sens_train,
+          spec_train = spec_train))
+      
+      #save results
+      setwd(dir_species)
+      write.csv(meanT_maxPPT,
+                paste0(sps, '_maxPPT_run_', j, '_rep_', k, '.csv'),
+                row.names = F)
     }
   }
 }
@@ -890,18 +935,18 @@ for(i in 1:length(sps_list))
 
 
 
-######## Calculate average SHAP for each point and the corresponding metrics ######
+ ######## Calculate average SHAP for each point and the corresponding metrics ######
 
 #list with all 503 species
 sps_list
 
-#number of records for each species
-setwd(wd_thinned_occ)
-sps_occ <- lapply(list.files(), read.csv)
-n_occ <- sapply(sps_occ, nrow)
+# #number of records for each species
+# setwd(wd_thinned_occ)
+# sps_occ <- lapply(list.files(), read.csv)
+# n_occ <- sapply(sps_occ, nrow)
 
-#create an empty objects to populate with the number of folds for training and testing
-folds <- numeric()
+#create an empty objects to populate with the total number of models
+tot_models <- numeric()
 
 #create an empty objects to populate with info about the percentage of useful models
 perc_used_minT <- numeric()
@@ -1041,10 +1086,10 @@ SD_sens_sel_maxPPT <- numeric()
 SD_spec_sel_maxPPT <- numeric()
 
 
-for(i in 1:length(sps_list))
+for(i in 1:length(sps_list$species))
 {
   #select species 
-  sps <- sps_list[i]
+  sps <- sps_list$species[i]
   
   #check if the species has any models
   setwd(wd_res_species)
@@ -1067,12 +1112,12 @@ for(i in 1:length(sps_list))
     minT <- lapply(list.files(pattern = 'minT'), read.csv)
     
     #input the number of folds (therefore models) that could be run. This number is the same for all variable combination models because it depends only on the number of records
-    folds[i] <- length(minT) / 10
+    tot_models[i] <- length(minT)
     
     #input the percentage of models that could be used in the calculation of the SHAP. This number will vary across variable combination models because it depends on how many models were satisfactory according to AUC and TSS
     perc_used_minT[i] <- sum(sapply(minT, function(x) unique(x$TSS_test)) >= 0.4 &
                             sapply(minT, function(x) unique(x$AUC_test)) >= 0.7) /
-      folds[i] * 10
+      length(minT) * 100
     
     #rbind all lists to calculate the average and SD of shap values per point used in training
     minT_bind_all <- rbindlist(minT)
@@ -1159,9 +1204,11 @@ for(i in 1:length(sps_list))
     meanT <- lapply(list.files(pattern = 'meanT'), read.csv)
     
     #input the percentage of models that could be used in the calculation of the SHAP. This number will vary across variable combination models because it depends on how many models were satisfactory according to AUC and TSS
-    perc_used_meanT[i] <- sum(sapply(meanT, function(x) unique(x$TSS_test)) >= 0.4 &
-                               sapply(meanT, function(x) unique(x$AUC_test)) >= 0.7) /
-      folds[i] * 10
+    perc_used_meanT[i] <- sum(sapply(meanT,
+                                     function(x) unique(x$TSS_test)) >= 0.4 &
+                              sapply(meanT,
+                                     function(x) unique(x$AUC_test)) >= 0.7) /
+    length(meanT) * 100
     
     #rbind all lists to calculate the average and SD of shap values per point used in training
     meanT_bind_all <- rbindlist(meanT)
@@ -1248,9 +1295,11 @@ for(i in 1:length(sps_list))
     maxT <- lapply(list.files(pattern = 'maxT'), read.csv)
     
     #input the percentage of models that could be used in the calculation of the SHAP. This number will vary across variable combination models because it depends on how many models were satisfactory according to AUC and TSS
-    perc_used_maxT[i] <- sum(sapply(maxT, function(x) unique(x$TSS_test)) >= 0.4 &
-                                sapply(maxT, function(x) unique(x$AUC_test)) >= 0.7) /
-      folds[i] * 10
+    perc_used_maxT[i] <- sum(sapply(maxT,
+                                    function(x) unique(x$TSS_test)) >= 0.4 &
+                                sapply(maxT,
+                                       function(x) unique(x$AUC_test)) >= 0.7) /
+      length(maxT) * 100
     
     #rbind all lists to calculate the average and SD of shap values per point used in training
     maxT_bind_all <- rbindlist(maxT)
@@ -1338,9 +1387,11 @@ for(i in 1:length(sps_list))
     
     
     #input the percentage of models that could be used in the calculation of the SHAP. This number will vary across variable combination models because it depends on how many models were satisfactory according to AUC and TSS
-    perc_used_minPPT[i] <- sum(sapply(minPPT, function(x) unique(x$TSS_test)) >= 0.4 &
-                               sapply(minPPT, function(x) unique(x$AUC_test)) >= 0.7) /
-      folds[i] * 10
+    perc_used_minPPT[i] <- sum(sapply(minPPT,
+                                      function(x) unique(x$TSS_test)) >= 0.4 &
+                               sapply(minPPT,
+                                      function(x) unique(x$AUC_test)) >= 0.7) /
+      length(minPPT) * 100
     
     #rbind all lists to calculate the average and SD of shap values per point used in training
     minPPT_bind_all <- rbindlist(minPPT)
@@ -1428,9 +1479,11 @@ for(i in 1:length(sps_list))
     
     
     #input the percentage of models that could be used in the calculation of the SHAP. This number will vary across variable combination models because it depends on how many models were satisfactory according to AUC and TSS
-    perc_used_meanPPT[i] <- sum(sapply(meanPPT, function(x) unique(x$TSS_test)) >= 0.4 &
-                                 sapply(meanPPT, function(x) unique(x$AUC_test)) >= 0.7) /
-      folds[i] * 10
+    perc_used_meanPPT[i] <- sum(sapply(meanPPT,
+                                       function(x) unique(x$TSS_test)) >= 0.4 &
+                                 sapply(meanPPT,
+                                        function(x) unique(x$AUC_test)) >= 0.7) /
+      length(meanPPT) * 100
     
     #rbind all lists to calculate the average and SD of shap values per point used in training
     meanPPT_bind_all <- rbindlist(meanPPT)
@@ -1518,9 +1571,11 @@ for(i in 1:length(sps_list))
     
     
     #input the percentage of models that could be used in the calculation of the SHAP. This number will vary across variable combination models because it depends on how many models were satisfactory according to AUC and TSS
-    perc_used_maxPPT[i] <- sum(sapply(maxPPT, function(x) unique(x$TSS_test)) >= 0.4 &
-                                  sapply(maxPPT, function(x) unique(x$AUC_test)) >= 0.7) /
-      folds[i] * 10
+    perc_used_maxPPT[i] <- sum(sapply(maxPPT,
+                                      function(x) unique(x$TSS_test)) >= 0.4 &
+                                  sapply(maxPPT,
+                                         function(x) unique(x$AUC_test)) >= 0.7) /
+      length(maxPPT) * 100
     
     #rbind all lists to calculate the average and SD of shap values per point used in training
     maxPPT_bind_all <- rbindlist(maxPPT)
@@ -1595,7 +1650,7 @@ for(i in 1:length(sps_list))
     
   }else{
     
-    folds[i] <- NA
+    tot_models[i] <- NA
     
     perc_used_minT[i] <- NA
     AUC_all_minT[i] <- NA
@@ -1735,7 +1790,7 @@ for(i in 1:length(sps_list))
 
 
 # make table with info for all species
-info_species <- data.frame(Species = sps_list, n_occ = n_occ, folds = folds,
+info_species <- data.frame(Species = sps_list, tot_models = tot_models,
                            
     #percentage of useful models (AUC >= 0.7 and TSS >= 0.4)
     Used_models_minT =  paste0(round(perc_used_minT, 2), ' %'),
@@ -1808,35 +1863,6 @@ info_species <- data.frame(Species = sps_list, n_occ = n_occ, folds = folds,
     SD_spec_all_maxPPT = SD_spec_all_maxPPT, SD_spec_sel_maxPPT = SD_spec_sel_maxPPT)
 
     
-
-#.  INCLUDE CORRELATION ANALYSIS IN FINAL TABLE.   
-
-#load dataframe with variable correlation
-setwd(wd_tables)
-results_correl <- read.csv('Correlation_variables.csv')
-
-
-#join correl analysis with the info species table
-mistress_file <- merge(info_species, results_correl, by = c('Species', 'n_occ'))
-
 #save mistressfile
 setwd(wd_tables)
-write.csv(mistress_file, 'Mistressfile.csv', row.names = F)
-
-
-
-
-
-
-
-##################.  NOTE  #########################
-
-
-
-
-
-###################### SCRAP #########################
-
-#list the species that could produce any models (they have a directory inside of the main directory)
-setwd(wd_res_species)
-sps_list_models <- list.dirs(full.names = F, recursive = F)
+write.csv(info_species, 'Info_species.csv', row.names = F)
