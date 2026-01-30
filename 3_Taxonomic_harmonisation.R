@@ -20,7 +20,8 @@ iucn_names <- gsub('.shp', '', list.files(pattern = '.shp$'))
 xref <- data.frame(iucn_name = iucn_names, gbif_name = NA_character_,
                    canonicalName = NA_character_, status = NA_character_,
                    matchType = NA_character_, confidence = NA_real_,
-                   usageKey = NA_integer_, stringsAsFactors = FALSE)
+                   usageKey = NA_integer_, order = NA_character_,
+                   family = NA_character_, stringsAsFactors = FALSE)
 
 #loop though species getting the harmonised names
 for(i in 1:nrow(xref))
@@ -32,50 +33,76 @@ for(i in 1:nrow(xref))
   bb <- tryCatch(name_backbone(name = iucn_name),
                  error = function(e) NULL)
   
-  #if query failed, store NA and move on
+  #defaults (so missing fields never crash)
+  xref$gbif_name[i] <- NA_character_
+  xref$canonicalName[i] <- NA_character_
+  xref$status[i] <- NA_character_
+  xref$matchType[i] <- NA_character_
+  xref$confidence[i] <- NA_real_
+  xref$usageKey[i] <- NA_integer_
+  xref$order[i] <- NA_character_
+  xref$family[i] <- NA_character_
+  
+  #if query failed, move on
   if(is.null(bb)){
-    xref$gbif_name[i] <- NA_character_
-    xref$canonicalName[i] <- NA_character_
-    xref$status[i] <- NA_character_
-    xref$matchType[i] <- NA_character_
-    xref$confidence[i] <- NA_real_
-    xref$usageKey[i] <- NA_integer_
     print(i)
     next
   }
   
-  #populate GBIF name (NULL-safe)
-  gbif_name <- bb$species
-  if(is.null(gbif_name) || is.na(gbif_name) || !nzchar(gbif_name)){
-    gbif_name <- bb$canonicalName
+  #populate GBIF name (species if available, otherwise canonicalName)
+  if(!is.null(bb$species) && length(bb$species) > 0 &&
+     !is.na(bb$species) && nzchar(bb$species)){
+    xref$gbif_name[i] <- bb$species
+  } else if(!is.null(bb$canonicalName) && length(bb$canonicalName) > 0 &&
+            !is.na(bb$canonicalName) && nzchar(bb$canonicalName)){
+    xref$gbif_name[i] <- bb$canonicalName
   }
-  if(is.null(gbif_name) || is.na(gbif_name) || !nzchar(gbif_name)){
-    gbif_name <- NA_character_
+  
+  #populate canonicalName
+  if(!is.null(bb$canonicalName) && length(bb$canonicalName) > 0 &&
+     !is.na(bb$canonicalName) && nzchar(bb$canonicalName)){
+    xref$canonicalName[i] <- bb$canonicalName
   }
-  xref$gbif_name[i] <- gbif_name
   
-  #populate canonicalName 
-  xref$canonicalName[i] <- bb$canonicalName
-  if(is.null(xref$canonicalName[i])) xref$canonicalName[i] <- NA_character_
-  
-  #populate  status
-  xref$status[i] <- bb$status
-  if(is.null(xref$status[i])) xref$status[i] <- NA_character_
+  #populate status
+  if(!is.null(bb$status) && length(bb$status) > 0 &&
+     !is.na(bb$status) && nzchar(bb$status)){
+    xref$status[i] <- bb$status
+  }
   
   #populate matchType
-  xref$matchType[i] <- bb$matchType
-  if(is.null(xref$matchType[i])) xref$matchType[i] <- NA_character_
+  if(!is.null(bb$matchType) && length(bb$matchType) > 0 &&
+     !is.na(bb$matchType) && nzchar(bb$matchType)){
+    xref$matchType[i] <- bb$matchType
+  }
   
-  #populare confidence
-  xref$confidence[i] <- bb$confidence
-  if(is.null(xref$confidence[i])) xref$confidence[i] <- NA_real_
+  #populate confidence
+  if(!is.null(bb$confidence) && length(bb$confidence) > 0 &&
+     !is.na(bb$confidence)){
+    xref$confidence[i] <- bb$confidence
+  }
   
   #populate usageKey
-  xref$usageKey[i] <- bb$usageKey
-  if(is.null(xref$usageKey[i])) xref$usageKey[i] <- NA_integer_
+  if(!is.null(bb$usageKey) && length(bb$usageKey) > 0 &&
+     !is.na(bb$usageKey)){
+    xref$usageKey[i] <- bb$usageKey
+  }
+  
+  #populate order
+  if(!is.null(bb$order) && length(bb$order) > 0 &&
+     !is.na(bb$order) && nzchar(bb$order)){
+    xref$order[i] <- bb$order
+  }
+  
+  #populate family
+  if(!is.null(bb$family) && length(bb$family) > 0 &&
+     !is.na(bb$family) && nzchar(bb$family)){
+    xref$family[i] <- bb$family
+  }
   
   print(i)
 }
+
 
 #save harmonisation table
 setwd(wd_out)

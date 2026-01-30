@@ -188,7 +188,7 @@ E_ocean <- character() # percentage of frag limited by ocean to the East
 W_ocean <- character() # percentage of frag limited by ocean to the West
 
 #loop through ranges
-for(i in 1:5657:length(sps_list))
+for(i in 1:length(sps_list))
 {
   #load species range
   setwd(wd_ranges)
@@ -450,4 +450,88 @@ res <- data.frame(species = sps_list,
 
 
 setwd(wd_tables)
-write.csv(res, 'Range_details.csv', row.names = F)
+write.csv(res, 'Range_info.csv', row.names = F)
+
+
+## Select rows that have info on fragment number
+
+res2 <- res[res$fragments > 0,]
+res2 <- res2[complete.cases(res2$fragments),]
+
+
+## Select rows that have either one dominant fragment (min 80% total area)
+
+#threshold
+thr <- 0.8
+
+#split fragment areas into list
+frag_vals <- strsplit(gsub(" ", "", res2$range_frag_km2), ";")
+
+#convert to numeric
+frag_vals <- lapply(frag_vals, as.numeric)
+
+#total area per species
+tot_area <- sapply(frag_vals, function(x)
+  if(all(is.na(x))) NA else sum(x, na.rm = TRUE))
+
+#largest fragment per species
+max_area <- sapply(frag_vals, function(x)
+  if(all(is.na(x))) NA else max(x, na.rm = TRUE))
+
+#dominance ratio
+dom_ratio <- max_area / tot_area
+
+#which fragment is dominant (position of max area)
+dom_frag <- sapply(frag_vals, function(x)
+  if(all(is.na(x))) NA_integer_ else which.max(x)[1])
+
+#include dom_ratio and dom_frag in table 
+res2$dom_ratio <- dom_ratio
+res2$dom_frag <- dom_frag
+
+#keep rule
+keep <- (res2$fragments == 1) |
+  (res2$fragments > 1 & dom_ratio >= thr)
+
+#keep only dominant-fragment info for semicolon columns
+pick <- function(x, idx){
+  vals <- strsplit(gsub(" ", "", x), ";")
+  out <- sapply(seq_along(vals), function(i){
+    if(is.na(idx[i]) || is.na(x[i]) || !nzchar(x[i])) return(NA)
+    v <- vals[[i]]
+    if(idx[i] <= length(v)) v[idx[i]] else NA
+  })
+  out
+}
+
+res2$perc_ocean <- pick(res2$perc_ocean, res2$dom_frag)
+res2$N_ocean <- pick(res2$N_ocean, res2$dom_frag)
+res2$S_ocean <- pick(res2$S_ocean, res2$dom_frag)
+res2$E_ocean <- pick(res2$E_ocean, res2$dom_frag)
+res2$W_ocean <- pick(res2$W_ocean, res2$dom_frag)
+
+#final filtered table
+res3 <- res2[keep, ]
+
+
+## Select rows that touch ocean in the North and South at max 20%
+
+#convert to numeric (percent sign removed)
+N_num <- as.numeric(gsub("%", "", res3$N_ocean))
+S_num <- as.numeric(gsub("%", "", res3$S_ocean))
+
+#sum of latitudinal ocean contact
+NS_sum <- N_num + S_num
+
+# keep if NA OR if sum <= 20
+keep2 <- is.na(NS_sum) | NS_sum <= 20
+
+#final filtered table
+res4 <- res3[keep2, ]
+
+#save filtered table
+setwd(wd_tables)
+write.csv(res4, 'Selected_species.csv', row.names = F)
+
+
+

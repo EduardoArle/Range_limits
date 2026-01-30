@@ -49,5 +49,6 @@ for(i in 1:length(orders))
   
   #write bias raster
   setwd(wd_biases)
-  writeRaster(bias_s, filename = paste0(order, "_bias_0.5deg.tif"))
+  writeRaster(bias_s,
+              filename = paste0(order, "_bias_0.5deg.tif"), overwrite = T)
 }

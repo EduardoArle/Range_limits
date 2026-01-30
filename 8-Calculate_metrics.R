@@ -37,6 +37,9 @@ wd_tax_harm <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Man
 wd_biomes <- '/Users/carloseduardoaribeiro/Documents/General data/Biomes/official'
 wd_pts_metrics <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables/Occurrence_metrics'
 
+#set to avoid edge issues
+sf_use_s2(FALSE)
+
 #load elevation raster
 setwd(wd_elevation)
 elev <- raster('wc2.1_2.5m_elev.tif')
@@ -74,25 +77,42 @@ for(i in 1:length(sps_list))
   setwd(wd_ranges)
   range <- st_read(dsn = wd_ranges, layer = sps_list[i])
   
-  #select the range representing only the native range of the species
-  range <- range[range$legend == 'Extant (resident)',]
+  #work around to fix edge issue
+  range <- st_make_valid(range)
+  range <- st_simplify(range, dTolerance = 0.01, preserveTopology = TRUE)
   
   #unify all features
   sps_range2 <- st_union(range)
   
-  ## Calculate range area (km^2)
-  sps_occ$rangeSize <- set_units(st_area(sps_range2), km^2)
+  #split into fragments
+  frags <- st_cast(sps_range2, "POLYGON")
+  
+  #local equal-area CRS (metres)
+  cen <- st_coordinates(st_centroid(st_union(frags)))[1, ]
+  crs_laea <- paste0("+proj=laea +lat_0=", cen[2], " +lon_0=", cen[1],
+                     " +datum=WGS84 +units=m +no_defs")
+  
+  #areas (km2)
+  frags_m <- st_transform(frags, crs_laea)
+  a_km2 <- as.numeric(st_area(frags_m)) / 1e6
+  
+  #keep largest fragment
+  frag_dom <- which.max(a_km2)
+  range_dom <- frags[frag_dom, ]
+  
+  ## Include range area (km^2)
+  sps_occ$rangeSize <- set_units(st_area(range_dom), km^2)
   
   ## Calculate roundness (Roundness = 4π * Area / Perimeter^2)
-  area_range <- set_units(st_area(sps_range2), km^2)
-  perimetre <- set_units(st_length(st_cast(sps_range2, 'MULTILINESTRING')), km)
+  area_range <- set_units(st_area(range_dom), km^2)
+  perimetre <- set_units(st_length(st_cast(range_dom, 'MULTILINESTRING')), km)
 
   sps_occ$roundness <- as.numeric((4*pi*area_range) / (perimetre^2))
   
   ## Calculate the dist from each point to edge in km
   
   #make a box around the range, get min and max coord values of the range
-  ext <- st_bbox(sps_range2)  
+  ext <- st_bbox(range_dom)  
   
   #get the values for the margin around the box
   x_mar <- abs(ext[3] - ext[1]) / 3 
@@ -104,10 +124,10 @@ for(i in 1:length(sps_list))
   
   #make the box 
   box <- st_as_sfc(st_bbox(st_as_sf(box_df, coords = c('x', 'y'),
-                                    crs = crs(sps_range2))))
+                                    crs = crs(range_dom))))
   
   #cut the range out of the box
-  range_cut <- st_difference(box, sps_range2)
+  range_cut <- st_difference(box, range_dom)
   
   #make sf objects for the points
   sps_occ_sf <- st_as_sf(sps_occ, 
@@ -118,13 +138,13 @@ for(i in 1:length(sps_list))
   sps_occ$distEdge <- set_units(st_distance(sps_occ_sf, range_cut), km)[,1]
   
   ## Calculate the absolute polewardness of each point
-  sps_occ$absPolarwardness <- abs(sps_occ$decimalLatitude)
+  sps_occ$absPolewardness <- abs(sps_occ$decimalLatitude)
   
   ## Calculate the relative polewardness of each point
   
   #get latitudinal range
-  ymax <- st_bbox(sps_range2)$ymax
-  ymin <- st_bbox(sps_range2)$ymin
+  ymax <- st_bbox(range_dom)$ymax
+  ymin <- st_bbox(range_dom)$ymin
   
   #flag if range is crossed by the equator (deal with this part of the code after)
   if(ymax > 0 & ymin < 0 | ymax < 0 & ymin > 0){
@@ -151,7 +171,7 @@ for(i in 1:length(sps_list))
   
   
   #calculate relative dist from warm edge, consider the cross equator sps
-  sps_occ$relPolarwardness <- 
+  sps_occ$relPolewardness <- 
       1-((abs(cold_edge) - abs(sps_occ$decimalLatitude)) / lat_range)
 
   ## Extract the elevation of each point
@@ -164,10 +184,10 @@ for(i in 1:length(sps_list))
   biomes2 <- st_transform(biomes, crs = 3857) 
   
   #extract the biome info
-  biomes_sps <- st_intersection(biomes2, sps_occ2_sf)
+  biomes_sps <- st_join(sps_occ2_sf, biomes2["BIOME"], left = TRUE)
   sps_occ$biome <- biomes_sps$BIOME
          
-  ## Get average body mass for the species
+  ##Get species order and average body mass
   
   #harmonise IUCN name to GBIF name
   gbif_name <- tax_harm$gbif_name[match(sps_list[i], tax_harm$iucn_name)]
@@ -175,6 +195,8 @@ for(i in 1:length(sps_list))
   #if no GBIF name, set NA
   if(is.na(gbif_name) || !nzchar(gbif_name)){
     sps_occ$bodyMass <- NA
+    sps_occ$order <- NA
+
   } else {
     
     #get body mass values from Smith table
@@ -188,6 +210,16 @@ for(i in 1:length(sps_list))
       sps_occ$bodyMass <- NA
     } else {
       sps_occ$bodyMass <- mean(bm)
+    }
+    
+    #get order from Smith table
+    ord <- tax_harm$order[match(sps_list[i], tax_harm$iucn_name)]
+    ord <- ord[!is.na(ord)]
+    
+    if(length(ord) == 0){
+      sps_occ$order <- NA
+    } else {
+      sps_occ$order <- ord[1]
     }
   }
   

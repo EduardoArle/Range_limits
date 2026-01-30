@@ -129,9 +129,6 @@ write.csv(results_correl, 'Correlation_variables.csv', row.names = F)
 setwd(wd_tables)
 info_species <- read.csv('Info_species.csv', stringsAsFactors = FALSE)
 
-#fix names in info_species
-names(info_species)[c(1,2)] <- c('Species', 'Order')
-
 #join correlation analysis (including n_occ) to species info table
 mistress_file <- merge(info_species, results_correl, by = 'Species',
                        all.x = TRUE)

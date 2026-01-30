@@ -1,4 +1,4 @@
-#load packages 
+#load packages
 library(sf); library(raster); library(xgboost); library(PresenceAbsence)
 library(dismo); library(data.table); library(plyr)
 
@@ -16,18 +16,19 @@ wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manus
 wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Thinned Occ'
 wd_sps_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Species_occ'
 
-
-### this has to be fixed
-wd_lists <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
-
-
 #list species 
-setwd(wd_lists)
-sps_list <- read.csv('Species_order.csv')
+setwd(wd_tables)
+sps_table <- read.csv('Selected_species.csv')
+sps_list <- sps_table$species
 
 #load lookup table for name harmonisation according to GBIF backbone
 setwd(wd_harmo)
 harmo <- read.csv('Harmonised_table.csv')
+
+#load order thinned occurrences
+setwd(wd_thinned_occ)
+ord_occ <- lapply(list.files(), read.csv)
+names(ord_occ) <- gsub('_thin.csv', '', list.files())
 
 #load all six BioCLim variables being used
 setwd(wd_variables)
@@ -103,10 +104,10 @@ safeRandomPoints <- function(mask, n, prob = TRUE, min_n = 1,
 
 ######## Run SHAP for all species ######
 
-for(i in 1:length(sps_list$species))
+for(i in 1:length(sps_list))
 {
   #select species
-  sps <- sps_list$species[i]
+  sps <- sps_list[i]
   
   ## Harmonise species according to GBIF backbone
   
@@ -118,34 +119,53 @@ for(i in 1:length(sps_list$species))
   if(is.na(gbif_name) || !nzchar(gbif_name)) next
   
   #get species order
-  order <- sps_list$order[i]
+  order <- harmo$order[idx]
   
-  #load order thinned occurrences
-  setwd(wd_thinned_occ)
-  ord_occ <- read.csv(paste0(order, '_thin.csv'))
+  #select order thinned occurrences
+  ord_occ2 <- ord_occ[[order]]
   
   #select only points representing the species
-  sps_occ <- ord_occ[which(ord_occ$species == gbif_name),]
+  sps_occ <- ord_occ2[which(ord_occ2$species == gbif_name),]
   
   ## Select only points whithin the species range
   
   #load species range map
   setwd(wd_ranges)
-  range <- st_read(dsn = wd_ranges, layer = sps_list$species[i])
+  range <- st_read(dsn = wd_ranges, layer = sps_list[i])
   
-  #select the range representing only the native range of the species
-  range <- range[range$legend == 'Extant (resident)',]
+  #get area of main fragment of the range
+  dom_frag_km2 <- as.numeric(strsplit(sps_table$range_frag_km2[i],
+                                      ";")[[1]][sps_table$dom_frag[i]])
   
-  #unify all features
-  sps_range2 <- st_union(range)
+  #split into fragments (one POLYGON per fragment)
+  frags <- st_cast(range, "POLYGON")
+  
+  #project to a local equal-area CRS so areas are meaningful
+  cen <- st_coordinates(st_centroid(st_union(frags)))[1, ]
+  crs_laea <- paste0("+proj=laea +lat_0=", cen[2], " +lon_0=", cen[1],
+                     " +datum=WGS84 +units=m +no_defs")
+  frags_m <- st_transform(frags, crs_laea)
+  
+  #areas in km2
+  a_km2 <- as.numeric(st_area(frags_m)) / 1e6
+  
+  #pick the fragment whose area is closest to dom_frag_km2
+  frag_pos <- which.min(abs(a_km2 - dom_frag_km2))
+  
+  #keep only the dominant fragment, preserving the original attributes
+  range_dom <- range
+  range_dom$geometry <- st_geometry(frags[frag_pos, ])
+  
+  #project dominant range to metres (same CRS used for fragment areas)
+  range_dom_m <- st_transform(range_dom, crs_laea)
   
   #create spatial object with sps presences
   sps_occ_sf <- st_as_sf(sps_occ, 
                          coords = c('decimalLongitude', 'decimalLatitude'),
-                         crs = st_crs(range))
+                         crs = st_crs(range_dom))
   
   #select only the points within the species range
-  pts_range <- st_intersects(sps_occ_sf, range, sparse = F)[, 1]
+  pts_range <- st_intersects(sps_occ_sf, range_dom, sparse = F)[, 1]
   sps_occ_range <- sps_occ[pts_range,] #table
   sps_occ_range_sf <- sps_occ_sf[pts_range,] #spatial object
   
@@ -156,27 +176,34 @@ for(i in 1:length(sps_list$species))
   
   ## Select pseudo-absences (same number of presences)
   
-  sps_range_buf <- st_buffer(sps_range2, 50000)  
+  #project presence points to metres
+  sps_occ_range_sf_m <- st_transform(sps_occ_range_sf, crs_laea)
+  
+  #buffer in metres (50 km)
+  sps_range_buf_m <- st_buffer(range_dom_m, 50000)
   
   #make 50km buffer around points to delimit area where I don't want PA
-  small_buffer <- st_buffer(sps_occ_range_sf, 50000)  
+  small_buffer_m <- st_buffer(sps_occ_range_sf_m, 50000)
   
   #make a spatial polygon object with only one feature
-  no_pa_area <- st_union(small_buffer)
+  no_pa_area <- st_union(small_buffer_m)
   
   # this fixes possible 'duplicate vertex' errors
   no_pa_area <- st_make_valid(no_pa_area) 
   
   #make holes in the species range by the small buffer around points
-  pa_area <- st_difference(sps_range_buf, no_pa_area)
+  pa_area <- st_difference(sps_range_buf_m, no_pa_area)
   
   #load bias raster for this order
   setwd(wd_bias)
   bias_r <- raster(paste0(order, "_bias_0.5deg.tif"))
   
+  #transfor pa_area to RGS84
+  pa_area_ll <- st_transform(pa_area, st_crs(bias_r))
+  
   #restrict bias raster to PA area
-  bias_pa <- mask(bias_r, as(pa_area, "Spatial"))
-  bias_pa <- crop(bias_pa, as(pa_area, "Spatial"))
+  bias_pa <- mask(bias_r, as(pa_area_ll, "Spatial"))
+  bias_pa <- crop(bias_pa, as(pa_area_ll, "Spatial"))
   
   #crop the fine-resolution template to the same extent
   pred1_pa <- crop(AnnualMeanTemperature, extent(bias_pa))
@@ -188,8 +215,12 @@ for(i in 1:length(sps_list$species))
   n_pa <- nrow(sps_occ_range)
   
   # sample pseudo-absences
-  pa_xy <- safeRandomPoints(bias_pa_fine, n_pa, prob = T,
-                            min_n = 10, verbose = TRUE)
+  pa_xy <- tryCatch(safeRandomPoints(bias_pa_fine, n_pa, prob = T, min_n = 10,
+                                     verbose = TRUE), error = function(e) NULL)
+  
+  if(is.null(pa_xy) || nrow(pa_xy) == 0){
+    next
+  }
   
   # convert to sf
   pa_sf <- st_as_sf(as.data.frame(pa_xy), coords = c(1, 2),
@@ -223,7 +254,7 @@ for(i in 1:length(sps_list$species))
   #make spatial obj again
   species_sf <- st_as_sf(species, 
                          coords = c('decimalLongitude', 'decimalLatitude'),
-                         crs = crs(sps_range2))
+                         crs = crs(range_dom))
   
   #select variables we will use
   preds <- stack(AnnualMeanTemperature, AnnualPrecipitation,
@@ -245,7 +276,7 @@ for(i in 1:length(sps_list$species))
                      " +datum=WGS84 +units=m +no_defs")
   
   #project domain + points
-  dom_m <- st_transform(sps_range_buf, crs_laea)
+  dom_m <- st_transform(sps_range_buf_m, crs_laea)
   pts_m <- st_transform(species_sf, crs_laea)
   
   #make a single polygon for the domain (avoid edge issues)
@@ -318,7 +349,7 @@ for(i in 1:length(sps_list$species))
     pts_tbl$fold <- fold_map$fold[match(pts_tbl$block_id, fold_map$block_id)]
     
     #create directory to save each repetition for the species
-    dir_species <- paste0(wd_res_species, '/', sps_list$species[i])
+    dir_species <- paste0(wd_res_species, '/', sps_list[i])
     dir.create(dir_species)
     
     #perform 5 fold cross validation for each model
@@ -935,15 +966,11 @@ for(i in 1:length(sps_list$species))
 
 
 
- ######## Calculate average SHAP for each point and the corresponding metrics ######
+##### Calculate average SHAP for each point and the corresponding metrics ######
 
-#list with all 503 species
-sps_list
-
-# #number of records for each species
-# setwd(wd_thinned_occ)
-# sps_occ <- lapply(list.files(), read.csv)
-# n_occ <- sapply(sps_occ, nrow)
+#list with all species that produced models
+setwd(wd_res_species)
+sps_list <- sub("^\\./", "", list.dirs(recursive = FALSE))
 
 #create an empty objects to populate with the total number of models
 tot_models <- numeric()
@@ -1086,10 +1113,10 @@ SD_sens_sel_maxPPT <- numeric()
 SD_spec_sel_maxPPT <- numeric()
 
 
-for(i in 1:length(sps_list$species))
+for(i in 983:length(sps_list))
 {
   #select species 
-  sps <- sps_list$species[i]
+  sps <- sps_list[i]
   
   #check if the species has any models
   setwd(wd_res_species)

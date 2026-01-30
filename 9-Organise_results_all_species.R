@@ -2,209 +2,182 @@
 library(data.table)
 
 #list wds
-wd_pts_measure <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20241208_Point_and_range_measurements'
-wd_res_shap <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250421_Comparison'
-wd_orders <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Species_lists'
-wd_out <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250504_All_species_analysis'
-wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Tables'
+wd_pts_metrics <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables/Occurrence_metrics'
+wd_res_species <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/SHAP_results'
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables'
+
 
 #list species
-setwd(wd_pts_measure)
+setwd(wd_pts_metrics)
 sps_list <- gsub('_point_range_metrics.csv', '', list.files())
 
 #load files
-setwd(wd_pts_measure)
-sps_tables <- lapply(list.files(), read.csv)
-
-names(sps_tables) <- sps_list #name objects
-
-#fix name of _Dasypus yepesi_ that for some reason is listed with the synonym 
-# _Dasypus mazzai_ in the table
-sps_tables[[60]]$species <- names(sps_tables)[60]
-
-#same for _Artibeus anderseni_ listed with the synonym _Dermanura anderseni_ 
-sps_tables[[61]]$species <- names(sps_tables)[61]
-
-#same for _Eudorcas albonotata_ listed with the synonym _Eudorcas rufifrons_ 
-sps_tables[[87]]$species <- names(sps_tables)[87]
-
-#same for _Gerbillus stigmonyx_ listed with the synonym _Dipodillus stigmonyx_ 
-sps_tables[[105]]$species <- names(sps_tables)[105]
-
-#same for _Handleyomys chapmani_ listed with the synonym _Oryzomys chapmani_ 
-sps_tables[[110]]$species <- names(sps_tables)[110]
-
-#same for _Micoureus constantiae_ listed with the synonym _Marmosa constantiae_
-sps_tables[[170]]$species <- names(sps_tables)[170]
-
-#same for _Micoureus phaeus_ listed with the synonym _Marmosa phaeus_
-sps_tables[[171]]$species <- names(sps_tables)[171]
-
-#same for _Neoromicia matroka_ listed with the synonym _Laephotis matroka_
-sps_tables[[234]]$species <- names(sps_tables)[234]
-
-#same for _Neotamias alpinus_ listed with the synonym _Tamias alpinus_
-sps_tables[[235]]$species <- names(sps_tables)[235]
-
-#same for _Neotamias bulleri_ listed with the synonym _Tamias bulleri_
-sps_tables[[236]]$species <- names(sps_tables)[236]
-
-#same for _Neotamias cinereicollis_ listed with the synonym _Tamias cinereicollis_
-sps_tables[[237]]$species <- names(sps_tables)[237]
-
-#same for _Neotamias quadrivittatus_ listed with the synonym _Tamias quadrivittatus_
-sps_tables[[238]]$species <- names(sps_tables)[238]
-
-#same for _Otomys sloggetti_ listed with the synonym _Myotomys sloggetti_
-sps_tables[[285]]$species <- names(sps_tables)[285]
-
-#same for _Otomys sloggetti_ listed with the synonym _Myotomys sloggetti_
-sps_tables[[285]]$species <- names(sps_tables)[285]
-
-#same for _Phaiomys leucurus_ listed with the synonym _Neodon leucurus_
-sps_tables[[304]]$species <- names(sps_tables)[304]
-
-#same for _Rhabdomys intermedius_ listed with the synonym _Rhabdomys pumilio_
-sps_tables[[382]]$species <- names(sps_tables)[382]
-
-#same for _Toromys rhipidurus_ listed with the synonym _Makalata rhipidura_
-sps_tables[[490]]$species <- names(sps_tables)[490]
-
-# sps_tables[[i]]$species
-# names(sps_tables)[i]
-
-#create a column with n occurrences for each species
-# for(i in 1:length(sps_tables))
-# {
-#   sps_tables[[i]]$n_occ <- nrow(sps_tables[[i]])
-# }
+setwd(wd_pts_metrics)
+sps_metrics <- lapply(list.files(), read.csv)
+names(sps_metrics) <- sps_list #name objects
 
 #load shap results
-setwd(wd_res_shap)
+setwd(wd_res_species)
 shap_results <- lapply(list.files(pattern = '.csv$'), read.csv)
-
-#name objects
 names(shap_results) <- gsub('.csv', '', list.files(pattern = '.csv$')) 
 
-#load table informing each species order
-setwd(wd_orders)
-sps_orders <- read.csv('Species_order.csv')
+#load table with range metrics
+setwd(wd_tables)
+range_metrics <- read.csv('Selected_species.csv')
 
-
-
-
-
-
-
+#make copy of sps tables
+sps_tables <- sps_metrics
 
 #include shap results in each sps_table
 for(i in 1:length(sps_tables))
 {
   #select each file with SHAP results for the species
   minT <- try(shap_results[names(shap_results) == 
-                         paste0(names(sps_tables)[i], '_minT')][[1]],
-              silent = T)
+                             paste0(names(sps_tables)[i], '_minT')][[1]],
+              silent = TRUE)
   meanT <- try(shap_results[names(shap_results) == 
-                         paste0(names(sps_tables)[i], '_meanT')][[1]],
-               silent = T)
+                              paste0(names(sps_tables)[i], '_meanT')][[1]],
+               silent = TRUE)
   maxT <- try(shap_results[names(shap_results) == 
-                         paste0(names(sps_tables)[i], '_maxT')][[1]],
-              silent = T)
+                             paste0(names(sps_tables)[i], '_maxT')][[1]],
+              silent = TRUE)
   
   minPPT <- try(shap_results[names(shap_results) == 
-                         paste0(names(sps_tables)[i], '_minPPT')][[1]],
-                silent = T)
+                               paste0(names(sps_tables)[i], '_minPPT')][[1]],
+                silent = TRUE)
   meanPPT <- try(shap_results[names(shap_results) == 
-                          paste0(names(sps_tables)[i], '_meanPPT')][[1]],
-                 silent = T)
+                                paste0(names(sps_tables)[i], '_meanPPT')][[1]],
+                 silent = TRUE)
   maxPPT <- try(shap_results[names(shap_results) == 
-                         paste0(names(sps_tables)[i], '_maxPPT')][[1]],
-                silent = T)
+                               paste0(names(sps_tables)[i], '_maxPPT')][[1]],
+                silent = TRUE)
   
-  #select only presences
-  minT2 <- try(minT[minT$Type == 'Presence',], silent = T)
-  meanT2 <- try(meanT[meanT$Type == 'Presence',], silent = T)
-  maxT2 <- try(maxT[maxT$Type == 'Presence',], silent = T)
-  
-  minPPT2 <- try(minPPT[minPPT$Type == 'Presence',], silent = T)
-  meanPPT2 <- try(meanPPT[meanPPT$Type == 'Presence',], silent = T)
-  maxPPT2 <- try(maxPPT[maxPPT$Type == 'Presence',], silent = T)
-
   #rename cols to indicate the 'control variables' 
   
-  ## NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE ##
+  ##NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE##
   
-  # control_ is mean temperature for all precipitation analyses 
-  # and mean precipitation for all temperature analyses
+  #control_ is mean temperature for all precipitation analyses 
+  #and mean precipitation for all temperature analyses
   
-  # control_elev_ is elevation for all analyses
+  ##NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE##
   
-  ## NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE ##
+  names(minT)[names(minT) == 'avg_Mean_PPT_SHAP'] <- 'control_Min_T_SHAP'
+  names(meanT)[names(meanT) == 'avg_Mean_PPT_SHAP'] <- 'control_Mean_T_SHAP'
+  names(maxT)[names(maxT) == 'avg_Mean_PPT_SHAP'] <- 'control_Max_T_SHAP'
   
-  names(minT2)[names(minT2) == 'avg_Mean_PPT_SHAP'] <- 'control_Min_T_SHAP'
-  names(meanT2)[names(meanT2) == 'avg_Mean_PPT_SHAP'] <- 'control_Mean_T_SHAP'
-  names(maxT2)[names(maxT2) == 'avg_Mean_PPT_SHAP'] <- 'control_Max_T_SHAP'
-
-  names(minPPT2)[names(minPPT2) == 'avg_Mean_T_SHAP'] <- 'control_Min_PPT_SHAP'
-  names(meanPPT2)[names(meanPPT2) == 'avg_Mean_T_SHAP'] <- 'control_Mean_PPT_SHAP'
-  names(maxPPT2)[names(maxPPT2) == 'avg_Mean_T_SHAP'] <- 'control_Max_PPT_SHAP'
-
+  names(minPPT)[names(minPPT) == 'avg_Mean_T_SHAP'] <- 'control_Min_PPT_SHAP'
+  names(meanPPT)[names(meanPPT) == 'avg_Mean_T_SHAP'] <- 'control_Mean_PPT_SHAP'
+  names(maxPPT)[names(maxPPT) == 'avg_Mean_T_SHAP'] <- 'control_Max_PPT_SHAP'
+  
   #select only columns of interest in each table
-  minT3 <- minT2[c('decimalLongitude', 'decimalLatitude',
-                   'avg_Min_T_SHAP', 'control_Min_T_SHAP')]
-  meanT3 <- meanT2[c('decimalLongitude', 'decimalLatitude',
-                     'avg_Mean_T_SHAP', 'control_Mean_T_SHAP')]
-  maxT3 <- maxT2[c('decimalLongitude', 'decimalLatitude',
-                   'avg_Max_T_SHAP', 'control_Max_T_SHAP')]
+  cols_minT  <- c('decimalLongitude','decimalLatitude',
+                  'avg_Min_T_SHAP','control_Min_T_SHAP')
+  cols_meanT <- c('decimalLongitude','decimalLatitude',
+                  'avg_Mean_T_SHAP','control_Mean_T_SHAP')
+  cols_maxT  <- c('decimalLongitude','decimalLatitude',
+                  'avg_Max_T_SHAP','control_Max_T_SHAP')
   
-  minPPT3 <- minPPT2[c('decimalLongitude', 'decimalLatitude',
-                       'avg_Min_PPT_SHAP', 'control_Min_PPT_SHAP')]
-  meanPPT3 <- meanPPT2[c('decimalLongitude', 'decimalLatitude',
-                         'avg_Mean_PPT_SHAP', 'control_Mean_PPT_SHAP')]
-  maxPPT3 <- maxPPT2[c('decimalLongitude','decimalLatitude',
-                       'avg_Max_PPT_SHAP','control_Max_PPT_SHAP')]
+  cols_minPPT  <- c('decimalLongitude','decimalLatitude',
+                    'avg_Min_PPT_SHAP','control_Min_PPT_SHAP')
+  cols_meanPPT <- c('decimalLongitude','decimalLatitude',
+                    'avg_Mean_PPT_SHAP','control_Mean_PPT_SHAP')
+  cols_maxPPT  <- c('decimalLongitude','decimalLatitude',
+                    'avg_Max_PPT_SHAP','control_Max_PPT_SHAP')
   
-  #include order info into the species tables
-  sps_tables[[i]]$order <- sps_orders$order[
-    sps_orders$species == unique(sps_tables[[i]]$species)]
-
+  minT2 <- try(minT[, intersect(cols_minT, names(minT)), drop = FALSE],
+               silent = TRUE)
+  if(inherits(minT2, "try-error")) minT2 <- NULL
+  
+  meanT2 <- try(meanT[, intersect(cols_meanT, names(meanT)), drop = FALSE],
+                silent = TRUE)
+  if(inherits(meanT2, "try-error")) meanT2 <- NULL
+  
+  maxT2 <- try(maxT[, intersect(cols_maxT, names(maxT)), drop = FALSE],
+               silent = TRUE)
+  if(inherits(maxT2, "try-error")) maxT2 <- NULL
+  
+  
+  minPPT2 <- try(minPPT[, intersect(cols_minPPT, names(minPPT)), drop = FALSE],
+                 silent = TRUE)
+  if(inherits(minPPT2, "try-error")) minPPT2 <- NULL
+  
+  meanPPT2 <- try(meanPPT[, intersect(cols_meanPPT, names(meanPPT)), drop = FALSE],
+                  silent = TRUE)
+  if(inherits(meanPPT2, "try-error")) meanPPT2 <- NULL
+  
+  maxPPT2 <- try(maxPPT[, intersect(cols_maxPPT, names(maxPPT)), drop = FALSE],
+                 silent = TRUE)
+  if(inherits(maxPPT2, "try-error")) maxPPT2 <- NULL
+  
   #include values for each point into the species tables
-  if(class(minT3) == 'data.frame'){
-    sps_tables[[i]] <- merge(sps_tables[[i]], minT3,
-                             by = c('decimalLongitude','decimalLatitude'))
-  }
-  if(class(meanT3) == 'data.frame'){
-    sps_tables[[i]] <- merge(sps_tables[[i]], meanT3,
-                             by = c('decimalLongitude','decimalLatitude'))
-  }
-  if(class(maxT3) == 'data.frame'){
-    sps_tables[[i]] <- merge(sps_tables[[i]], maxT3,
+  
+  if(is.data.frame(minT2) &&
+     all(c('decimalLongitude','decimalLatitude') %in% names(minT2)) &&
+     ncol(minT2) > 2){
+    sps_tables[[i]] <- merge(sps_tables[[i]], minT2,
                              by = c('decimalLongitude','decimalLatitude'))
   }
   
-  if(class(minPPT3) == 'data.frame'){
-    sps_tables[[i]] <- merge(sps_tables[[i]], minPPT3,
-                             by = c('decimalLongitude','decimalLatitude'))
-  }
-  if(class(meanPPT3) == 'data.frame'){
-    sps_tables[[i]] <- merge(sps_tables[[i]], meanPPT3,
-                             by = c('decimalLongitude','decimalLatitude'))
-  }
-  if(class(maxPPT3) == 'data.frame'){
-    sps_tables[[i]] <- merge(sps_tables[[i]], maxPPT3,
+  if(is.data.frame(meanT2) &&
+     all(c('decimalLongitude','decimalLatitude') %in% names(meanT2)) &&
+     ncol(meanT2) > 2){
+    sps_tables[[i]] <- merge(sps_tables[[i]], meanT2,
                              by = c('decimalLongitude','decimalLatitude'))
   }
   
+  if(is.data.frame(maxT2) &&
+     all(c('decimalLongitude','decimalLatitude') %in% names(maxT2)) &&
+     ncol(maxT2) > 2){
+    sps_tables[[i]] <- merge(sps_tables[[i]], maxT2,
+                             by = c('decimalLongitude','decimalLatitude'))
+  }
+  
+  if(is.data.frame(minPPT2) &&
+     all(c('decimalLongitude','decimalLatitude') %in% names(minPPT2)) &&
+     ncol(minPPT2) > 2){
+    sps_tables[[i]] <- merge(sps_tables[[i]], minPPT2,
+                             by = c('decimalLongitude','decimalLatitude'))
+  }
+  
+  if(is.data.frame(meanPPT2) &&
+     all(c('decimalLongitude','decimalLatitude') %in% names(meanPPT2)) &&
+     ncol(meanPPT2) > 2){
+    sps_tables[[i]] <- merge(sps_tables[[i]], meanPPT2,
+                             by = c('decimalLongitude','decimalLatitude'))
+  }
+  
+  if(is.data.frame(maxPPT2) &&
+     all(c('decimalLongitude','decimalLatitude') %in% names(maxPPT2)) &&
+     ncol(maxPPT2) > 2){
+    sps_tables[[i]] <- merge(sps_tables[[i]], maxPPT2,
+                             by = c('decimalLongitude','decimalLatitude'))
+  }
+  
+  ## Include range geographical details for each species
+  
+  #species name in this table
+  sps <- sps_tables[[i]]$sps[1]
+  
+  #row in range_metrics
+  idx <- match(sps, range_metrics$species)
+  
+  #attach species-level info
+  sps_tables[[i]]$dom_ratio <- range_metrics$dom_ratio[idx]
+  sps_tables[[i]]$perc_ocean <- range_metrics$perc_ocean[idx]
+  sps_tables[[i]]$N_ocean <- range_metrics$N_ocean[idx]
+  sps_tables[[i]]$S_ocean <- range_metrics$S_ocean[idx]
+  sps_tables[[i]]$E_ocean <- range_metrics$E_ocean[idx]
+  sps_tables[[i]]$W_ocean <- range_metrics$W_ocean[idx]
   
   print(i)
 }
 
+
 #exclude empty items on list that had no models
 no_models <- sapply(sps_tables, ncol)
-sps_tables2 <- sps_tables[no_models > 17] #17 is the ncol of tables that produced no models
 
-#exclude Isothrix orinoci (synonym)
-sps_tables2 <- sps_tables2[-which(names(sps_tables2) == 'Isothrix orinoci')]
+#eliminate tables that produced no models
+sps_tables2 <- sps_tables[no_models > min(no_models)]
 
 #check which species do not have info on order
 orders <- sapply(sps_tables2, function(x){unique(x$order)})
@@ -222,17 +195,17 @@ correl <- read.csv('Correlation_variables.csv')
 correl <- correl[,-which(names(correl) == 'n_occ')]
 
 #harmonise col names in both tables
-names(correl)[1] <- 'species'
+names(correl)[1] <- 'sps'
 
 #eliminate species that are not in the all_sps_table
-correl2 <- correl[which(correl$species %in% unique(all_sps_table$species)),]
+correl2 <- correl[which(correl$sps %in% unique(all_sps_table$sps)),]
 
 all_sps_table2 <- merge(all_sps_table, correl2,
-                        by = 'species', all.x = T)
+                        by = 'sps', all.x = T)
 
 all_sps_table2 <- as.data.frame(all_sps_table2)
 
 #save all species table
-setwd(wd_out)
-write.csv(all_sps_table2, '20250504_Results_all_sps.csv', row.names = F)
+setwd(wd_tables)
+write.csv(all_sps_table2, '20260126_Results_all_sps.csv', row.names = F)
 
