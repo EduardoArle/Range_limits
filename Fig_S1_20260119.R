@@ -1,4 +1,4 @@
-#load libraries
+#load libraries. 
 library(mgcv); library(itsadug)
 
 #list wds
