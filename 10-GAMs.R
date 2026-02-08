@@ -10,9 +10,6 @@ wd_sig <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscri
 setwd(wd_tables)
 results <- read.csv('20260126_Results_all_sps.csv')
 
-#change names that are wrong
-names(results)[c(10,12)] <- c("absPolewardness","relPolewardness" )
-
 #transform species names in factor
 results$species <- as.factor(results$sps)
 

@@ -1,19 +1,22 @@
 #load libraries
 library(data.table)
 
-#list WDs
-wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/20250504_All_species_analysis'
-wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Slopes'
+#list wds
+wd_tables <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables'
+wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Slopes'
   
 #read results table
 setwd(wd_tables)
-results <- read.csv('20250504_Results_all_sps.csv')
+results <- read.csv('20260126_Results_all_sps.csv')
 
-#change names that are wrong
-names(results)[c(10,12)] <- c("absPolewardness","relPolewardness" )
+#transform species names in factor
+results$species <- as.factor(results$sps)
+
+#select only presences (for now)
+results <- results[results$Occurrence == 1,]
 
 #make a species list
-sps_list <- unique(results$species)
+sps_list <- unique(results$sps)
 
 #explanatory variables
 rangeSize <- numeric()
@@ -67,7 +70,7 @@ Cor_vars_maxPPT <- numeric()
 for(i in 1:length(sps_list))
 {
   #select each sps
-  res_sps <- results[results$species == sps_list[i],]
+  res_sps <- results[results$sps == sps_list[i],]
   
   #make table keeping only points up to 250km away from range edges
   res_sps_250 <- res_sps[res_sps$distEdge <= 250,]
@@ -82,10 +85,10 @@ for(i in 1:length(sps_list))
   latAmplitude[i] <- unique(res_sps$latAmpl)
   
   #calculate median elevation
-  elevMedian[i] <- median(res_sps$elevation)
+  elevMedian[i] <- median(res_sps$elevation, na.rm = T)
   
   #calculate elevation amplitide (95 % quantile)
-  elev_95 <- quantile(res_sps$elevation, probs = c(0.025, 0.975))
+  elev_95 <- quantile(res_sps$elevation, probs = c(0.025, 0.975), na.rm = T)
   elevAmplitude[i] <- elev_95[2] - elev_95[1]
  
   #run lms for shap values against relPol and distEdge
@@ -313,4 +316,4 @@ slopes <- data.frame(species = sps_list, rangeSize = rangeSize,
 
 #save table with slopes
 setwd(wd_slopes)
-write.csv(slopes, '20250531_Slopes.csv', row.names = F)
+write.csv(slopes, '20260208_Slopes.csv', row.names = F)
