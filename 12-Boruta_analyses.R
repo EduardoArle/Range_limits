@@ -2,11 +2,11 @@
 library(Boruta)
 
 #list wds
-wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Slopes'
+wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Slopes'
 
 #read slopes table
 setwd(wd_slopes)
-slopes <- read.csv('Slopes.csv')
+slopes <- read.csv('20260208_Slopes.csv')
 
 
 
@@ -118,7 +118,7 @@ plot(boruta.maxT_relPol)
 print(boruta.maxT_relPol)
 attStats(boruta.maxT_relPol)
 
-
+# save 2000
 
 
 
