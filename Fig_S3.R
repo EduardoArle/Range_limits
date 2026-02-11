@@ -1,9 +1,9 @@
 #list wds
-wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Slopes'
+wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Slopes'
 
 #read slopes table
 setwd(wd_slopes)
-slopes <- read.csv('20250531_Slopes.csv')
+slopes <- read.csv('20260208_Slopes.csv')
 
 #set parametres for plotting
 par(mar = c(7,9,5,7), pty="m", mfrow = c(1,1))
@@ -29,7 +29,7 @@ s_minT_relPol$nOcc_log <- log(s_minT_relPol$nOcc)
 
 # Define x and y limits
 x_lim <- range(s_minT_relPol$rangeSize_log10)
-y_lim <- c(-0.2, 0.2)
+y_lim <- c(-1, 1)
 
 #plot graph
 plot(s_minT_relPol$rangeSize_log10, s_minT_relPol$slope_minT_relPol,
@@ -96,7 +96,7 @@ polygon(c(x_seq, rev(x_seq)),
 
 # Define x and y limits
 x_lim <- range(s_minT_relPol$elevMedian)
-y_lim <- c(-0.2, 0.2)
+y_lim <- c(-1, 1)
 
 # Ensure x_lim starts at 0 for a clean intersection
 x_lim[1] <- 0 
@@ -158,7 +158,7 @@ polygon(c(x_seq, rev(x_seq)),
 
 # Define x and y limits
 x_lim <- range(s_minT_relPol$latAmplitude)
-y_lim <- c(-0.2, 0.2)
+y_lim <- c(-1, 1)
 
 # Ensure x_lim starts at 0 for a clean intersection
 x_lim[1] <- 0 
@@ -216,7 +216,7 @@ polygon(c(x_seq, rev(x_seq)),
 
 # Define x and y limits
 x_lim <- range(s_minT_relPol$elevAmplitude)
-y_lim <- c(-0.2, 0.2)
+y_lim <- c(-1, 1)
 
 # Ensure x_lim starts at 0 for a clean intersection
 x_lim[1] <- 0 
@@ -263,6 +263,65 @@ polygon(c(x_seq, rev(x_seq)),
         col = '#90909030',
         border = NA)
 
+
+
+#save 800
+
+
+#################
+### Body mass ###
+#################
+
+#select only rows with bodyMass
+s_minT_relPol_bodyMass <- s_minT_relPol[
+  complete.cases(s_minT_relPol$bodyMass),]
+
+#restricted ylim weighted by nOcc
+
+# Define x and y limits
+x_lim <- c(0, 1000)
+y_lim <- c(-1, 1)
+
+#plot graph
+plot(s_minT_relPol_bodyMass$bodyMass, s_minT_relPol_bodyMass$slope_minT_relPol,
+     axes = F, xaxs = "i", yaxs = "i",
+     xlab = "", ylab = "", cex = 1.5,
+     pch = 19, col = '#90909020',
+     ylim = y_lim, xlim = x_lim)
+
+#add axes
+axis(1, pos = y_lim[1], cex.axis = 2)
+axis(2, pos = x_lim[1], las=2, cex.axis = 2)
+
+
+#add axes lables 
+#mtext('Body mass', side = 1, line = 3.8, cex = 2.5)  
+#mtext('Slope', side = 2, line = 6.5, cex = 2.5)
+
+#define x range explicitly
+x_vals <- s_minT_relPol_bodyMass$bodyMass
+x_range <- range(x_vals)
+
+#fit linear model
+lin_mod_minT <- lm(s_minT_relPol_bodyMass$slope_minT_relPol ~ x_vals,
+                    weights = s_minT_relPol_bodyMass$nOcc_log)
+
+length(s_minT_relPol_bodyMass$slope_minT_relPol)
+summary(lin_mod_minT)
+
+#predict y-values only for positive x-values
+x_seq <- seq(0, 100000, length.out = 100)  # Ensuring it starts at 0
+y_pred <- predict(lin_mod_minT, newdata = data.frame(x_vals = x_seq),
+                  interval = "confidence")
+
+#add regression line from the y-axis onwards
+lines(x_seq, y_pred[, "fit"], col = '#909090', lwd = 8)
+
+#add shaded confidence interval
+polygon(c(x_seq, rev(x_seq)),
+        c(y_pred[, "lwr"], rev(y_pred[, "upr"])),
+        col = '#90909030',
+        border = NA)
 
 
 #save 800

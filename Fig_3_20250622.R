@@ -1,6 +1,6 @@
 #list wds
-wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Results/Slopes'
-wd_table <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Figures/Fig 3'
+wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Slopes'
+wd_table <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Boruta'
 
 ############################################################################# 
 ################################# Panel E ###################################
@@ -8,7 +8,7 @@ wd_table <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manusc
 
 #read table with boruta results
 setwd(wd_table)
-tab <- read.csv('Covariable_importance.csv')
+tab <- read.csv('Results.csv')
 
 #add row names and delete first col
 row.names(tab) <- tab[,1]
@@ -103,7 +103,7 @@ text(par("usr")[3]-2.2,
 #save 1000
 
 setwd(wd_slopes)
-slopes <- read.csv('Slopes.csv')
+slopes <- read.csv('20260208_Slopes.csv')
 
 #set parametres for plotting
 par(mar = c(7,9,5,7), pty="m", mfrow = c(1,1))
@@ -132,7 +132,10 @@ s_minT_relPol$nOcc_log <- log(s_minT_relPol$nOcc)
 
 # Define x and y limits
 x_lim <- range(s_minT_relPol$rangeSize_log10)
-y_lim <- c(-0.05, 0.2)
+y_lim <- c(-0.05, 0.4)
+
+#par
+par(xaxs = "i", yaxs = "i")
 
 #plot graph
 plot(s_minT_relPol$rangeSize_log10, s_minT_relPol$slope_minT_relPol,
@@ -153,10 +156,17 @@ plotting_positions <- c(min(s_minT_relPol$rangeSize_log10),
 
 plotting_values <- round(10 ^ plotting_positions / 1000)
 
-#add axes
+#prepare stuff to make axes meet
+## y ticks (and the y position where the x-axis should sit)
+at_y <- axTicks(2)
+y0   <- min(at_y)   # usually 0 in your plot
+
+## x-axis
 axis(1, at = plotting_positions, labels = plotting_values,
-     pos = y_lim[1], cex.axis = 2)
-axis(2, pos = x_lim[1], las=2, cex.axis = 2)
+     pos = y0, cex.axis = 2)
+
+## y-axis (unchanged, but be explicit about ticks)
+axis(2, at = at_y, pos = x_lim[1], las = 2, cex.axis = 2)
 
 #add axes lables 
 mtext('Range size', side = 1, line = 3.8, cex = 2.5)  
