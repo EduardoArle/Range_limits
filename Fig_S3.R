@@ -158,9 +158,12 @@ polygon(c(x_seq, rev(x_seq)),
 #save 800
 
 
+
 ########################
 ### Median elevation ###
 ########################
+
+
 
 #restricted ylim weighted by nOcc
 
