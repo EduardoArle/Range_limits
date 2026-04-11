@@ -1050,6 +1050,496 @@ setwd(wd_sig)
 write.csv(df, 'maxT_relPol_GS.csv', row.names = F)
 
 
+
+
+# SHAP values X relative polewardness (GAM) RESTRICTED FROM POLAR ZONES
+
+
+### minT
+
+
+#select only species with ranges reaching maximum 
+res_minT_rest60 <- res_minT
+res_minT_rest60$maxLat <- res_minT_rest60$rangeLoc + (res_minT_rest60$latAmpl / 2)
+res_minT_rest60 <- res_minT_rest60[res_minT_rest60$maxLat <= 60,]
+
+res_minT_rest40 <- res_minT
+res_minT_rest40$maxLat <- res_minT_rest40$rangeLoc + (res_minT_rest40$latAmpl / 2)
+res_minT_rest40 <- res_minT_rest40[res_minT_rest40$maxLat <= 40,]
+
+
+#######. REST 60 ######
+
+
+#model G (presence) 
+minT_rest60_relPol_G <- bam(avg_Min_T_SHAP ~
+                       s(relPolewardness, k = 4, bs = "tp")
+                     + s(species, k = n_sps_minT, bs = "re"),
+                     data = res_minT_rest60,
+                     method = "fREML",
+                     discrete = TRUE,
+                     family = gaussian())
+
+
+summary(minT_rest60_relPol_G)
+gam.check(minT_rest60_relPol_G)
+
+#AIC
+AIC_minT_rest60_relPol_G <- AIC(minT_rest60_relPol_G)
+
+setwd(wd_models)
+saveRDS(minT_rest60_relPol_G, 'minT_rest60_relPol_G')
+
+
+plot.gam(minT_rest60_relPol_G, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.3, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS (presence)
+minT_rest60_relPol_GS <- bam(avg_Min_T_SHAP ~
+                        s(relPolewardness, k = 4, m = 2)
+                      + s(relPolewardness, species, k = 4, bs = "fs", m = 2),
+                      data = res_minT_rest60,
+                      method = "fREML",
+                      discrete = TRUE)
+
+
+summary(minT_rest60_relPol_GS)
+gam.check(minT_rest60_relPol_GS)
+
+#AIC
+AIC_minT_rest60_relPol_GS <- AIC(minT_rest60_relPol_GS)
+
+setwd(wd_models)
+saveRDS(minT_rest60_relPol_GS, 'minT_rest60_relPol_GS')
+
+
+plot.gam(minT_rest60_relPol_GS, select = 1, residuals = F, shade = T,
+         ylab = 'SHAP value',
+         ylim = c(-0.3, 0.2),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#test stats for significant change points from First Derivative of GAM smooth
+
+#calculate derivatives
+deriv <- derivatives(minT_rest60_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'minT_rest60_relPol_GS.csv', row.names = F)
+
+
+#######. REST 40 ######
+
+
+#model G (presence) 
+minT_rest40_relPol_G <- bam(avg_Min_T_SHAP ~
+                              s(relPolewardness, k = 4, bs = "tp")
+                            + s(species, k = n_sps_minT, bs = "re"),
+                            data = res_minT_rest40,
+                            method = "fREML",
+                            discrete = TRUE,
+                            family = gaussian())
+
+
+summary(minT_rest40_relPol_G)
+gam.check(minT_rest40_relPol_G)
+
+#AIC
+AIC_minT_rest40_relPol_G <- AIC(minT_rest40_relPol_G)
+
+setwd(wd_models)
+saveRDS(minT_rest40_relPol_G, 'minT_rest40_relPol_G')
+
+
+plot.gam(minT_rest40_relPol_G, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.3, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS (presence)
+minT_rest40_relPol_GS <- bam(avg_Min_T_SHAP ~
+                               s(relPolewardness, k = 4, m = 2)
+                             + s(relPolewardness, species, k = 4, bs = "fs", m = 2),
+                             data = res_minT_rest40,
+                             method = "fREML",
+                             discrete = TRUE)
+
+
+summary(minT_rest40_relPol_GS)
+gam.check(minT_rest40_relPol_GS)
+
+#AIC
+AIC_minT_rest40_relPol_GS <- AIC(minT_rest40_relPol_GS)
+
+setwd(wd_models)
+saveRDS(minT_rest40_relPol_GS, 'minT_rest40_relPol_GS')
+
+
+plot.gam(minT_rest40_relPol_GS, select = 1, residuals = F, shade = T,
+         ylab = 'SHAP value',
+         ylim = c(-0.3, 0.2),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#test stats for significant change points from First Derivative of GAM smooth
+
+#calculate derivatives
+deriv <- derivatives(minT_rest40_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'minT_rest40_relPol_GS.csv', row.names = F)
+
+
+
+### meanT
+
+#select only species with ranges reaching maximum 
+res_meanT_rest60 <- res_meanT
+res_meanT_rest60$maxLat <- res_meanT_rest60$rangeLoc + (res_meanT_rest60$latAmpl / 2)
+res_meanT_rest60 <- res_meanT_rest60[res_meanT_rest60$maxLat <= 60,]
+
+res_meanT_rest40 <- res_meanT
+res_meanT_rest40$maxLat <- res_meanT_rest40$rangeLoc + (res_meanT_rest40$latAmpl / 2)
+res_meanT_rest40 <- res_meanT_rest40[res_meanT_rest40$maxLat <= 40,]
+
+
+#######. REST 60 ######
+
+
+#model G (presence) 
+meanT_rest60_relPol_G <- bam(avg_Mean_T_SHAP ~
+                        s(relPolewardness, k = 4, bs = "tp")
+                      + s(species, k = n_sps_meanT, bs = "re"),
+                      data = res_meanT_rest60,
+                      method = "fREML",
+                      discrete = TRUE,
+                      family = gaussian())
+
+
+summary(meanT_rest60_relPol_G)
+gam.check(meanT_rest60_relPol_G)
+
+#AIC
+AIC_meanT_rest60_relPol_G <- AIC(meanT_rest60_relPol_G)
+
+setwd(wd_models)
+saveRDS(meanT_rest60_relPol_G, 'meanT_rest60_relPol_G')
+
+
+plot.gam(meanT_rest60_relPol_G, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.15, 0.06),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS (presence)
+meanT_rest60_relPol_GS <- bam(avg_Mean_T_SHAP ~
+                         s(relPolewardness, k = 4, m = 2)
+                       + s(relPolewardness, species, k = 4, bs = "fs", m = 2),
+                       data = res_meanT_rest60,
+                       method = "fREML",
+                       discrete = TRUE)
+
+
+summary(meanT_rest60_relPol_GS)
+gam.check(meanT_rest60_relPol_GS)
+
+#AIC
+AIC_meanT_rest60_relPol_GS <- AIC(meanT_rest60_relPol_GS)
+
+setwd(wd_models)
+saveRDS(meanT_rest60_relPol_GS, 'meanT_rest60_relPol_GS')
+
+
+plot.gam(meanT_rest60_relPol_GS, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.25, 0.25),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#calculate derivatives
+deriv <- derivatives(meanT_rest60_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+#identify points where derivative is significantly different from zero
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'meanT_rest60_relPol_GS.csv', row.names = F)
+
+
+
+#######. REST 40 ######
+
+
+#model G (presence) 
+meanT_rest40_relPol_G <- bam(avg_Mean_T_SHAP ~
+                               s(relPolewardness, k = 4, bs = "tp")
+                             + s(species, k = n_sps_meanT, bs = "re"),
+                             data = res_meanT_rest40,
+                             method = "fREML",
+                             discrete = TRUE,
+                             family = gaussian())
+
+
+summary(meanT_rest40_relPol_G)
+gam.check(meanT_rest40_relPol_G)
+
+#AIC
+AIC_meanT_rest40_relPol_G <- AIC(meanT_rest40_relPol_G)
+
+setwd(wd_models)
+saveRDS(meanT_rest40_relPol_G, 'meanT_rest40_relPol_G')
+
+
+plot.gam(meanT_rest40_relPol_G, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.15, 0.3),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+#model GS (presence)
+meanT_rest40_relPol_GS <- bam(avg_Mean_T_SHAP ~
+                                s(relPolewardness, k = 4, m = 2)
+                              + s(relPolewardness, species, k = 4, bs = "fs", m = 2),
+                              data = res_meanT_rest40,
+                              method = "fREML",
+                              discrete = TRUE)
+
+
+summary(meanT_rest40_relPol_GS)
+gam.check(meanT_rest40_relPol_GS)
+
+#AIC
+AIC_meanT_rest40_relPol_GS <- AIC(meanT_rest40_relPol_GS)
+
+setwd(wd_models)
+saveRDS(meanT_rest40_relPol_GS, 'meanT_rest40_relPol_GS')
+
+
+plot.gam(meanT_rest40_relPol_GS, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.25, 0.25),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#calculate derivatives
+deriv <- derivatives(meanT_rest40_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+#identify points where derivative is significantly different from zero
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'meanT_rest40_relPol_GS.csv', row.names = F)
+
+
+
+
+
+### maxT
+
+#select only species with ranges reaching maximum 
+res_maxT_rest60 <- res_maxT
+res_maxT_rest60$maxLat <- res_maxT_rest60$rangeLoc + (res_maxT_rest60$latAmpl / 2)
+res_maxT_rest60 <- res_maxT_rest60[res_maxT_rest60$maxLat <= 60,]
+
+res_maxT_rest40 <- res_maxT
+res_maxT_rest40$maxLat <- res_maxT_rest40$rangeLoc + (res_maxT_rest40$latAmpl / 2)
+res_maxT_rest40 <- res_maxT_rest40[res_maxT_rest40$maxLat <= 40,]
+
+
+#######. REST 60 ######
+
+
+#model G (presence) 
+maxT_rest60_relPol_G <- bam(avg_Max_T_SHAP ~
+                       s(relPolewardness, k = 4, bs = "tp")
+                     + s(species, k = n_sps_maxT, bs = "re"),
+                     data = res_maxT_rest60,
+                     method = "fREML",
+                     discrete = TRUE,
+                     family = gaussian())
+
+
+summary(maxT_rest60_relPol_G)
+gam.check(maxT_rest60_relPol_G)
+
+#AIC
+AIC_maxT_relPol_G <- AIC(maxT_rest60_relPol_G)
+
+setwd(wd_models)
+saveRDS(maxT_rest60_relPol_G, 'maxT_rest60_relPol_G')
+
+
+plot.gam(maxT_rest60_relPol_G, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.06, 0.06),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#model GS (presence)
+maxT_rest60_relPol_GS <- bam(avg_Max_T_SHAP ~
+                        s(relPolewardness, k = 4, m = 2)
+                      + s(relPolewardness, species, k = 4, bs = "fs", m = 2),
+                      data = res_maxT_rest60,
+                      method = "fREML",
+                      discrete = TRUE)
+
+
+summary(maxT_rest60_relPol_GS)
+gam.check(maxT_rest60_relPol_GS)
+
+#AIC
+AIC_maxT_rest60_relPol_GS <- AIC(maxT_rest60_relPol_GS)
+
+setwd(wd_models)
+saveRDS(maxT_rest60_relPol_GS, 'maxT_rest60_relPol_GS')
+
+
+plot.gam(maxT_rest60_relPol_GS, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+#calculate derivatives
+deriv <- derivatives(maxT_rest60_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'maxT_rest60_relPol_GS.csv', row.names = F)
+
+
+
+
+#######. REST 40 ######
+
+
+#model G (presence) 
+maxT_rest40_relPol_G <- bam(avg_Max_T_SHAP ~
+                              s(relPolewardness, k = 4, bs = "tp")
+                            + s(species, k = n_sps_maxT, bs = "re"),
+                            data = res_maxT_rest40,
+                            method = "fREML",
+                            discrete = TRUE,
+                            family = gaussian())
+
+
+summary(maxT_rest40_relPol_G)
+gam.check(maxT_rest40_relPol_G)
+
+#AIC
+AIC_maxT_relPol_G <- AIC(maxT_rest40_relPol_G)
+
+setwd(wd_models)
+saveRDS(maxT_rest40_relPol_G, 'maxT_rest40_relPol_G')
+
+
+plot.gam(maxT_rest40_relPol_G, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.3, 0.3),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+
+
+#model GS (presence)
+maxT_rest40_relPol_GS <- bam(avg_Max_T_SHAP ~
+                               s(relPolewardness, k = 4, m = 2)
+                             + s(relPolewardness, species, k = 4, bs = "fs", m = 2),
+                             data = res_maxT_rest40,
+                             method = "fREML",
+                             discrete = TRUE)
+
+
+summary(maxT_rest40_relPol_GS)
+gam.check(maxT_rest40_relPol_GS)
+
+#AIC
+AIC_maxT_rest40_relPol_GS <- AIC(maxT_rest40_relPol_GS)
+
+setwd(wd_models)
+saveRDS(maxT_rest40_relPol_GS, 'maxT_rest40_relPol_GS')
+
+
+plot.gam(maxT_rest40_relPol_GS, select = 1, residuals = F, shade = F,
+         ylab = 'SHAP value',
+         ylim = c(-0.1, 0.1),
+         cex.lab = 2, cex.axis = 1.5) #save 800
+
+#calculate derivatives
+deriv <- derivatives(maxT_rest40_relPol_GS,
+                     select = "s(relPolewardness)",
+                     type = "central",
+                     n = 500)  # number of points to evaluate
+
+
+sig_points <- with(deriv, !(.lower_ci <= 0 & .upper_ci >= 0))
+
+#add significance to the derivatives data frame
+deriv$sig <- sig_points
+df <- deriv
+
+#save significance table
+setwd(wd_sig)
+write.csv(df, 'maxT_rest40_relPol_GS.csv', row.names = F)
+
+
+
+
+
 # SHAP values X absolute polewardness (GAM)
 
 #set par for plotting

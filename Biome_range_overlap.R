@@ -7,6 +7,8 @@ library(sf); library(units)
 #list wds
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_biomes <- '/Users/carloseduardoaribeiro/Documents/General data/Biomes/official'
+
+
 wd_thinned_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Thinned_occurrrences'
 wd_tab_SI <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/SI/Tables'
 
@@ -72,6 +74,13 @@ biomes$BIOME_NAME[biomes$BIOME == 98] <- 'Lakes'
 
 plot(st_geometry(biomes[biomes$BIOME == 99,]), col = 'darkcyan', border = NA)
 biomes$BIOME_NAME[biomes$BIOME == 99] <- 'Rock and Ice'
+
+
+
+#### USE TABLE S1 for this ???  #### 
+#### include this part in the script to make table S1 #####
+
+
 
 #list species
 setwd(wd_tab_SI)

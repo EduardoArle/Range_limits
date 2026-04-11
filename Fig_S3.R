@@ -2557,8 +2557,9 @@ axis(2, pos = x_lim[1], las=2, cex.axis = 2)
 
 
 #add axes lables
-#mtext('Latitudinal amplitude', side = 1, line = 3.8, cex = 2.5)
+mtext('Latitudinal position', side = 1, line = 5.5, cex = 2.5)
 #mtext('Slope', side = 2, line = 6.5, cex = 2.5)
+
 
 #define x range explicitly
 x_vals <- s_maxT_distEdge$rangeLoc
@@ -2736,8 +2737,8 @@ axis(1, pos = y_lim[1], cex.axis = 2)
 axis(2, pos = x_lim[1], las=2, cex.axis = 2)
 
 
-#add axes lables
-#mtext('Roundness', side = 1, line = 3.8, cex = 2.5)
+#add axes lables 
+mtext('Range shape', side = 1, line = 5.5, cex = 2.5)  
 #mtext('Slope', side = 2, line = 6.5, cex = 2.5)
 
 #define x range explicitly
