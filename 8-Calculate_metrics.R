@@ -32,7 +32,7 @@ library(sf); library(units); library(raster)
 wd_ranges <- "/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Range_maps"
 wd_occ <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Occurrences/Species_occ'
 wd_elevation <- '/Users/carloseduardoaribeiro/Documents/Post-doc/Variable layes/BioClim_layers'
-wd_mass <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Mammal_trait_data/Smith_etal_2003_Ecology'
+wd_mass <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Body mass/COMBINE_archives'
 wd_tax_harm <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review'
 wd_biomes <- '/Users/carloseduardoaribeiro/Documents/General data/Biomes/official'
 wd_pts_metrics <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manuscript/Submission NEE/Review/Tables/Occurrence_metrics'
@@ -53,7 +53,7 @@ tax_harm <- read.csv('Harmonised_table.csv')
 
 #load harmonised mammal body mass table
 setwd(wd_mass)
-mass <- read.csv('Harmonised_Mammals_bodymass_Smmith_2003.csv')
+mass <- read.csv('Harmonised_COMBINE_bodymass.csv')
 
 #list species
 setwd(wd_occ)
@@ -146,7 +146,7 @@ for(i in 1:length(sps_list))
   ymax <- st_bbox(range_dom)$ymax
   ymin <- st_bbox(range_dom)$ymin
   
-  #flag if range is crossed by the equator (deal with this part of the code after)
+  #flag if range is crossed by the equator
   if(ymax > 0 & ymin < 0 | ymax < 0 & ymin > 0){
     sps_occ$NOTE <- 'Crossed by Equator'
   }else{
@@ -199,20 +199,27 @@ for(i in 1:length(sps_list))
 
   } else {
     
-    #get body mass values from Smith table
-    bm <- mass$BodyMass[which(mass$gbif_name == gbif_name)]
+    #get body mass values from COMBINE table
+    bm <- mass$adult_mass_g[which(mass$gbif_name == gbif_name)]
     
-    #remove NA values
-    bm <- bm[!is.na(bm)]
+    #get body mass source
+    bm_source <- mass$mass_source[which(mass$gbif_name == gbif_name)]
     
-    #assign average body mass
+    #assign body mass
     if(length(bm) == 0){
       sps_occ$bodyMass <- NA
     } else {
-      sps_occ$bodyMass <- mean(bm)
+      sps_occ$bodyMass <- bm[1]
     }
     
-    #get order from Smith table
+    #assign body mass source
+    if(length(bm_source) == 0){
+      sps_occ$bodyMassSource <- NA
+    } else {
+      sps_occ$bodyMassSource <- bm_source[1]
+    }
+    
+    #get order from table
     ord <- tax_harm$order[match(sps_list[i], tax_harm$iucn_name)]
     ord <- ord[!is.na(ord)]
     
