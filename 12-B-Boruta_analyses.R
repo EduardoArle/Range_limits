@@ -1,4 +1,4 @@
-#load packagesx
+#load packages
 library(Boruta)
 
 #list wds

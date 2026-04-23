@@ -42,14 +42,16 @@ text(0.2, (10/10 * 9) + 0.5, 'Species-level attributes', cex = cex_tit, adj = 0,
 
 
 
-'Proxy for phylogenetic relatedness, may influence species’ responses to climate (Burns & Strauss 2011). Retrieved via the taxize R package (Chamberlain & Szöcs 2013) and manually completed using IUCN Red List data (IUCN 2024).'
+'Proxy for broad phylogenetic relatedness, which may influence species’ responses to climate (Burns and Strauss 2011). Retrieved during taxonomic harmonisation using the GBIF backbone taxonomy.'
 
-text(3.6, 0.75, 'Proxy for phylogenetic relatedness, may influence species’ responses',
+
+text(3.6, 0.75, 'Proxy for broad phylogenetic relatedness, which may influence species’',
      cex = cex_desc, adj = 0)
-text(3.6, 0.5, 'to climate (Burns & Strauss 2011). Retrieved via the taxize R package',
+text(3.6, 0.5, 'responses to climate (Burns and Strauss 2011). Retrieved during taxonomic',
      cex = cex_desc, adj = 0)
-text(3.6, 0.25, 'and manually completed using IUCN Red List data (IUCN 2024).',
+text(3.6, 0.25, 'harmonisation using the GBIF backbone taxonomy.',
      cex = cex_desc, adj = 0)
+
 
 'Number of occurrences used to fit models (log), as model performance tends to increase with sample size (Guisan et al. 2017; Moudrý et al. 2024). Fewer records generally reduce the ability to detect clear niche patterns.'
 
@@ -61,10 +63,10 @@ text(3.6, 10/10 + 0.25, 'Fewer records generally reduce the ability to detect cl
      cex = cex_desc, adj = 0)
 
 
-"Proxy for thermal sensitivity (Smith et al. 2003): smaller mammals are vulnerable to cold and temperature fluctuations; larger ones conserve heat but risk overheating (Pacifici et al. 2017; Spence and Tingley 2020)."
+"Proxy for thermal sensitivity (Soria et al. 2021): smaller mammals are vulnerable to cold and temperature fluctuations; larger ones conserve heat but risk overheating (Pacifici et al. 2017; Spence and Tingley 2020)."
 
 
-text(3.6, (10/10 * 2) + 0.75, expression('Proxy for thermal sensitivity (Smith' ~ italic('et al.') ~ '2003): smaller mammals are'),
+text(3.6, (10/10 * 2) + 0.75, expression('Proxy for thermal sensitivity (Soria' ~ italic('et al.') ~ '2021): smaller mammals are'),
      cex = cex_desc, adj = 0)
 text(3.6, (10/10 * 2) + 0.5, 'vulnerable to cold and temperature fluctuations; larger ones conserve', cex = cex_desc, adj = 0)
 text(3.6, (10/10 * 2) + 0.25, expression('heat but risk overheating (Pacifici' ~ italic('et al.') ~ '2017; Spence and Tingley 2020).'), cex = cex_desc, adj = 0)
@@ -92,11 +94,11 @@ text(3.6, (10/10 * 5) + 0.5, 'using the terra R package. Higher elevations are e
 text(3.6, (10/10 * 5) + 0.25, 'stronger climatic constraints due to more extreme conditions.', cex = cex_desc, adj = 0)
 
 
-'Mean latitude of the range. Temperate species are predicted to be more climatically constrained than tropical ones, consistent with prior studies (Addo-Bediako et al. 2000; Stuart-Smith et al. 2017; Percino-Daniel et al. 2021).'
+'Absolute latitude of the midpoint of the species’ range. Temperate species are predicted to be more climatically constrained than tropical ones, consistent with prior studies (Addo-Bediako et al. 2000; Percino-Daniel et al. 2021).'
 
-text(3.6, (10/10 * 6) + 0.75, 'Mean latitude of the range. Temperate species are predicted to be more', cex = cex_desc, adj = 0)
-text(3.6, (10/10 * 6) + 0.5, 'climatically constrained than tropical ones, consistent with prior studies', cex = cex_desc, adj = 0)
-text(3.6, (10/10 * 6) + 0.25, expression('(Addo-Bediako' ~ italic('et al.') ~ '2000; Percino-Daniel' ~ italic('et al.') ~ '2021).'), cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 6) + 0.75, 'Absolute latitude of the midpoint of the species’ range. Temperate species are', cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 6) + 0.5, 'predicted to be more climatically constrained than tropical ones, consistent with', cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 6) + 0.25, expression('prior studies (Addo-Bediako' ~ italic('et al.') ~ '2000; Percino-Daniel' ~ italic('et al.') ~ '2021).'), cex = cex_desc, adj = 0)
 
 
 'Difference between the northern and southernmost limits of a species range. Wider ranges suggest exposure to broader climatic conditions, potentially indicating greater ecological tolerance (Stevens 1989) and clearer climatic gradients.'
@@ -116,5 +118,5 @@ text(3.6, (10/10 * 8) + 0.25, expression('ecological tolerance and weaker climat
 
 text(3.6, (10/10 * 9) + 0.5, 'Description', cex = cex_tit, adj = 0, font = 2)
 
-#save landscape 5 x 7.2 in
+#save PDF landscape 5 x 7.2 in
 
