@@ -97,8 +97,8 @@ text(3.6, (10/10 * 5) + 0.25, 'stronger climatic constraints due to more extreme
 'Absolute latitude of the midpoint of the species’ range. Temperate species are predicted to be more climatically constrained than tropical ones, consistent with prior studies (Addo-Bediako et al. 2000; Percino-Daniel et al. 2021).'
 
 text(3.6, (10/10 * 6) + 0.75, 'Absolute latitude of the midpoint of the species’ range. Temperate species are', cex = cex_desc, adj = 0)
-text(3.6, (10/10 * 6) + 0.5, 'predicted to be more climatically constrained than tropical ones, consistent with', cex = cex_desc, adj = 0)
-text(3.6, (10/10 * 6) + 0.25, expression('prior studies (Addo-Bediako' ~ italic('et al.') ~ '2000; Percino-Daniel' ~ italic('et al.') ~ '2021).'), cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 6) + 0.5, 'predicted to be more climatically constrained than tropical ones, consistent', cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 6) + 0.25, expression('with prior studies (Addo-Bediako' ~ italic('et al.') ~ '2000; Percino-Daniel' ~ italic('et al.') ~ '2021).'), cex = cex_desc, adj = 0)
 
 
 'Difference between the northern and southernmost limits of a species range. Wider ranges suggest exposure to broader climatic conditions, potentially indicating greater ecological tolerance (Stevens 1989) and clearer climatic gradients.'

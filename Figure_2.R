@@ -89,25 +89,22 @@ cols <- col_map[orders]
 ##### PLOT SPECIES PER TAXON #####
 
 
+par(mar = c(5,12,1,2))
 
-#set margins for plot
-par(mar = c(5,12,3,2), cex = 1.2)
-
-#bar plot species per order (study sample only)
 bp <- barplot(counts, names.arg = orders, horiz = TRUE, las = 1, col = cols,
-              xlim = c(0,560), xaxt = 'n', xlab = 'Number of species',
-              space = 0.25, ylab = NA, main = 'Species per order',
-              cex.names = 1.1)
+              xlim = c(0,580), xaxt = 'n', xlab = 'Number of species',
+              space = 0.5, ylab = NA,
+              cex.names = 1.35, cex.lab = 1.4)
 
-axis(1, at = c(0,100,200,300,400,500))
+axis(1, at = c(0,100,200,300,400,500), cex.axis = 1.4)
 
-#plot counts (right aligned)
-text(480, bp, labels = counts, adj = 1, cex = 1)
+text(505, bp, labels = counts, adj = 1, cex = 1.4)
 
-#plot percentages (right aligned)
-text(530, bp, labels = paste0('(',perc,'%)'), adj = 1, cex = 1)
+text(570, bp, labels = paste0('(',perc,'%)'), adj = 1, cex = 1.2)
 
-#save 1000
+#save 800
+
+
 
 ##### PLOT LARGE MAP #####
 
@@ -192,9 +189,7 @@ for(i in 1:length(sps_list))
 
 
 
-##### PLOT SMALL MAP WITH SPECIES PER CONTINENT #####
-
-
+##### CALCULATE NUMBER OF SPECIES PER CONTINENT #####
 
 #load world polygons
 world_cont <- ne_countries(scale = 'medium', returnclass = 'sf')
@@ -203,151 +198,81 @@ world_cont <- ne_countries(scale = 'medium', returnclass = 'sf')
 keep <- c('North America','South America','Europe','Africa','Asia','Oceania')
 world_cont <- world_cont[world_cont$continent %in% keep, ]
 
-#dissolve countries into continent polygons:
+#dissolve countries into continent polygons
 continents <- aggregate(world_cont['continent'],
                         by = list(world_cont$continent), FUN = length)
 
 names(continents)[1] <- 'continent'
 
-#make CRS matche my ranges
+#match CRS with species ranges
 continents <- st_transform(continents, st_crs(world))
 
-#prepare vector to store results
+#prepare vector to store continent(s) per species
 sps_cont <- vector('list', length(tab$sps))
 names(sps_cont) <- tab$sps
 
-#loop through species to find continent(s) of each
+#loop through species to find continent(s)
 for(i in 1:length(tab$sps))
 {
-  #get species name
   sps <- tab$sps[i]
   
-  #load species range
   setwd(wd_ranges)
   range <- st_read(dsn = wd_ranges, layer = sps, quiet = TRUE)
   
-  #remove introduced and vagrant occurrences
   range <- range[!range$legend %in% c('Introduced','Vagrant'), ]
   
-  #get area of main fragment of the range
-  dom_frag_km2 <- as.numeric(strsplit(sps_table$range_frag_km2[
-    match(sps, sps_table$species)], ';')[[1]][
-      sps_table$dom_frag[match(sps, sps_table$species)]])
+  dom_frag_km2 <- as.numeric(strsplit(
+    sps_table$range_frag_km2[
+      match(sps, sps_table$species)], ';')[[1]][
+        sps_table$dom_frag[match(sps, sps_table$species)]])
   
-  #split range into fragments
   frags <- st_cast(range, 'POLYGON')
   
-  #get centroid to build local equal-area projection
   cen <- st_coordinates(st_centroid(st_union(frags)))[1, ]
   
-  #define local equal-area projection
-  crs_laea <- paste0('+proj=laea +lat_0=', cen[2], ' +lon_0=', cen[1],
+  crs_laea <- paste0('+proj=laea +lat_0=', cen[2],
+                     ' +lon_0=', cen[1],
                      ' +datum=WGS84 +units=m +no_defs')
   
-  #project fragments to equal-area CRS
   frags_m <- st_transform(frags, crs_laea)
   
-  #calculate fragment areas in km2
   a_km2 <- as.numeric(st_area(frags_m)) / 1e6
   
-  #identify fragment closest to dominant fragment area
   frag_pos <- which.min(abs(a_km2 - dom_frag_km2))
   
-  #keep only dominant fragment
   range_dom <- frags[frag_pos, ]
   
-  #transform dominant fragment to continent CRS
   range_dom <- st_transform(range_dom, st_crs(continents))
   
-  #identify continent intersection
   inter <- st_intersects(range_dom, continents)
   
-  #store continent names
   sps_cont[[i]] <- continents$continent[inter[[1]]]
   
-  #print progress
   print(i)
 }
 
+## Convert list into species–continent table
 
-
-## Convert the list sps_cont into a table.
-
-#create empty table
 cont_table <- data.frame()
 
-#expand species–continent combinations
 for(i in 1:length(sps_cont))
 {
   if(length(sps_cont[[i]]) > 0)
   {
     tmp <- data.frame(species = tab$sps[i],
                       continent = sps_cont[[i]])
+    
     cont_table <- rbind(cont_table, tmp)
   }
 }
 
-#count unique species per continent
+## Count unique species per continent
+
 cont_counts <- aggregate(cont_table$species,
                          by = list(cont_table$continent),
                          FUN = function(x) length(unique(x)))
 
 names(cont_counts) <- c('continent','n_species')
-
-
-#add species counts to continent polygons
-continents$n_species <- cont_counts$n_species[
-  match(continents$continent, cont_counts$continent)]
-
-#assign colours to continents
-cont_cols <- c('North America' = '#1F78B4', 'South America' = '#33A02C',
-               'Europe' = '#6A3D9A', 'Africa' = '#FF7F00',
-               'Asia' = '#E31A1C', 'Oceania' = '#B15928')
-
-#get colours in polygon order
-cols_cont <- cont_cols[continents$continent]
-
-#plot continents with chosen colours
-plot(st_geometry(continents),
-     col = cols_cont,
-     border = 'NA',
-     axes = FALSE)
-
-#add frame to the map
-plot(worldmapframe, add = TRUE)
-
-#get label positions inside polygons
-lab_pts <- st_point_on_surface(continents)
-
-#extract coordinates
-coords <- st_coordinates(lab_pts)
-
-#North America (+10° north)
-coords[continents$continent == "North America",2] <-
-  coords[continents$continent == "North America",2] + 1110000
-
-#South America (+10° north)
-coords[continents$continent == "South America",2] <-
-  coords[continents$continent == "South America",2] + 1110000
-
-#Africa (+15° north, 10° west)
-coords[continents$continent == "Africa",2] <-
-  coords[continents$continent == "Africa",2] + 1665000
-
-coords[continents$continent == "Africa",1] <-
-  coords[continents$continent == "Africa",1] - 1110000
-
-#Asia (+15° north)
-coords[continents$continent == "Asia",2] <-
-  coords[continents$continent == "Asia",2] + 1110000
-
-#add species numbers
-text(coords,
-     labels = continents$n_species,
-     col = "white",
-     font = 2,
-     cex = 1.4)
-
 
 
 
@@ -412,29 +337,27 @@ range_bins <- cut(range_sizes, breaks = breaks, labels = labels,
 bin_counts <- table(range_bins)
 
 #set margins
-par(mar = c(5,5,3,2))
+par(mar = c(5.5,5.5,1,2))
 
-#plot the histogram
 bp <- barplot(bin_counts,
-              col = "grey55",
-              border = "white",
-              space = 0.15,
-              ylab = "Number of species",
-              xlab = "Range size (km²)",
-              ylim = c(0, max(bin_counts) * 1.15),
-              cex.names = 1.1)
+              col = 'grey55',
+              border = 'white',
+              space = 0.2,
+              ylab = 'Number of species',
+              xlab = 'Range size (km²)',
+              ylim = c(0, max(bin_counts) * 1.18),
+              cex.names = 1.35,
+              cex.lab = 1.5,
+              cex.axis = 1.4)
 
-
-#add numbers
 text(bp,
      bin_counts,
      labels = bin_counts,
      pos = 3,
-     cex = 1)
+     cex = 1.25)
 
+box(bty = 'l')
 
-box(bty = "l")
-
-#save 800
+#save 1000
 
 

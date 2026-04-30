@@ -10,7 +10,7 @@ wd_slopes <- '/Users/carloseduardoaribeiro/Documents/Post-doc/SHAP/Mammals/Manus
   
 #read results table
 setwd(wd_tables)
-results <- read.csv('20260126_Results_all_sps.csv')
+results <- read.csv('20260428_Results_all_sps.csv')
 
 #transform species names in factor
 results$species <- as.factor(results$sps)
@@ -469,4 +469,4 @@ slopes <- data.frame(species = sps_list, rangeSize = rangeSize,
 
 #save table with slopes
 setwd(wd_slopes)
-write.csv(slopes, '20260221_Slopes_split.csv', row.names = F)
+write.csv(slopes, '20260428_Slopes_split.csv', row.names = F)
