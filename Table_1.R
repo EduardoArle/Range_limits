@@ -83,7 +83,7 @@ text(3.6, (10/10 * 2) + 0.25, expression('overheating¹⁰⁸˒¹⁰⁹.'), cex 
 
 text(3.6, (10/10 * 3) + 0.75, 'Measures roundness as (4π × Area) / Perimeter². Higher values indicate', cex = cex_desc, adj = 0)
 text(3.6, (10/10 * 3) + 0.5, 'more circular ranges, lower values suggest irregular ranges shaped by', cex = cex_desc, adj = 0)
-text(3.6, (10/10 * 3) + 0.25, 'geography, potentially weakening climatic gradients¹⁰⁶', cex = cex_desc, adj = 0)
+text(3.6, (10/10 * 3) + 0.25, 'geography, potentially weakening climatic gradients¹⁰⁶.', cex = cex_desc, adj = 0)
 
 
 'Calculated as the difference between the 97.5% and 2.5% elevation quantiles across presence records. Broader ranges suggest exposure to diverse climates, potentially leading to more variable responses.'
